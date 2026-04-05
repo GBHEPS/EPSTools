@@ -1915,6 +1915,18 @@
                 addRow();
             }
         });
+
+        // Expose functions to global scope (required for type="module")
+        window.addRow = addRow;
+        window.removeLastRow = removeLastRow;
+        window.clearMeasurements = clearMeasurements;
+        window.generateOutput = generateOutput;
+        window.printShopPacket = printShopPacket;
+        window.printAdminPage = printAdminPage;
+        window.saveProject = saveProject;
+        window.loadProject = loadProject;
+        window.importCSV = importCSV;
+        window.updateProductDefaults = updateProductDefaults;
     </script>
 </body>
 </html>
