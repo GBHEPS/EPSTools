@@ -1,0 +1,1754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Window Component Calculator</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            font-size: 12px;
+        }
+        
+        .screen-only {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            margin: 0 0 20px 0;
+            font-size: 24px;
+            color: #333;
+        }
+        
+        h2 {
+            margin: 20px 0 10px 0;
+            font-size: 16px;
+            color: #333;
+            border-bottom: 2px solid #333;
+            padding-bottom: 5px;
+        }
+        
+        h3 {
+            margin: 15px 0 8px 0;
+            font-size: 13px;
+            color: #333;
+        }
+        
+        /* Input Section Styles */
+        .input-section {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .header-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .header-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .header-field label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #666;
+        }
+        
+        .header-field input {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        
+        .header-field select {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 13px;
+            background: #fff;
+        }
+        
+        .params-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+        }
+        
+        .param-field {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        
+        .param-field label {
+            font-size: 10px;
+            font-weight: 600;
+            color: #666;
+        }
+        
+        .param-field input {
+            padding: 6px 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 13px;
+            width: 100%;
+        }
+        
+        .measurements-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            margin-bottom: 15px;
+            font-size: 11px;
+        }
+        
+        .measurements-table th {
+            background: #333;
+            color: #fff;
+            padding: 6px 3px;
+            font-size: 10px;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        .measurements-table td {
+            padding: 2px;
+            border: 1px solid #ddd;
+        }
+        
+        .measurements-table input {
+            width: 100%;
+            padding: 5px 3px;
+            border: 1px solid #ddd;
+            border-radius: 2px;
+            font-size: 11px;
+            text-align: center;
+        }
+        
+        .measurements-table input:focus {
+            outline: none;
+            border-color: #007bff;
+            background: #f0f7ff;
+        }
+        
+        .measurements-table input.notes-input {
+            text-align: left;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 10px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            opacity: 0.9;
+        }
+        
+        .btn-primary { background: #007bff; color: #fff; }
+        .btn-secondary { background: #6c757d; color: #fff; }
+        .btn-success { background: #28a745; color: #fff; }
+        .btn-warning { background: #ffc107; color: #333; }
+        
+        /* Print Pages */
+        .print-page {
+            display: none;
+        }
+        
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #333;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .page-header h1 {
+            font-size: 16px;
+            margin: 0;
+        }
+        
+        .page-header .subtitle {
+            font-size: 11px;
+            color: #666;
+            margin-top: 2px;
+        }
+        
+        .page-header .page-info {
+            text-align: right;
+            font-size: 10px;
+            color: #666;
+        }
+        
+        .print-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .print-table th {
+            background: #e0e0e0;
+            padding: 5px 4px;
+            font-weight: 600;
+            text-align: center;
+            border: 1px solid #999;
+        }
+        
+        .print-table td {
+            padding: 4px;
+            border: 1px solid #999;
+            text-align: center;
+        }
+        
+        .print-table .id-col {
+            font-weight: 600;
+            background: #f5f5f5;
+        }
+        
+        .print-table .notes-col {
+            text-align: left;
+            font-size: 9px;
+        }
+        
+        .print-table .section-header {
+            background: #333;
+            color: #fff;
+            font-weight: 600;
+        }
+        
+        /* Checkbox grid for cutout tracking */
+        .checkbox-grid {
+            display: inline-block;
+            margin-left: 10px;
+        }
+        
+        .checkbox-grid table {
+            border-collapse: collapse;
+        }
+        
+        .checkbox-grid th, .checkbox-grid td {
+            border: 1px solid #999;
+            padding: 2px 4px;
+            font-size: 9px;
+            text-align: center;
+            min-width: 22px;
+        }
+        
+        .checkbox-grid th {
+            background: #e0e0e0;
+        }
+        
+        .stock-grid {
+            margin-top: 15px;
+        }
+        
+        .stock-grid table {
+            border-collapse: collapse;
+            font-size: 9px;
+            width: 100%;
+        }
+        
+        .stock-grid th, .stock-grid td {
+            border: 1px solid #999;
+            padding: 3px 10px;
+            text-align: center;
+            min-width: 45px;
+            height: 20px;
+        }
+        
+        .stock-grid th {
+            background: #e0e0e0;
+        }
+        
+        .stock-grid .row-label {
+            background: #f5f5f5;
+            font-weight: 600;
+            text-align: left;
+        }
+        
+        /* Assembly page checklist */
+        .checklist {
+            margin-top: 20px;
+            columns: 2;
+            column-gap: 30px;
+        }
+        
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+            border-bottom: 1px solid #ddd;
+            break-inside: avoid;
+        }
+        
+        .checklist-item label {
+            font-weight: 600;
+            min-width: 80px;
+            font-size: 10px;
+        }
+        
+        .checklist-item .line {
+            flex: 1;
+            border-bottom: 1px solid #ccc;
+            min-width: 100px;
+        }
+        
+        /* Parameters display for print */
+        .params-display {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            font-size: 10px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+        }
+        
+        .params-display .param {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .params-display .param-label {
+            color: #666;
+        }
+        
+        .params-display .param-value {
+            font-weight: 600;
+        }
+        
+        /* Material summary */
+        .material-summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+            padding: 10px;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+        }
+        
+        .material-item {
+            text-align: center;
+        }
+        
+        .material-item .value {
+            font-size: 18px;
+            font-weight: 700;
+        }
+        
+        .material-item .label {
+            font-size: 10px;
+            color: #666;
+        }
+        
+        /* Admin page specific */
+        .admin-section {
+            background: #fffde7;
+            padding: 15px;
+            border: 1px solid #ffc107;
+            margin-bottom: 15px;
+        }
+        
+        .bf-breakdown {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .bf-item {
+            text-align: center;
+            padding: 8px;
+            background: #fff;
+            border: 1px solid #ddd;
+        }
+        
+        .bf-item .component {
+            font-size: 10px;
+            color: #666;
+        }
+        
+        .bf-item .amount {
+            font-size: 14px;
+            font-weight: 700;
+        }
+        
+        /* Compact styles for condensed shop packet */
+        .print-table.compact th,
+        .print-table.compact td {
+            padding: 3px 2px;
+            font-size: 9px;
+        }
+        
+        .params-display.compact {
+            grid-template-columns: repeat(6, 1fr);
+            gap: 5px;
+            padding: 8px;
+            font-size: 9px;
+            margin-bottom: 10px;
+        }
+        
+        .checklist-compact {
+            font-size: 9px;
+        }
+        
+        .checklist-item-compact {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .checklist-item-compact label {
+            font-weight: 600;
+            min-width: 70px;
+            font-size: 9px;
+        }
+        
+        .checklist-item-compact .line {
+            flex: 1;
+            border-bottom: 1px solid #ccc;
+            min-width: 50px;
+        }
+        
+        h3 {
+            margin: 10px 0 5px 0;
+            font-size: 11px;
+        }
+        
+        h4 {
+            margin: 5px 0;
+            font-size: 10px;
+            color: #555;
+        }
+        
+        /* Additional Info input grid */
+        .additional-info-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+        
+        .info-field {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        
+        .info-field label {
+            font-size: 10px;
+            font-weight: 600;
+            color: #666;
+        }
+        
+        .info-field input {
+            padding: 6px 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        /* Section color coding */
+        .section-block {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        
+        .section-data {
+            background: #e3f2fd;
+            border-left: 4px solid #1976d2;
+        }
+        
+        .section-cutout {
+            background: #e8f5e9;
+            border-left: 4px solid #388e3c;
+        }
+        
+        .section-assembly {
+            background: #fff3e0;
+            border-left: 4px solid #f57c00;
+        }
+        
+        /* Larger cutout tables */
+        .cutout-table th,
+        .cutout-table td {
+            padding: 5px 6px !important;
+            font-size: 11px !important;
+        }
+        
+        .cutout-table td {
+            font-size: 12px !important;
+        }
+        
+        /* Assembly table - larger */
+        .assembly-table th,
+        .assembly-table td {
+            padding: 6px 8px !important;
+            font-size: 12px !important;
+        }
+        
+        /* Admin table */
+        .admin-table th,
+        .admin-table td {
+            padding: 5px 6px;
+            font-size: 11px;
+        }
+        
+        .admin-table .notes-col {
+            text-align: left;
+            font-size: 10px;
+        }
+        
+        /* Spread out additional info on print */
+        .additional-info-section {
+            margin-top: 30px;
+        }
+        
+        .checklist-spread {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px 40px;
+        }
+        
+        .checklist-item-spread {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .checklist-item-spread label {
+            font-weight: 600;
+            font-size: 11px;
+            min-width: 90px;
+        }
+        
+        .checklist-item-spread .line-value {
+            flex: 1;
+            border-bottom: 1px solid #999;
+            min-height: 18px;
+            font-size: 11px;
+            padding-left: 5px;
+        }
+        
+        /* Print styles */
+        @media print {
+            body {
+                background: #fff;
+                padding: 0;
+                margin: 0;
+                font-size: 9px;
+            }
+            
+            .no-print {
+                display: none !important;
+            }
+            
+            .preview-mode {
+                padding: 0;
+                max-width: none;
+            }
+            
+            .preview-mode .print-page {
+                display: block !important;
+                padding: 0.4in;
+                margin: 0;
+                border: none;
+                box-shadow: none;
+            }
+            
+            /* Prevent page breaks inside key elements */
+            .section-block,
+            .stock-grid,
+            .additional-info-section,
+            .admin-section {
+                page-break-inside: avoid;
+            }
+            
+            .print-table {
+                page-break-inside: auto;
+            }
+            
+            .print-table tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
+            }
+            
+            /* Keep headers with their content */
+            h3, h4 {
+                page-break-after: avoid;
+            }
+            
+            /* Preserve section colors when printing */
+            .section-data {
+                background: #e3f2fd !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
+            .section-cutout {
+                background: #e8f5e9 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
+            .section-assembly {
+                background: #fff3e0 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
+            .print-page.admin-page {
+                page-break-before: always;
+                background: #fffde7 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
+            h3 {
+                margin: 8px 0 4px 0;
+                font-size: 10px;
+            }
+            
+            .page-header h1 {
+                font-size: 14px;
+            }
+        }
+        
+        /* Preview mode */
+        .preview-mode {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .preview-mode .print-page {
+            display: block;
+            background: #fff;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .preview-mode .print-page.admin-page {
+            background: #fffde7;
+        }
+    </style>
+</head>
+<body>
+    <div class="screen-only no-print">
+        <h1>Window Component Calculator</h1>
+        
+        <div class="input-section">
+            <h2>Project Info</h2>
+            <div class="header-row">
+                <div class="header-field">
+                    <label>Client/Series</label>
+                    <input type="text" id="clientName" placeholder="Client name">
+                </div>
+                <div class="header-field">
+                    <label>Product Type</label>
+                    <select id="productType" onchange="updateProductDefaults()">
+                        <option value="storms">Storm Windows</option>
+                        <option value="screens">Screen Frames</option>
+                    </select>
+                </div>
+                <div class="header-field">
+                    <label>Item</label>
+                    <input type="text" id="itemType" value="Storms">
+                </div>
+                <div class="header-field">
+                    <label>Measurer</label>
+                    <input type="text" id="measurer" placeholder="Initials">
+                </div>
+                <div class="header-field">
+                    <label>Date</label>
+                    <input type="date" id="measureDate">
+                </div>
+            </div>
+        </div>
+        
+        <div class="input-section">
+            <h2>Component Parameters</h2>
+            <div class="params-grid">
+                <div class="param-field">
+                    <label>Stile Width</label>
+                    <input type="text" id="stileWidth" value="2-1/4">
+                </div>
+                <div class="param-field">
+                    <label>Top Rail Width</label>
+                    <input type="text" id="topRailWidth" value="2-1/4">
+                </div>
+                <div class="param-field">
+                    <label>Bottom Rail Width</label>
+                    <input type="text" id="botRailWidth" value="3-1/4">
+                </div>
+                <div class="param-field">
+                    <label>C-Bar Diversion</label>
+                    <input type="text" id="cbarDiversion" value="9/16">
+                </div>
+                <div class="param-field">
+                    <label>Side Clearance</label>
+                    <input type="text" id="sideClearance" value="1/8">
+                </div>
+                <div class="param-field">
+                    <label>Top Clearance</label>
+                    <input type="text" id="topClearance" value="1/8">
+                </div>
+                <div class="param-field">
+                    <label>Bottom Clearance</label>
+                    <input type="text" id="botClearance" value="3/16">
+                </div>
+                <div class="param-field">
+                    <label>Stock Thickness</label>
+                    <input type="text" id="stockThickness" value="7/8">
+                </div>
+            </div>
+        </div>
+        
+        <div class="input-section">
+            <h2>Measurements</h2>
+            <div class="buttons" style="margin-bottom: 10px;">
+                <input type="file" id="csvFileInput" accept=".csv" style="display: none;" onchange="importCSV(event)">
+                <button class="btn-warning" onclick="document.getElementById('csvFileInput').click()">Import CSV</button>
+                <button class="btn-secondary" onclick="clearMeasurements()">Clear All</button>
+            </div>
+            <table class="measurements-table">
+                <thead>
+                    <tr>
+                        <th style="width:50px">ID#</th>
+                        <th>W-Top</th>
+                        <th>W-Mid</th>
+                        <th>W-Bot</th>
+                        <th>H-Left</th>
+                        <th>H-Right</th>
+                        <th>C-Bar</th>
+                        <th>Diag-L</th>
+                        <th>Diag-R</th>
+                        <th style="width:50px">Pitch</th>
+                        <th style="width:50px">Casing</th>
+                        <th style="width:150px">Notes</th>
+                    </tr>
+                </thead>
+                <tbody id="measurementRows">
+                </tbody>
+            </table>
+            <div class="buttons">
+                <button class="btn-primary" onclick="addRow()">+ Add Row</button>
+                <button class="btn-secondary" onclick="removeLastRow()">− Remove Row</button>
+            </div>
+        </div>
+        
+        <div class="input-section">
+            <h2>Additional Info (Optional)</h2>
+            <div class="additional-info-grid">
+                <div class="info-field">
+                    <label>Carpentry</label>
+                    <input type="text" id="infoCarpentry" placeholder="e.g., Add stopping surface">
+                </div>
+                <div class="info-field">
+                    <label>Casing</label>
+                    <input type="text" id="infoCasing" placeholder="e.g., 3/4 flat">
+                </div>
+                <div class="info-field">
+                    <label>Chamfer</label>
+                    <input type="text" id="infoChamfer" placeholder="e.g., 3 sides">
+                </div>
+                <div class="info-field">
+                    <label>Glazing</label>
+                    <input type="text" id="infoGlazing" placeholder="e.g., DSB">
+                </div>
+                <div class="info-field">
+                    <label>Hardware</label>
+                    <input type="text" id="infoHardware" placeholder="e.g., Standard hangers">
+                </div>
+                <div class="info-field">
+                    <label>Push-Outs</label>
+                    <input type="text" id="infoPushouts" placeholder="e.g., SS pushouts on 101, 102">
+                </div>
+                <div class="info-field">
+                    <label>Site Fit</label>
+                    <input type="text" id="infoSitefit" placeholder="e.g., Customer install">
+                </div>
+                <div class="info-field">
+                    <label>Mortising</label>
+                    <input type="text" id="infoMortising" placeholder="e.g., Standard depth">
+                </div>
+            </div>
+        </div>
+        
+        <div class="buttons">
+            <button class="btn-success" onclick="generateOutput()">Generate Output</button>
+            <button class="btn-warning" onclick="printShopPacket()">Print Shop Packet</button>
+            <button class="btn-secondary" onclick="printAdminPage()">Print Admin Page</button>
+            <span style="border-left: 2px solid #ccc; margin: 0 10px;"></span>
+            <input type="file" id="loadProjectInput" accept=".json" style="display: none;" onchange="loadProject(event)">
+            <button class="btn-primary" onclick="document.getElementById('loadProjectInput').click()">Load Project</button>
+            <button class="btn-secondary" onclick="saveProject()">Save Project</button>
+        </div>
+    </div>
+    
+    <div id="previewContainer" class="preview-mode">
+        <!-- Print pages will be generated here -->
+    </div>
+    
+    <!-- Print templates will be generated by JavaScript -->
+    
+    <script>
+        // ============ FRACTION UTILITIES ============
+        function parseFraction(str) {
+            if (!str || str.toString().trim() === '') return null;
+            str = str.toString().trim();
+            
+            // Handle if already a number
+            if (typeof str === 'number') return str;
+            
+            let negative = false;
+            if (str.startsWith('-')) {
+                negative = true;
+                str = str.substring(1).trim();
+            }
+            
+            let result = 0;
+            
+            // Mixed number: "2-1/4" or "2 1/4"
+            const mixedMatch = str.match(/^(\d+)[\s\-]+(\d+)\/(\d+)$/);
+            if (mixedMatch) {
+                result = parseInt(mixedMatch[1]) + parseInt(mixedMatch[2]) / parseInt(mixedMatch[3]);
+                return negative ? -result : result;
+            }
+            
+            // Just fraction: "1/4"
+            const fractionMatch = str.match(/^(\d+)\/(\d+)$/);
+            if (fractionMatch) {
+                result = parseInt(fractionMatch[1]) / parseInt(fractionMatch[2]);
+                return negative ? -result : result;
+            }
+            
+            // Decimal or whole number
+            const num = parseFloat(str);
+            if (!isNaN(num)) {
+                return negative ? -num : num;
+            }
+            
+            return null;
+        }
+        
+        function toFraction(decimal, precision = 16) {
+            if (decimal === null || decimal === undefined || isNaN(decimal)) return '';
+            
+            const negative = decimal < 0;
+            decimal = Math.abs(decimal);
+            
+            const whole = Math.floor(decimal);
+            const remainder = decimal - whole;
+            
+            const numerator = Math.round(remainder * precision);
+            
+            if (numerator === 0) {
+                return negative ? `-${whole}` : `${whole}`;
+            }
+            
+            if (numerator === precision) {
+                return negative ? `-${whole + 1}` : `${whole + 1}`;
+            }
+            
+            // Reduce fraction
+            const gcd = (a, b) => b === 0 ? a : gcd(b, a % b);
+            const divisor = gcd(numerator, precision);
+            const reducedNum = numerator / divisor;
+            const reducedDen = precision / divisor;
+            
+            if (whole === 0) {
+                return negative ? `-${reducedNum}/${reducedDen}` : `${reducedNum}/${reducedDen}`;
+            }
+            
+            return negative ? `-${whole}-${reducedNum}/${reducedDen}` : `${whole}-${reducedNum}/${reducedDen}`;
+        }
+        
+        function roundTo16th(decimal) {
+            return Math.round(decimal * 16) / 16;
+        }
+        
+        function roughCut(finalLength) {
+            // Round to nearest whole number, then add 1
+            return Math.round(finalLength) + 1;
+        }
+        
+        // ============ CSV IMPORT ============
+        function importCSV(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                parseCSV(text);
+            };
+            reader.readAsText(file);
+            
+            // Reset file input so same file can be re-imported
+            event.target.value = '';
+        }
+        
+        function parseCSV(text) {
+            const lines = text.split('\n').filter(line => line.trim() !== '');
+            
+            // Check if first line is header
+            const firstLine = lines[0].toLowerCase();
+            const hasHeader = firstLine.includes('id') || firstLine.includes('width') || firstLine.includes('height');
+            const startIndex = hasHeader ? 1 : 0;
+            
+            // Clear existing rows
+            clearMeasurements();
+            
+            // Parse each data row
+            for (let i = startIndex; i < lines.length; i++) {
+                const values = parseCSVLine(lines[i]);
+                
+                // Skip empty rows
+                if (values.length === 0 || (values.length === 1 && values[0].trim() === '')) {
+                    continue;
+                }
+                
+                // Add a row and populate it
+                addRow();
+                const rows = document.querySelectorAll('#measurementRows tr');
+                const lastRow = rows[rows.length - 1];
+                const inputs = lastRow.querySelectorAll('input');
+                
+                // Map CSV columns to input fields
+                // Expected: ID, T, M, B, L, R, C bar, Diag-L, Diag-R, sill pitch, casing, notes
+                const fieldMap = ['id', 'wTop', 'wMid', 'wBot', 'hLeft', 'hRight', 'cbar', 'diagL', 'diagR', 'sillPitch', 'casing', 'notes'];
+                
+                inputs.forEach(input => {
+                    const field = input.dataset.field;
+                    const colIndex = fieldMap.indexOf(field);
+                    if (colIndex !== -1 && colIndex < values.length) {
+                        input.value = values[colIndex].trim();
+                    }
+                });
+            }
+        }
+        
+        function parseCSVLine(line) {
+            const values = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    values.push(current);
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            values.push(current); // Don't forget the last value
+            
+            return values;
+        }
+        
+        function clearMeasurements() {
+            const tbody = document.getElementById('measurementRows');
+            tbody.innerHTML = '';
+            rowCount = 0;
+        }
+        
+        // ============ ROW MANAGEMENT ============
+        let rowCount = 0;
+        
+        function addRow() {
+            rowCount++;
+            const tbody = document.getElementById('measurementRows');
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input type="text" value="${100 + rowCount}" data-field="id"></td>
+                <td><input type="text" data-field="wTop"></td>
+                <td><input type="text" data-field="wMid"></td>
+                <td><input type="text" data-field="wBot"></td>
+                <td><input type="text" data-field="hLeft"></td>
+                <td><input type="text" data-field="hRight"></td>
+                <td><input type="text" data-field="cbar"></td>
+                <td><input type="text" data-field="diagL"></td>
+                <td><input type="text" data-field="diagR"></td>
+                <td><input type="text" data-field="sillPitch"></td>
+                <td><input type="text" data-field="casing"></td>
+                <td><input type="text" data-field="notes" class="notes-input"></td>
+            `;
+            tbody.appendChild(tr);
+        }
+        
+        function removeLastRow() {
+            const tbody = document.getElementById('measurementRows');
+            if (tbody.lastChild) {
+                tbody.removeChild(tbody.lastChild);
+                rowCount--;
+            }
+        }
+        
+        // ============ DATA GATHERING ============
+        function getParams() {
+            return {
+                stileWidth: parseFraction(document.getElementById('stileWidth').value) || 2.25,
+                topRailWidth: parseFraction(document.getElementById('topRailWidth').value) || 2.25,
+                botRailWidth: parseFraction(document.getElementById('botRailWidth').value) || 3.25,
+                cbarDiversion: parseFraction(document.getElementById('cbarDiversion').value) || 0.5625,
+                sideClearance: parseFraction(document.getElementById('sideClearance').value) || 0.125,
+                topClearance: parseFraction(document.getElementById('topClearance').value) || 0.125,
+                botClearance: parseFraction(document.getElementById('botClearance').value) || 0.1875,
+                stockThickness: parseFraction(document.getElementById('stockThickness').value) || 0.875
+            };
+        }
+        
+        function getProjectInfo() {
+            return {
+                client: document.getElementById('clientName').value || '',
+                productType: document.getElementById('productType').value || 'storms',
+                item: document.getElementById('itemType').value || 'Storms',
+                measurer: document.getElementById('measurer').value || '',
+                date: document.getElementById('measureDate').value || ''
+            };
+        }
+        
+        function updateProductDefaults() {
+            const productType = document.getElementById('productType').value;
+            const itemField = document.getElementById('itemType');
+            
+            if (productType === 'storms') {
+                itemField.value = 'Storms';
+            } else if (productType === 'screens') {
+                itemField.value = 'Screens';
+            }
+        }
+        
+        function getMeasurements() {
+            const rows = document.querySelectorAll('#measurementRows tr');
+            const measurements = [];
+            
+            rows.forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                const data = {};
+                inputs.forEach(input => {
+                    const field = input.dataset.field;
+                    if (field === 'id' || field === 'notes' || field === 'sillPitch') {
+                        data[field] = input.value;
+                    } else {
+                        data[field] = parseFraction(input.value);
+                    }
+                });
+                
+                if (data.wTop || data.wMid || data.wBot || data.hLeft || data.hRight) {
+                    measurements.push(data);
+                }
+            });
+            
+            return measurements;
+        }
+        
+        // ============ CALCULATIONS ============
+        function calculateAll() {
+            const params = getParams();
+            const measurements = getMeasurements();
+            const productType = document.getElementById('productType').value;
+            const results = [];
+            
+            let totalGlassSF = 0;
+            let totalGlsStopLF = 0;
+            let totalRailBF = 0;
+            let totalStileBF = 0;
+            
+            measurements.forEach(m => {
+                const widths = [m.wTop, m.wMid, m.wBot].filter(w => w !== null);
+                const heights = [m.hLeft, m.hRight].filter(h => h !== null);
+                
+                if (widths.length === 0 || heights.length === 0) return;
+                
+                const maxWidth = Math.max(...widths);
+                const maxHeight = Math.max(...heights);
+                
+                // Rail calculation - same formula, different cope depth
+                // Formula: SM - (2 × (SW + 1/4)) + (CD × 2) + 3/8 buffer
+                // Buffer ensures frame comes out oversized so stiles end up at target after sizing
+                let copeDepth;
+                if (productType === 'screens') {
+                    copeDepth = 0.75; // 3/4"
+                } else {
+                    copeDepth = 0.375; // 3/8" for storms
+                }
+                const railFinal = roundTo16th(maxWidth - (2 * (params.stileWidth + 0.25)) + (copeDepth * 2) + 0.375);
+                const railRough = roughCut(railFinal);
+                
+                // Stile: max height
+                const stileFinal = roundTo16th(maxHeight);
+                const stileRough = roughCut(stileFinal);
+                
+                // Target assembled - individual dimensions for sizing
+                const targetT = m.wTop !== null ? roundTo16th(m.wTop - (params.sideClearance * 2)) : null;
+                const targetM = m.wMid !== null ? roundTo16th(m.wMid - (params.sideClearance * 2)) : null;
+                const targetB = m.wBot !== null ? roundTo16th(m.wBot - (params.sideClearance * 2)) : null;
+                const targetL = m.hLeft !== null ? roundTo16th(m.hLeft - params.topClearance - params.botClearance) : null;
+                const targetR = m.hRight !== null ? roundTo16th(m.hRight - params.topClearance - params.botClearance) : null;
+                
+                // Overall targets (for admin page)
+                const targetWidth = roundTo16th(maxWidth - (params.sideClearance * 2));
+                const targetHeight = roundTo16th(maxHeight - params.topClearance - params.botClearance);
+                
+                // Center bar
+                let cbarMort = null;
+                let cbarCut = null;
+                const hasCbar = m.cbar !== null && m.cbar !== 0;
+                if (hasCbar) {
+                    cbarMort = roundTo16th(m.cbar + params.cbarDiversion);
+                    cbarCut = railFinal;
+                }
+                
+                // Deviation
+                let deviation = '';
+                let devDirection = '';
+                let devAmount = 0;
+                if (m.diagL !== null && m.diagR !== null) {
+                    const diff = roundTo16th(Math.abs(m.diagL - m.diagR));
+                    if (diff > 0) {
+                        devDirection = m.diagL > m.diagR ? '\\' : '/';
+                        devAmount = diff;
+                        deviation = `${devDirection} ${toFraction(diff)}`;
+                    }
+                }
+                
+                // Glass estimates (approximate) - includes 30% waste factor
+                const glassWidth = targetWidth - (params.stileWidth * 2) + 0.5;
+                const glassHeight = targetHeight - params.topRailWidth - params.botRailWidth + 0.5;
+                const glassSF = ((glassWidth * glassHeight) / 144) * 1.30;
+                // Glass stop: (W×4)+(H×2) with c-bar, (W×2)+(H×2) without, +30% waste
+                const glsStopLF = (((hasCbar ? glassWidth * 4 : glassWidth * 2) + (glassHeight * 2)) / 12) * 1.30;
+                
+                totalGlassSF += glassSF;
+                totalGlsStopLF += glsStopLF;
+                
+                // Board footage: rail rough × width factor, stile rough × 6
+                const railWidthFactor = hasCbar ? 9 : 7; // 4+3+2 with c-bar, 4+3 without
+                totalRailBF += railRough * railWidthFactor;
+                totalStileBF += stileRough * 6; // 2 stiles × 3" width
+                
+                results.push({
+                    id: m.id,
+                    // Original data
+                    wTop: m.wTop, wMid: m.wMid, wBot: m.wBot,
+                    hLeft: m.hLeft, hRight: m.hRight,
+                    cbar: m.cbar,
+                    diagL: m.diagL, diagR: m.diagR,
+                    sillPitch: m.sillPitch,
+                    casing: m.casing,
+                    notes: m.notes,
+                    // Calculated
+                    maxWidth, maxHeight,
+                    railRough, railFinal,
+                    stileRough, stileFinal,
+                    cbarMort, cbarCut,
+                    targetT, targetM, targetB, targetL, targetR,
+                    targetWidth, targetHeight,
+                    deviation, devDirection, devAmount,
+                    hasCbar,
+                    glassSF, glsStopLF
+                });
+            });
+            
+            // Calculate total board footage: (rails + stiles) × 1.25 / 144 × 1.30 for waste
+            const rawBF = ((totalRailBF + totalStileBF) * 1.25) / 144;
+            const totalBF = rawBF * 1.30;
+            
+            return {
+                results,
+                totals: {
+                    units: results.length,
+                    glassSF: totalGlassSF,
+                    glsStopLF: totalGlsStopLF,
+                    boardFeet: totalBF
+                }
+            };
+        }
+        
+        // ============ ADDITIONAL INFO ============
+        function getAdditionalInfo() {
+            return {
+                carpentry: document.getElementById('infoCarpentry')?.value || '',
+                casing: document.getElementById('infoCasing')?.value || '',
+                chamfer: document.getElementById('infoChamfer')?.value || '',
+                glazing: document.getElementById('infoGlazing')?.value || '',
+                hardware: document.getElementById('infoHardware')?.value || '',
+                pushouts: document.getElementById('infoPushouts')?.value || '',
+                sitefit: document.getElementById('infoSitefit')?.value || '',
+                mortising: document.getElementById('infoMortising')?.value || ''
+            };
+        }
+        
+        // ============ PAGE GENERATION ============
+        function generateOutput() {
+            const projectInfo = getProjectInfo();
+            const params = getParams();
+            const { results, totals } = calculateAll();
+            const additionalInfo = getAdditionalInfo();
+            
+            if (results.length === 0) {
+                alert('No valid measurements to calculate.');
+                return;
+            }
+            
+            const container = document.getElementById('previewContainer');
+            container.innerHTML = '';
+            
+            // Combined Shop Packet (2 pages)
+            container.innerHTML += generateShopPacket(projectInfo, params, results, totals, additionalInfo);
+            
+            // Page 4: Admin (separate)
+            container.innerHTML += generatePage4(projectInfo, params, results, totals);
+        }
+        
+        function generateShopPacket(info, params, results, totals, additionalInfo) {
+            // Raw data rows
+            let rawDataRows = results.map(r => `
+                <tr>
+                    <td class="id-col">${r.id}</td>
+                    <td>${toFraction(r.wTop)}</td>
+                    <td>${toFraction(r.wMid)}</td>
+                    <td>${toFraction(r.wBot)}</td>
+                    <td>${toFraction(r.hLeft)}</td>
+                    <td>${toFraction(r.hRight)}</td>
+                    <td>${r.hasCbar ? toFraction(r.cbar) : '—'}</td>
+                    <td>${r.diagL !== null ? toFraction(r.diagL) : ''}</td>
+                    <td>${r.diagR !== null ? toFraction(r.diagR) : ''}</td>
+                    <td>${r.sillPitch || ''}</td>
+                    <td>${r.casing !== null ? toFraction(r.casing) : ''}</td>
+                    <td class="notes-col">${r.notes || ''}</td>
+                </tr>
+            `).join('');
+            
+            // Rail rows - sorted by rough cut, largest first
+            const railsSorted = [...results].sort((a, b) => b.railRough - a.railRough);
+            let railRows = railsSorted.map(r => `
+                <tr>
+                    <td class="id-col">${r.id}</td>
+                    <td>${r.railRough}</td>
+                    <td></td><td></td><td></td>
+                    <td style="font-weight:600">${toFraction(r.railFinal)}</td>
+                </tr>
+            `).join('');
+            
+            // Stile rows - sorted by rough cut, largest first
+            const stilesSorted = [...results].sort((a, b) => b.stileRough - a.stileRough);
+            let stileRows = stilesSorted.map(r => `
+                <tr>
+                    <td class="id-col">${r.id}</td>
+                    <td>${r.stileRough}</td>
+                    <td></td>
+                    <td style="font-weight:600">${toFraction(r.stileFinal)}</td>
+                    <td>${r.cbarMort !== null ? toFraction(r.cbarMort) : '—'}</td>
+                </tr>
+            `).join('');
+            
+            // Assembly rows - individual sizing targets
+            let assemblyRows = results.map(r => `
+                <tr>
+                    <td class="id-col">${r.id}</td>
+                    <td>${r.targetT !== null ? toFraction(r.targetT) : ''}</td>
+                    <td>${r.targetM !== null ? toFraction(r.targetM) : ''}</td>
+                    <td>${r.targetB !== null ? toFraction(r.targetB) : ''}</td>
+                    <td>${r.targetL !== null ? toFraction(r.targetL) : ''}</td>
+                    <td>${r.targetR !== null ? toFraction(r.targetR) : ''}</td>
+                    <td>${r.hasCbar ? toFraction(r.cbar) : '—'}</td>
+                    <td>${r.devDirection || ''}</td>
+                    <td>${r.devAmount ? toFraction(r.devAmount) : ''}</td>
+                </tr>
+            `).join('');
+            
+            // Stock allocation grid - 5/4 and 6/4 only
+            const lengths = ["6'", "7'", "8'", "9'", "10'", "11'", "12'", "13'", "14'"];
+            const stockRows = ['5/4', '6/4'].map(thick => {
+                const widthRows = ['× 4', '× 6', '× __'].map(w => `
+                    <tr>
+                        <td class="row-label">${w === '× 4' ? thick : ''}</td>
+                        <td class="row-label">${w}</td>
+                        ${lengths.map(() => '<td></td>').join('')}
+                    </tr>
+                `).join('');
+                return widthRows;
+            }).join('');
+            
+            const checklistItems = [
+                { key: 'carpentry', label: 'CARPENTRY' },
+                { key: 'casing', label: 'CASING' },
+                { key: 'chamfer', label: 'CHAMFER' },
+                { key: 'glazing', label: 'GLAZING' },
+                { key: 'hardware', label: 'HARDWARE' },
+                { key: 'pushouts', label: 'PUSH-OUTS' },
+                { key: 'sitefit', label: 'SITE FIT' },
+                { key: 'mortising', label: 'MORTISING' }
+            ];
+            
+            // Check if any additional info was filled in
+            const hasAdditionalInfo = Object.values(additionalInfo).some(v => v.trim() !== '');
+            
+            // Single continuous shop packet - browser will handle page breaks
+            return `
+                <div class="print-page" id="shopPacket">
+                    <div class="page-header">
+                        <div>
+                            <h1>${info.client || 'Project'} - ${info.item}</h1>
+                            <div class="subtitle">Shop Packet</div>
+                        </div>
+                        <div class="page-info">
+                            Measurer: ${info.measurer}<br>
+                            Date: ${info.date}<br>
+                            Units: ${totals.units}
+                        </div>
+                    </div>
+                    
+                    <div class="params-display compact">
+                        <div class="param"><span class="param-label">Stile:</span> <span class="param-value">${toFraction(params.stileWidth)}</span></div>
+                        <div class="param"><span class="param-label">Top Rail:</span> <span class="param-value">${toFraction(params.topRailWidth)}</span></div>
+                        <div class="param"><span class="param-label">Bot Rail:</span> <span class="param-value">${toFraction(params.botRailWidth)}</span></div>
+                        <div class="param"><span class="param-label">C-Bar Div:</span> <span class="param-value">${toFraction(params.cbarDiversion)}</span></div>
+                        <div class="param"><span class="param-label">Stock:</span> <span class="param-value">${toFraction(params.stockThickness)}</span></div>
+                        <div class="param"><span class="param-label">Clearance:</span> <span class="param-value">${toFraction(params.sideClearance)} / ${toFraction(params.topClearance)} / ${toFraction(params.botClearance)}</span></div>
+                    </div>
+                    
+                    <!-- SECTION 1: Original Measurements - Blue tint -->
+                    <div class="section-block section-data">
+                        <h3>Original Measurements</h3>
+                        <table class="print-table compact">
+                            <thead>
+                                <tr>
+                                    <th>ID#</th>
+                                    <th colspan="3">Width</th>
+                                    <th colspan="2">Height</th>
+                                    <th>C-Bar</th>
+                                    <th colspan="2">Diag</th>
+                                    <th>Pitch</th>
+                                    <th>Cas</th>
+                                    <th>Notes</th>
+                                </tr>
+                                <tr>
+                                    <th></th>
+                                    <th>T</th><th>M</th><th>B</th>
+                                    <th>L</th><th>R</th>
+                                    <th></th>
+                                    <th>L</th><th>R</th>
+                                    <th></th><th></th><th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${rawDataRows}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- SECTION 2: Cutout and Milling - Green tint -->
+                    <div class="section-block section-cutout">
+                        <h3>Cutout & Milling</h3>
+                        <div style="display: flex; gap: 20px;">
+                            <div style="flex: 1;">
+                                <h4>Rails</h4>
+                                <table class="print-table cutout-table">
+                                    <thead>
+                                        <tr>
+                                            <th>ID#</th>
+                                            <th>Rough</th>
+                                            <th>2"</th>
+                                            <th>3"</th>
+                                            <th>4"</th>
+                                            <th>Final</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${railRows}
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div style="flex: 1;">
+                                <h4>Stiles / Mortise</h4>
+                                <table class="print-table cutout-table">
+                                    <thead>
+                                        <tr>
+                                            <th>ID#</th>
+                                            <th>Rough</th>
+                                            <th>3"</th>
+                                            <th>Final</th>
+                                            <th>Mort</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${stileRows}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Stock Grid -->
+                    <div class="stock-grid">
+                        <h3>Stock Allocation</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th></th>
+                                    ${lengths.map(l => `<th>${l}</th>`).join('')}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${stockRows}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- SECTION 3: Assembly - Orange tint -->
+                    <div class="section-block section-assembly">
+                        <h3>Assembly and Sizing</h3>
+                        <table class="print-table assembly-table">
+                            <thead>
+                                <tr>
+                                    <th>ID#</th>
+                                    <th colspan="3">Width</th>
+                                    <th colspan="2">Height</th>
+                                    <th>C-Bar</th>
+                                    <th colspan="2">Deviation</th>
+                                </tr>
+                                <tr>
+                                    <th></th>
+                                    <th>T</th>
+                                    <th>M</th>
+                                    <th>B</th>
+                                    <th>L</th>
+                                    <th>R</th>
+                                    <th></th>
+                                    <th></th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${assemblyRows}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Additional Info - only show if any content or always show for manual fill -->
+                    <div class="additional-info-section">
+                        <h3>Additional Info</h3>
+                        <div class="checklist-spread">
+                            ${checklistItems.map(item => `
+                                <div class="checklist-item-spread">
+                                    <label>${item.label}</label>
+                                    <span class="line-value">${additionalInfo[item.key] || ''}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Keep old functions as aliases for backwards compatibility
+        function generatePage1(info, params, results, totals) { return ''; }
+        function generatePage2(info, results) { return ''; }
+        function generatePage3(info, results) { return ''; }
+        
+        function generatePage4(info, params, results, totals) {
+            let adminRows = results.map(r => `
+                <tr>
+                    <td class="id-col">${r.id}</td>
+                    <td>${toFraction(r.targetWidth)}</td>
+                    <td>${toFraction(r.targetHeight)}</td>
+                    <td>${r.hasCbar ? 'Yes' : 'No'}</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="notes-col">${r.notes || ''}</td>
+                </tr>
+            `).join('');
+            
+            return `
+                <div class="print-page admin-page" id="page4">
+                    <div class="page-header">
+                        <div>
+                            <h1>${info.client || 'Project'} - ${info.item}</h1>
+                            <div class="subtitle">Office Copy / Admin</div>
+                        </div>
+                        <div class="page-info">
+                            Measurer: ${info.measurer}<br>
+                            Date: ${info.date}<br>
+                            Units: ${totals.units}
+                        </div>
+                    </div>
+                    
+                    <div class="params-display">
+                        <div class="param"><span class="param-label">Stile:</span> <span class="param-value">${toFraction(params.stileWidth)}</span></div>
+                        <div class="param"><span class="param-label">Top Rail:</span> <span class="param-value">${toFraction(params.topRailWidth)}</span></div>
+                        <div class="param"><span class="param-label">Bot Rail:</span> <span class="param-value">${toFraction(params.botRailWidth)}</span></div>
+                        <div class="param"><span class="param-label">C-Bar Div:</span> <span class="param-value">${toFraction(params.cbarDiversion)}</span></div>
+                    </div>
+                    
+                    <h3>Unit Summary</h3>
+                    <table class="print-table admin-table">
+                        <thead>
+                            <tr>
+                                <th>ID#</th>
+                                <th>Target W</th>
+                                <th>Target H</th>
+                                <th>C-Bar</th>
+                                <th>Hangers</th>
+                                <th>Keepers</th>
+                                <th>Feet</th>
+                                <th style="min-width: 150px;">Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${adminRows}
+                        </tbody>
+                    </table>
+                    
+                    <div class="admin-section">
+                        <h3>Material Summary</h3>
+                        <div class="bf-breakdown">
+                            <div class="bf-item">
+                                <div class="component">Units</div>
+                                <div class="amount">${totals.units}</div>
+                            </div>
+                            <div class="bf-item">
+                                <div class="component">Board Feet (5/4)</div>
+                                <div class="amount">${totals.boardFeet.toFixed(1)}</div>
+                            </div>
+                            <div class="bf-item">
+                                <div class="component">Stock Sheets</div>
+                                <div class="amount">${(totals.glassSF / 28).toFixed(1)}</div>
+                            </div>
+                            <div class="bf-item">
+                                <div class="component">Glass Stop LF</div>
+                                <div class="amount">${totals.glsStopLF.toFixed(1)}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // ============ PROJECT SAVE/LOAD ============
+        function saveProject() {
+            const projectInfo = getProjectInfo();
+            const params = getParams();
+            const measurements = getMeasurementsRaw();
+            const additionalInfo = getAdditionalInfo();
+            
+            const projectData = {
+                version: 1,
+                savedAt: new Date().toISOString(),
+                projectInfo: {
+                    client: document.getElementById('clientName').value,
+                    productType: document.getElementById('productType').value,
+                    item: document.getElementById('itemType').value,
+                    measurer: document.getElementById('measurer').value,
+                    date: document.getElementById('measureDate').value
+                },
+                parameters: {
+                    stileWidth: document.getElementById('stileWidth').value,
+                    topRailWidth: document.getElementById('topRailWidth').value,
+                    botRailWidth: document.getElementById('botRailWidth').value,
+                    cbarDiversion: document.getElementById('cbarDiversion').value,
+                    sideClearance: document.getElementById('sideClearance').value,
+                    topClearance: document.getElementById('topClearance').value,
+                    botClearance: document.getElementById('botClearance').value,
+                    stockThickness: document.getElementById('stockThickness').value
+                },
+                measurements: measurements,
+                additionalInfo: additionalInfo
+            };
+            
+            // Create filename from client name and date
+            const client = projectInfo.client || 'Project';
+            const date = projectInfo.date || new Date().toISOString().split('T')[0];
+            const filename = `${client.replace(/[^a-zA-Z0-9]/g, '_')}_${date}.json`;
+            
+            // Download the file
+            const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        function getMeasurementsRaw() {
+            const rows = document.querySelectorAll('#measurementRows tr');
+            const measurements = [];
+            
+            rows.forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                const data = {};
+                let hasData = false;
+                
+                inputs.forEach(input => {
+                    const field = input.dataset.field;
+                    data[field] = input.value;
+                    if (input.value.trim() !== '' && field !== 'id') {
+                        hasData = true;
+                    }
+                });
+                
+                // Include row if it has any data beyond just the ID
+                if (hasData || data.id) {
+                    measurements.push(data);
+                }
+            });
+            
+            return measurements;
+        }
+        
+        function loadProject(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const projectData = JSON.parse(e.target.result);
+                    populateFromProject(projectData);
+                } catch (err) {
+                    alert('Error loading project file: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+            
+            // Reset file input
+            event.target.value = '';
+        }
+        
+        function populateFromProject(data) {
+            // Populate project info
+            if (data.projectInfo) {
+                document.getElementById('clientName').value = data.projectInfo.client || '';
+                document.getElementById('productType').value = data.projectInfo.productType || 'storms';
+                document.getElementById('itemType').value = data.projectInfo.item || 'Storms';
+                document.getElementById('measurer').value = data.projectInfo.measurer || '';
+                document.getElementById('measureDate').value = data.projectInfo.date || '';
+            }
+            
+            // Populate parameters
+            if (data.parameters) {
+                document.getElementById('stileWidth').value = data.parameters.stileWidth || '2-1/4';
+                document.getElementById('topRailWidth').value = data.parameters.topRailWidth || '2-1/4';
+                document.getElementById('botRailWidth').value = data.parameters.botRailWidth || '3-1/4';
+                document.getElementById('cbarDiversion').value = data.parameters.cbarDiversion || '9/16';
+                document.getElementById('sideClearance').value = data.parameters.sideClearance || '1/8';
+                document.getElementById('topClearance').value = data.parameters.topClearance || '1/8';
+                document.getElementById('botClearance').value = data.parameters.botClearance || '3/16';
+                document.getElementById('stockThickness').value = data.parameters.stockThickness || '7/8';
+            }
+            
+            // Populate measurements
+            if (data.measurements && data.measurements.length > 0) {
+                clearMeasurements();
+                
+                data.measurements.forEach((m, index) => {
+                    addRow();
+                    const rows = document.querySelectorAll('#measurementRows tr');
+                    const row = rows[rows.length - 1];
+                    const inputs = row.querySelectorAll('input');
+                    
+                    inputs.forEach(input => {
+                        const field = input.dataset.field;
+                        if (m[field] !== undefined) {
+                            input.value = m[field];
+                        }
+                    });
+                });
+            }
+            
+            // Populate additional info
+            if (data.additionalInfo) {
+                document.getElementById('infoCarpentry').value = data.additionalInfo.carpentry || '';
+                document.getElementById('infoCasing').value = data.additionalInfo.casing || '';
+                document.getElementById('infoChamfer').value = data.additionalInfo.chamfer || '';
+                document.getElementById('infoGlazing').value = data.additionalInfo.glazing || '';
+                document.getElementById('infoHardware').value = data.additionalInfo.hardware || '';
+                document.getElementById('infoPushouts').value = data.additionalInfo.pushouts || '';
+                document.getElementById('infoSitefit').value = data.additionalInfo.sitefit || '';
+                document.getElementById('infoMortising').value = data.additionalInfo.mortising || '';
+            }
+            
+            // Auto-generate output after loading
+            generateOutput();
+        }
+        
+        // ============ PRINTING ============
+        function printShopPacket() {
+            generateOutput();
+            // Hide admin page for shop packet
+            const adminPage = document.getElementById('page4');
+            if (adminPage) adminPage.style.display = 'none';
+            window.print();
+            if (adminPage) adminPage.style.display = 'block';
+        }
+        
+        function printAdminPage() {
+            generateOutput();
+            // Hide shop packet for admin print
+            const shopPacket = document.getElementById('shopPacket');
+            if (shopPacket) shopPacket.style.display = 'none';
+            window.print();
+            if (shopPacket) shopPacket.style.display = 'block';
+        }
+        
+        // ============ INITIALIZATION ============
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('measureDate').valueAsDate = new Date();
+            for (let i = 0; i < 5; i++) {
+                addRow();
+            }
+        });
+    </script>
+</body>
+</html>
