@@ -745,7 +745,7 @@
         <div class="input-section">
             <h2>Measurements</h2>
             <div class="buttons" style="margin-bottom: 10px;">
-                <input type="file" id="csvFileInput" accept=".csv" style="display: none;" onchange="importCSV(event)">
+                <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
                 <button class="btn-warning" onclick="document.getElementById('csvFileInput').click()">Import CSV</button>
                 <button class="btn-secondary" onclick="clearMeasurements()">Clear All</button>
             </div>
@@ -821,7 +821,7 @@
             <button class="btn-primary" onclick="openProjectLibrary()">Project Library</button>
             <button class="btn-secondary" onclick="saveToCloud()">Save to Cloud</button>
             <button class="btn-secondary" onclick="saveProject()">Download JSON</button>
-            <input type="file" id="loadProjectInput" accept=".json" style="display: none;" onchange="loadProject(event)">
+            <input type="file" id="loadProjectInput" accept=".json" style="display: none;">
             <button class="btn-secondary" onclick="document.getElementById('loadProjectInput').click()">Load JSON</button>
         </div>
 
@@ -1924,9 +1924,12 @@
         window.printShopPacket = printShopPacket;
         window.printAdminPage = printAdminPage;
         window.saveProject = saveProject;
-        window.loadProject = loadProject;
         window.importCSV = importCSV;
         window.updateProductDefaults = updateProductDefaults;
+
+        // Wire file inputs via event listeners (more reliable with type="module")
+        document.getElementById('loadProjectInput').addEventListener('change', loadProject);
+        document.getElementById('csvFileInput').addEventListener('change', importCSV);
     </script>
 </body>
 </html>
