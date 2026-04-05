@@ -1825,11 +1825,10 @@
                 } catch (err) {
                     alert('Error loading project file: ' + err.message);
                 }
+                // Reset after read completes
+                event.target.value = '';
             };
             reader.readAsText(file);
-            
-            // Reset file input
-            event.target.value = '';
         }
         
         function populateFromProject(data) {
@@ -1914,6 +1913,9 @@
             for (let i = 0; i < 5; i++) {
                 addRow();
             }
+            // Wire file inputs inside DOMContentLoaded for reliability
+            document.getElementById('loadProjectInput').addEventListener('change', loadProject);
+            document.getElementById('csvFileInput').addEventListener('change', importCSV);
         });
 
         // Expose functions to global scope (required for type="module")
@@ -1926,10 +1928,6 @@
         window.saveProject = saveProject;
         window.importCSV = importCSV;
         window.updateProductDefaults = updateProductDefaults;
-
-        // Wire file inputs via event listeners (more reliable with type="module")
-        document.getElementById('loadProjectInput').addEventListener('change', loadProject);
-        document.getElementById('csvFileInput').addEventListener('change', importCSV);
     </script>
 </body>
 </html>
