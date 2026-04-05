@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kerfworks — Production Board</title>
+<title>EPS — Production Board</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -784,9 +784,7 @@ header h1 {
 
 <div id="toast"></div>
 
-<script>
-const STORAGE_KEY = "eps_production_board_v2";
-
+<script type="module">
 const ZONE_IDS = [
   "up-shop-measure","up-shop-measure-b",
   "up-shop-ready","up-shop-ready-b",
@@ -861,26 +859,56 @@ function toast(msg) {
   t._to = setTimeout(() => t.classList.remove("show"), 2400);
 }
 
-function loadState() {
+// ── FIREBASE ──
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBiwsuVyEormZua4fUh7rLeIAQp0BZ-y8A",
+  authDomain: "epstools-2913e.firebaseapp.com",
+  projectId: "epstools-2913e",
+  storageBucket: "epstools-2913e.firebasestorage.app",
+  messagingSenderId: "91969549327",
+  appId: "1:91969549327:web:6eea1d04d68eb01dabdf7a"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const DOC_REF = doc(db, "boards", "production");
+
+let saveTimer = null;
+
+async function loadState() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch(e) {}
+    const snap = await getDoc(DOC_REF);
+    if (snap.exists()) return snap.data();
+  } catch(e) {
+    console.warn("Firestore load failed, using defaults", e);
+  }
   return JSON.parse(JSON.stringify(defaultSeeds));
 }
 
 function saveState() {
-  const state = {};
-  ZONE_IDS.forEach(zone => {
-    const el = document.getElementById("z-" + zone);
-    if (!el) return;
-    state[zone] = [...el.querySelectorAll(".card")].map(c => ({
-      id: c.dataset.id,
-      name: c.dataset.name,
-      note: c.dataset.note || "",
-    }));
-  });
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  // debounce — wait 800ms after last change before writing
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    const state = {};
+    ZONE_IDS.forEach(zone => {
+      const el = document.getElementById("z-" + zone);
+      if (!el) return;
+      state[zone] = [...el.querySelectorAll(".card")].map(c => ({
+        id: c.dataset.id,
+        name: c.dataset.name,
+        note: c.dataset.note || "",
+      }));
+    });
+    try {
+      await setDoc(DOC_REF, state);
+    } catch(e) {
+      console.warn("Firestore save failed", e);
+      toast("Auto-save failed — check connection.");
+    }
+  }, 800);
 }
 
 let dragEl = null;
@@ -1083,21 +1111,19 @@ document.getElementById("modal-delete").addEventListener("click", e => {
   }
 });
 
-document.getElementById("btn-save-json").addEventListener("click", () => {
-  const state = {};
-  ZONE_IDS.forEach(zone => {
-    const el = document.getElementById("z-" + zone);
-    if (!el) return;
-    state[zone] = [...el.querySelectorAll(".card")].map(c => ({
-      id: c.dataset.id, name: c.dataset.name, note: c.dataset.note || "",
-    }));
-  });
-  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "production_board_" + new Date().toISOString().slice(0,10) + ".json";
-  a.click();
-  toast("Board saved to file.");
+document.getElementById("btn-save-json").addEventListener("click", async () => {
+  try {
+    const snap = await getDoc(DOC_REF);
+    const state = snap.exists() ? snap.data() : {};
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "production_board_" + new Date().toISOString().slice(0,10) + ".json";
+    a.click();
+    toast("Board saved to file.");
+  } catch(e) {
+    toast("Could not download — check connection.");
+  }
 });
 
 document.getElementById("btn-load-json").addEventListener("click", () => {
@@ -1108,16 +1134,16 @@ document.getElementById("file-json").addEventListener("change", e => {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = ev => {
+  reader.onload = async ev => {
     try {
       const state = JSON.parse(ev.target.result);
+      await setDoc(DOC_REF, state);
       ZONE_IDS.forEach(zone => {
         const el = document.getElementById("z-" + zone);
         if (!el) return;
         [...el.querySelectorAll(".card")].forEach(c => c.remove());
         (state[zone] || []).forEach(item => el.appendChild(makeCard(item, zone)));
       });
-      saveState();
       toast("Board restored.");
     } catch(err) {
       alert("Could not read that file. Make sure it's a valid board JSON export.");
@@ -1232,12 +1258,17 @@ document.getElementById("file-csv").addEventListener("change", e => {
   reader.readAsText(file);
 });
 
-const state = loadState();
-ZONE_IDS.forEach(zone => {
-  const el = document.getElementById("z-" + zone);
-  if (!el) return;
-  (state[zone] || []).forEach(item => el.appendChild(makeCard(item, zone)));
-});
+// ── INIT ──
+(async () => {
+  toast("Loading board...");
+  const state = await loadState();
+  ZONE_IDS.forEach(zone => {
+    const el = document.getElementById("z-" + zone);
+    if (!el) return;
+    (state[zone] || []).forEach(item => el.appendChild(makeCard(item, zone)));
+  });
+  toast("Board loaded.");
+})();
 </script>
 </body>
 </html>
