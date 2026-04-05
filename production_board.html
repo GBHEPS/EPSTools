@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kerfworks — Production Board</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f4f0;
+  --bg-tertiary: #eeede8;
+  --text-primary: #1a1a18;
+  --text-secondary: #5f5e5a;
+  --text-tertiary: #8e8d87;
+  --border-light: rgba(0,0,0,0.10);
+  --border-mid: rgba(0,0,0,0.18);
+  --border-strong: rgba(0,0,0,0.28);
+  --divider-color: rgba(0,0,0,0.45);
+  --green-header: #d4ebbb;
+  --green-border: #97C459;
+  --green-text: #27500A;
+  --green-bg: #EAF3DE;
+  --blue-header: #cce0f7;
+  --blue-border: #378ADD;
+  --blue-text: #0C447C;
+  --blue-bg: #E6F1FB;
+  --hold-bg: #f0efe9;
+  --drag-over-bg: #f0f7e8;
+  --drag-over-border: #639922;
+  --drag-blocked-bg: #fdecea;
+  --drag-blocked-border: #e05a4a;
+  --subsec-label-color: #3a3a37;
+  --radius-sm: 5px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
+header {
+  background: var(--bg-primary);
+  border-bottom: 0.5px solid var(--border-light);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+header h1 {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.legend {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+}
+
+.header-divider {
+  width: 0.5px;
+  height: 20px;
+  background: var(--border-light);
+}
+
+.toolbar-btn {
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border: 0.5px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.toolbar-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+
+/* ── BOARD LAYOUT ── */
+.pb-wrap {
+  padding: 14px 14px 40px;
+  overflow-x: auto;
+}
+
+/*
+  Grid: 7 content columns + 2 divider columns = 9 total
+  Upcoming: 4 cols (2 shop + 2 site) | DIV | In Process: 2 cols | DIV | Final: 1 col
+  Grid template: 1fr 1fr 1fr 1fr 18px 1fr 1fr 18px 0.55fr
+*/
+
+:root {
+  --col-upcoming: 1fr;
+  --col-inprocess: 1fr;
+  --col-final: 0.55fr;
+}
+
+.pb-top {
+  display: grid;
+  grid-template-columns: var(--col-upcoming) var(--col-upcoming) var(--col-upcoming) var(--col-upcoming) 18px var(--col-inprocess) var(--col-inprocess) 18px var(--col-final);
+  gap: 3px;
+  min-width: 1000px;
+}
+
+.pb-section {
+  text-align: center;
+  padding: 6px 4px 5px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  border-radius: 6px 6px 0 0;
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+}
+
+.pb-section-divider-top {
+  background: transparent;
+}
+
+.pb-cols {
+  display: grid;
+  grid-template-columns: var(--col-upcoming) var(--col-upcoming) var(--col-upcoming) var(--col-upcoming) 18px var(--col-inprocess) var(--col-inprocess) 18px var(--col-final);
+  gap: 3px;
+  min-width: 1000px;
+}
+
+.pb-divider {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 0;
+}
+
+.pb-divider-line {
+  width: 2px;
+  background: var(--divider-color);
+  border-radius: 1px;
+  min-height: 100%;
+}
+
+.pb-maincol {
+  background: var(--bg-primary);
+  border: 0.5px solid var(--border-light);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  overflow: hidden;
+}
+
+.pb-maincol-shop { border-top: 2.5px solid var(--green-border); }
+.pb-maincol-site { border-top: 2.5px solid var(--blue-border); }
+.pb-maincol-final { border-top: 2.5px solid var(--border-mid); }
+
+/* Paired upcoming columns share a header that spans both */
+.pb-pair-wrap {
+  grid-column: span 2;
+  display: flex;
+  flex-direction: column;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  overflow: hidden;
+  border: 0.5px solid var(--border-light);
+}
+
+.pb-pair-wrap .col-header-shop,
+.pb-pair-wrap .col-header-site {
+  flex-shrink: 0;
+}
+
+.pb-pair-inner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.pair-subsec-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  padding: 5px 7px 4px;
+  color: var(--subsec-label-color);
+  border-bottom: 0.5px solid var(--border-mid);
+  border-top: 0.5px solid var(--border-light);
+  background: var(--bg-secondary);
+}
+
+.pair-subsec-label.hold-label {
+  background: var(--hold-bg);
+  color: var(--text-secondary);
+}
+
+.pair-dropzone-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 0.5px solid var(--border-light);
+  background: var(--bg-primary);
+}
+.pair-dropzone-row.hold-row { background: var(--hold-bg); }
+.pair-dropzone-row:last-child { border-bottom: none; }
+
+.pair-dropzone-row .dropzone {
+  border-right: 0.5px solid var(--border-light);
+}
+.pair-dropzone-row .dropzone:last-child { border-right: none; }
+
+.pair-add-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 0.5px solid var(--border-light);
+  background: var(--bg-primary);
+}
+.pair-add-row.hold-row { background: var(--hold-bg); }
+.pair-add-row:last-of-type { border-bottom: none; }
+.pair-add-row .add-btn {
+  width: calc(100% - 10px);
+  margin: 0 5px 5px;
+}
+.pair-add-row .add-btn:first-child {
+  border-right: none;
+}
+
+.col-header-shop {
+  font-size: 11px; font-weight: 600; text-align: center;
+  padding: 6px 4px; color: var(--green-text);
+  background: var(--green-header);
+  border-bottom: 0.5px solid var(--green-border);
+  letter-spacing: .04em; text-transform: uppercase;
+}
+.col-header-site {
+  font-size: 11px; font-weight: 600; text-align: center;
+  padding: 6px 4px; color: var(--blue-text);
+  background: var(--blue-header);
+  border-bottom: 0.5px solid var(--blue-border);
+  letter-spacing: .04em; text-transform: uppercase;
+}
+.col-header-neutral {
+  font-size: 11px; font-weight: 600; text-align: center;
+  padding: 6px 4px; color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border-bottom: 0.5px solid var(--border-light);
+  letter-spacing: .04em; text-transform: uppercase;
+}
+
+.subsec { border-bottom: 0.5px solid var(--border-light); }
+.subsec:last-child { border-bottom: none; }
+
+.subsec-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  padding: 5px 7px 4px;
+  color: var(--subsec-label-color);
+  border-bottom: 0.5px solid var(--border-mid);
+  background: var(--bg-secondary);
+}
+
+.subsec-hold { background: var(--hold-bg); }
+.subsec-hold .subsec-label {
+  background: var(--hold-bg);
+  color: var(--text-secondary);
+}
+
+.dropzone {
+  min-height: 50px;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.subsec-hold .dropzone { min-height: 36px; }
+
+.dropzone.drag-over {
+  background: var(--drag-over-bg);
+  outline: 1.5px dashed var(--drag-over-border);
+  outline-offset: -2px;
+  border-radius: 4px;
+}
+.dropzone.drag-blocked {
+  background: var(--drag-blocked-bg);
+  outline: 1.5px dashed var(--drag-blocked-border);
+  outline-offset: -2px;
+  border-radius: 4px;
+}
+
+.final-zone {
+  min-height: 280px;
+  padding: 6px 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.final-zone.drag-over {
+  background: var(--drag-over-bg);
+  outline: 1.5px dashed var(--drag-over-border);
+  outline-offset: -2px;
+  border-radius: 4px;
+}
+
+/* ── CARDS ── */
+.card {
+  background: var(--bg-primary);
+  border: 0.5px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  padding: 5px 6px 4px 7px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: grab;
+  user-select: none;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0 4px;
+  transition: border-color 0.1s;
+}
+.card:hover { border-color: var(--border-strong); }
+.card.dragging { opacity: 0.3; }
+
+.card-body {
+  grid-column: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.card-name {
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 1.3;
+}
+.card-note {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  font-weight: 400;
+  line-height: 1.3;
+}
+.card-lane {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 1px 5px;
+  border-radius: 3px;
+  align-self: flex-start;
+  margin-top: 3px;
+  display: inline-block;
+}
+.lane-shop { background: var(--green-bg); color: var(--green-text); }
+.lane-site { background: var(--blue-bg); color: var(--blue-text); }
+
+.card-btns {
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 1px;
+}
+
+.card-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  border: 0.5px solid var(--border-light);
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+.card-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); border-color: var(--border-mid); }
+.card-btn.del:hover { background: #fdecea; color: #c0392b; border-color: #e05a4a; }
+
+.add-btn {
+  background: none;
+  border: 0.5px dashed var(--border-light);
+  border-radius: 4px;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  padding: 3px 6px;
+  cursor: pointer;
+  width: calc(100% - 10px);
+  margin: 0 5px 5px;
+  text-align: center;
+  font-family: inherit;
+}
+.add-btn:hover { color: var(--text-secondary); border-color: var(--border-mid); }
+
+/* ── MODALS ── */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.3);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: var(--bg-primary);
+  border: 0.5px solid var(--border-mid);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  width: 300px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+}
+.modal h3 {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 14px;
+  color: var(--text-primary);
+}
+.modal label {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  display: block;
+  margin-bottom: 4px;
+}
+.modal input {
+  width: 100%;
+  border: 0.5px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  margin-bottom: 12px;
+  outline: none;
+}
+.modal input:focus { border-color: var(--border-strong); }
+
+.modal-btns {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+.modal-btns button {
+  font-size: 13px;
+  padding: 7px 16px;
+  border-radius: var(--radius-sm);
+  border: 0.5px solid var(--border-mid);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-family: inherit;
+}
+.modal-btns button:hover { background: var(--bg-secondary); }
+.btn-primary {
+  background: var(--text-primary) !important;
+  color: var(--bg-primary) !important;
+  border-color: var(--text-primary) !important;
+}
+.btn-primary:hover { opacity: 0.82 !important; background: var(--text-primary) !important; }
+.btn-danger {
+  background: #c0392b !important;
+  color: #fff !important;
+  border-color: #c0392b !important;
+}
+.btn-danger:hover { opacity: 0.85 !important; }
+
+.modal-note-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+.modal-note-text code {
+  font-size: 11px;
+  background: var(--bg-secondary);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+#toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  font-size: 12px;
+  padding: 8px 18px;
+  border-radius: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 300;
+  white-space: nowrap;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── PRINT ── */
+@media print {
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  header { display: none; }
+
+  body { background: white; }
+
+  .pb-wrap { padding: 0; overflow: visible; }
+
+  .pb-top,
+  .pb-cols {
+    min-width: 0;
+    gap: 2px;
+  }
+
+  .pb-section { font-size: 8px; padding: 4px 2px 3px; }
+
+  .pb-maincol { border-radius: 0; }
+
+  .col-header-shop,
+  .col-header-site,
+  .col-header-neutral { font-size: 9px; padding: 4px 3px; }
+
+  .subsec-label { font-size: 9px; padding: 3px 5px 2px; }
+
+  .dropzone { min-height: 24px; padding: 3px; gap: 2px; }
+  .subsec-hold .dropzone { min-height: 16px; }
+  .final-zone { min-height: 60px; padding: 3px; gap: 2px; }
+
+  .card {
+    padding: 3px 4px 2px 5px;
+    font-size: 10px;
+    border-radius: 3px;
+    gap: 0 2px;
+  }
+  .card-name { font-size: 10px; }
+  .card-note { font-size: 9px; }
+  .card-lane { font-size: 8px; padding: 0 3px; margin-top: 2px; }
+  .card-btns { display: none; }
+
+  .add-btn { display: none; }
+
+  .pb-divider-line { width: 1.5px; }
+
+  .modal-overlay { display: none !important; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>East Portland Sash &mdash; Production Board</h1>
+  <div class="header-right">
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#97C459;"></div> Shop
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#378ADD;"></div> Site
+      </div>
+    </div>
+    <div class="header-divider"></div>
+    <button class="toolbar-btn" id="btn-save-json">Save board</button>
+    <button class="toolbar-btn" id="btn-load-json">Restore board</button>
+    <div class="header-divider"></div>
+    <button class="toolbar-btn" id="btn-csv-template">CSV template</button>
+    <button class="toolbar-btn" id="btn-import-csv">Import CSV</button>
+    <input type="file" id="file-json" accept=".json" style="display:none">
+    <input type="file" id="file-csv" accept=".csv" style="display:none">
+  </div>
+</header>
+
+<div class="pb-wrap">
+  <div class="pb-top">
+    <div class="pb-section" style="grid-column:1/5;">Upcoming</div>
+    <div class="pb-section-divider-top"></div>
+    <div class="pb-section" style="grid-column:6/8;">In process</div>
+    <div class="pb-section-divider-top"></div>
+    <div class="pb-section" style="grid-column:9/10;">Final</div>
+  </div>
+
+  <div class="pb-cols" id="board">
+
+    <!-- UPCOMING SHOP — 2 paired columns -->
+    <div class="pb-pair-wrap" style="border-top:2.5px solid var(--green-border);">
+      <div class="col-header-shop">Shop</div>
+      <div class="pb-pair-inner">
+        <div class="pair-subsec-label">Measure / plan</div>
+        <div class="pair-dropzone-row">
+          <div class="dropzone" id="z-up-shop-measure" data-zone="up-shop-measure" data-lane="shop"></div>
+          <div class="dropzone" id="z-up-shop-measure-b" data-zone="up-shop-measure-b" data-lane="shop"></div>
+        </div>
+        <div class="pair-add-row">
+          <button class="add-btn" data-zone="up-shop-measure">+ add</button>
+          <button class="add-btn" data-zone="up-shop-measure-b">+ add</button>
+        </div>
+        <div class="pair-subsec-label">Ready</div>
+        <div class="pair-dropzone-row">
+          <div class="dropzone" id="z-up-shop-ready" data-zone="up-shop-ready" data-lane="shop"></div>
+          <div class="dropzone" id="z-up-shop-ready-b" data-zone="up-shop-ready-b" data-lane="shop"></div>
+        </div>
+        <div class="pair-add-row">
+          <button class="add-btn" data-zone="up-shop-ready">+ add</button>
+          <button class="add-btn" data-zone="up-shop-ready-b">+ add</button>
+        </div>
+        <div class="pair-subsec-label hold-label">Hold</div>
+        <div class="pair-dropzone-row hold-row">
+          <div class="dropzone" id="z-up-shop-hold" data-zone="up-shop-hold" data-lane="shop"></div>
+          <div class="dropzone" id="z-up-shop-hold-b" data-zone="up-shop-hold-b" data-lane="shop"></div>
+        </div>
+        <div class="pair-add-row hold-row">
+          <button class="add-btn" data-zone="up-shop-hold">+ add</button>
+          <button class="add-btn" data-zone="up-shop-hold-b">+ add</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- UPCOMING SITE — 2 paired columns -->
+    <div class="pb-pair-wrap" style="border-top:2.5px solid var(--blue-border);">
+      <div class="col-header-site">Site</div>
+      <div class="pb-pair-inner">
+        <div class="pair-subsec-label">Walk thru / plan</div>
+        <div class="pair-dropzone-row">
+          <div class="dropzone" id="z-up-site-walkthru" data-zone="up-site-walkthru" data-lane="site"></div>
+          <div class="dropzone" id="z-up-site-walkthru-b" data-zone="up-site-walkthru-b" data-lane="site"></div>
+        </div>
+        <div class="pair-add-row">
+          <button class="add-btn" data-zone="up-site-walkthru">+ add</button>
+          <button class="add-btn" data-zone="up-site-walkthru-b">+ add</button>
+        </div>
+        <div class="pair-subsec-label">Ready</div>
+        <div class="pair-dropzone-row">
+          <div class="dropzone" id="z-up-site-ready" data-zone="up-site-ready" data-lane="site"></div>
+          <div class="dropzone" id="z-up-site-ready-b" data-zone="up-site-ready-b" data-lane="site"></div>
+        </div>
+        <div class="pair-add-row">
+          <button class="add-btn" data-zone="up-site-ready">+ add</button>
+          <button class="add-btn" data-zone="up-site-ready-b">+ add</button>
+        </div>
+        <div class="pair-subsec-label hold-label">Hold</div>
+        <div class="pair-dropzone-row hold-row">
+          <div class="dropzone" id="z-up-site-hold" data-zone="up-site-hold" data-lane="site"></div>
+          <div class="dropzone" id="z-up-site-hold-b" data-zone="up-site-hold-b" data-lane="site"></div>
+        </div>
+        <div class="pair-add-row hold-row">
+          <button class="add-btn" data-zone="up-site-hold">+ add</button>
+          <button class="add-btn" data-zone="up-site-hold-b">+ add</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DIVIDER 1 -->
+    <div class="pb-divider"><div class="pb-divider-line"></div></div>
+
+    <!-- IN PROCESS SHOP -->
+    <div class="pb-maincol pb-maincol-shop">
+      <div class="col-header-shop">Shop</div>
+      <div class="subsec">
+        <div class="subsec-label">On bench</div>
+        <div class="dropzone" id="z-ip-shop-bench" data-zone="ip-shop-bench" data-lane="shop"></div>
+        <button class="add-btn" data-zone="ip-shop-bench">+ add</button>
+      </div>
+      <div class="subsec">
+        <div class="subsec-label">Glazing / paint</div>
+        <div class="dropzone" id="z-ip-shop-glazing" data-zone="ip-shop-glazing" data-lane="shop"></div>
+        <button class="add-btn" data-zone="ip-shop-glazing">+ add</button>
+      </div>
+      <div class="subsec subsec-hold">
+        <div class="subsec-label">Hold</div>
+        <div class="dropzone" id="z-ip-shop-hold" data-zone="ip-shop-hold" data-lane="shop"></div>
+        <button class="add-btn" data-zone="ip-shop-hold">+ add</button>
+      </div>
+    </div>
+
+    <!-- IN PROCESS SITE -->
+    <div class="pb-maincol pb-maincol-site">
+      <div class="col-header-site">Site</div>
+      <div class="subsec">
+        <div class="subsec-label">Active</div>
+        <div class="dropzone" id="z-ip-site-active" data-zone="ip-site-active" data-lane="site"></div>
+        <button class="add-btn" data-zone="ip-site-active">+ add</button>
+      </div>
+      <div class="subsec">
+        <div class="subsec-label">Limbo</div>
+        <div class="dropzone" id="z-ip-site-limbo" data-zone="ip-site-limbo" data-lane="site"></div>
+        <button class="add-btn" data-zone="ip-site-limbo">+ add</button>
+      </div>
+      <div class="subsec subsec-hold">
+        <div class="subsec-label">Hold</div>
+        <div class="dropzone" id="z-ip-site-hold" data-zone="ip-site-hold" data-lane="site"></div>
+        <button class="add-btn" data-zone="ip-site-hold">+ add</button>
+      </div>
+    </div>
+
+    <!-- DIVIDER 2 -->
+    <div class="pb-divider"><div class="pb-divider-line"></div></div>
+
+    <!-- FINAL -->
+    <div class="pb-maincol pb-maincol-final">
+      <div class="col-header-neutral">Complete</div>
+      <div class="final-zone" id="z-final" data-zone="final" data-lane="final"></div>
+      <button class="add-btn" data-zone="final">+ add</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Add / Edit modal -->
+<div class="modal-overlay" id="modal-card">
+  <div class="modal">
+    <h3 id="modal-card-title">Add project</h3>
+    <label>Client name</label>
+    <input type="text" id="modal-name" placeholder="e.g. Shinn" autocomplete="off" />
+    <label>Note <span style="font-size:10px;text-transform:none;letter-spacing:0;">(optional)</span></label>
+    <input type="text" id="modal-note" placeholder="e.g. 4/16 start" autocomplete="off" />
+    <div class="modal-btns">
+      <button id="modal-card-cancel">Cancel</button>
+      <button id="modal-card-save" class="btn-primary">Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirm modal -->
+<div class="modal-overlay" id="modal-delete">
+  <div class="modal">
+    <h3>Remove card?</h3>
+    <p class="modal-note-text" id="modal-delete-msg">This will remove the card from the board.</p>
+    <div class="modal-btns">
+      <button id="modal-delete-cancel">Cancel</button>
+      <button id="modal-delete-confirm" class="btn-danger">Remove</button>
+    </div>
+  </div>
+</div>
+
+<!-- CSV info modal -->
+<div class="modal-overlay" id="modal-csv-info">
+  <div class="modal">
+    <h3>Import CSV</h3>
+    <p class="modal-note-text">
+      Importing will <strong>add</strong> cards to the existing board without clearing anything first.<br><br>
+      Required columns: <code>name</code>, <code>lane</code>, <code>zone</code>. The <code>note</code> column is optional.<br><br>
+      Download the CSV template first if you haven't already — it includes all valid zone names and examples.
+    </p>
+    <div class="modal-btns">
+      <button id="modal-csv-cancel">Cancel</button>
+      <button id="modal-csv-proceed" class="btn-primary">Choose file</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+const ZONE_IDS = [
+  "up-shop-measure","up-shop-measure-b",
+  "up-shop-ready","up-shop-ready-b",
+  "up-shop-hold","up-shop-hold-b",
+  "up-site-walkthru","up-site-walkthru-b",
+  "up-site-ready","up-site-ready-b",
+  "up-site-hold","up-site-hold-b",
+  "ip-shop-bench","ip-shop-glazing","ip-shop-hold",
+  "ip-site-active","ip-site-limbo","ip-site-hold",
+  "final"
+];
+
+const CSV_ZONE_RESOLVE = {
+  "measure-shop":   "up-shop-measure",
+  "ready-shop":     "up-shop-ready",
+  "hold-shop":      "up-shop-hold",
+  "walkthru-site":  "up-site-walkthru",
+  "ready-site":     "up-site-ready",
+  "hold-site":      "up-site-hold",
+  "bench-shop":     "ip-shop-bench",
+  "glazing-shop":   "ip-shop-glazing",
+  "active-site":    "ip-site-active",
+  "limbo-site":     "ip-site-limbo",
+  "final-shop":     "final",
+  "final-site":     "final",
+  "final-final":    "final",
+  "final-":         "final",
+};
+
+const defaultSeeds = {
+  "up-shop-measure": [
+    {id:"s1",name:"Shinn",note:"3/25"},
+    {id:"s2",name:"Kengla",note:"3/25"},
+    {id:"s3",name:"Kohler",note:"3/23"},
+    {id:"s4",name:"Griffin",note:""},
+    {id:"s5",name:"Adamson",note:""},
+    {id:"s6",name:"Maley",note:""},
+    {id:"s7",name:"Duquette",note:""},
+    {id:"s8",name:"Hullar",note:""},
+  ],
+  "up-site-walkthru": [
+    {id:"t1",name:"Shinn",note:""},
+    {id:"t2",name:"Hullar",note:""},
+    {id:"t3",name:"Kohler",note:""},
+    {id:"t4",name:"Kengla",note:""},
+  ],
+  "ip-shop-bench": [
+    {id:"b1",name:"Griffin",note:""},
+    {id:"b2",name:"Adamson",note:""},
+    {id:"b3",name:"Murff / Power",note:""},
+    {id:"b4",name:"Maley",note:""},
+  ],
+  "ip-site-active": [
+    {id:"a1",name:"Mirkil",note:"4/16 start"},
+  ],
+};
+ZONE_IDS.forEach(z => { if (!defaultSeeds[z]) defaultSeeds[z] = []; });
+
+function laneOf(zoneId) {
+  if (!zoneId || zoneId === "final") return "final";
+  if (zoneId.includes("shop")) return "shop";
+  return "site";
+}
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
+
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._to);
+  t._to = setTimeout(() => t.classList.remove("show"), 2400);
+}
+
+// ── FIREBASE ──
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBiwsuVyEormZua4fUh7rLeIAQp0BZ-y8A",
+  authDomain: "epstools-2913e.firebaseapp.com",
+  projectId: "epstools-2913e",
+  storageBucket: "epstools-2913e.firebasestorage.app",
+  messagingSenderId: "91969549327",
+  appId: "1:91969549327:web:6eea1d04d68eb01dabdf7a"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const DOC_REF = doc(db, "boards", "production");
+
+let saveTimer = null;
+
+async function loadState() {
+  try {
+    const snap = await getDoc(DOC_REF);
+    if (snap.exists()) return snap.data();
+  } catch(e) {
+    console.warn("Firestore load failed, using defaults", e);
+  }
+  return JSON.parse(JSON.stringify(defaultSeeds));
+}
+
+function saveState() {
+  // debounce — wait 800ms after last change before writing
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    const state = {};
+    ZONE_IDS.forEach(zone => {
+      const el = document.getElementById("z-" + zone);
+      if (!el) return;
+      state[zone] = [...el.querySelectorAll(".card")].map(c => ({
+        id: c.dataset.id,
+        name: c.dataset.name,
+        note: c.dataset.note || "",
+      }));
+    });
+    try {
+      await setDoc(DOC_REF, state);
+    } catch(e) {
+      console.warn("Firestore save failed", e);
+      toast("Auto-save failed — check connection.");
+    }
+  }, 800);
+}
+
+let dragEl = null;
+
+function refreshCard(card) {
+  const name = card.dataset.name;
+  const note = card.dataset.note;
+  const lane = card.dataset.lane;
+  card.querySelector(".card-name").textContent = name;
+  const noteEl = card.querySelector(".card-note");
+  noteEl.textContent = note || "";
+  noteEl.style.display = note ? "" : "none";
+  const laneEl = card.querySelector(".card-lane");
+  if (lane && lane !== "final") {
+    laneEl.textContent = lane;
+    laneEl.className = "card-lane lane-" + lane;
+    laneEl.style.display = "";
+  } else {
+    laneEl.style.display = "none";
+  }
+}
+
+function makeCard(item, zoneId) {
+  const lane = laneOf(zoneId);
+  const d = document.createElement("div");
+  d.className = "card";
+  d.draggable = true;
+  d.dataset.id = item.id;
+  d.dataset.name = item.name;
+  d.dataset.note = item.note || "";
+  d.dataset.lane = lane;
+
+  d.innerHTML =
+    `<div class="card-body">` +
+      `<span class="card-name"></span>` +
+      `<span class="card-note"></span>` +
+      `<span class="card-lane"></span>` +
+    `</div>` +
+    `<div class="card-btns">` +
+      `<button class="card-btn edit" title="Edit">&#9998;</button>` +
+      `<button class="card-btn del" title="Remove">&#x2715;</button>` +
+    `</div>`;
+
+  refreshCard(d);
+
+  d.querySelector(".card-btn.edit").addEventListener("click", e => {
+    e.stopPropagation();
+    openEditModal(d);
+  });
+
+  d.querySelector(".card-btn.del").addEventListener("click", e => {
+    e.stopPropagation();
+    openDeleteModal(d);
+  });
+
+  d.addEventListener("dragstart", e => {
+    dragEl = d;
+    setTimeout(() => d.classList.add("dragging"), 0);
+    e.dataTransfer.effectAllowed = "move";
+  });
+  d.addEventListener("dragend", () => {
+    d.classList.remove("dragging");
+    dragEl = null;
+    saveState();
+  });
+
+  return d;
+}
+
+function getAfter(container, y) {
+  return [...container.querySelectorAll(".card:not(.dragging)")].reduce((cl, ch) => {
+    const b = ch.getBoundingClientRect();
+    const o = y - b.top - b.height / 2;
+    return o < 0 && o > cl.offset ? { offset: o, el: ch } : cl;
+  }, { offset: -Infinity, el: null }).el;
+}
+
+function zoneAccepts(zoneEl, cardLane) {
+  const zoneLane = zoneEl.dataset.lane;
+  if (zoneLane === "final") return true;
+  return zoneLane === cardLane;
+}
+
+function initZone(el) {
+  el.addEventListener("dragover", e => {
+    if (!dragEl) return;
+    e.preventDefault();
+    const cardLane = dragEl.dataset.lane;
+    if (!zoneAccepts(el, cardLane)) {
+      el.classList.add("drag-blocked");
+      el.classList.remove("drag-over");
+      return;
+    }
+    el.classList.remove("drag-blocked");
+    el.classList.add("drag-over");
+    const after = getAfter(el, e.clientY);
+    after ? el.insertBefore(dragEl, after) : el.appendChild(dragEl);
+  });
+  el.addEventListener("dragleave", () => {
+    el.classList.remove("drag-over");
+    el.classList.remove("drag-blocked");
+  });
+  el.addEventListener("drop", e => {
+    e.preventDefault();
+    el.classList.remove("drag-over");
+    el.classList.remove("drag-blocked");
+  });
+}
+
+document.querySelectorAll(".dropzone, .final-zone").forEach(z => initZone(z));
+
+let addZone = null;
+let editCard = null;
+
+document.querySelectorAll(".add-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    addZone = btn.dataset.zone;
+    editCard = null;
+    document.getElementById("modal-card-title").textContent = "Add project";
+    document.getElementById("modal-card-save").textContent = "Add";
+    document.getElementById("modal-name").value = "";
+    document.getElementById("modal-note").value = "";
+    document.getElementById("modal-card").classList.add("open");
+    setTimeout(() => document.getElementById("modal-name").focus(), 50);
+  });
+});
+
+function openEditModal(card) {
+  editCard = card;
+  addZone = null;
+  document.getElementById("modal-card-title").textContent = "Edit project";
+  document.getElementById("modal-card-save").textContent = "Save";
+  document.getElementById("modal-name").value = card.dataset.name;
+  document.getElementById("modal-note").value = card.dataset.note || "";
+  document.getElementById("modal-card").classList.add("open");
+  setTimeout(() => document.getElementById("modal-name").focus(), 50);
+}
+
+document.getElementById("modal-card-cancel").addEventListener("click", () => {
+  document.getElementById("modal-card").classList.remove("open");
+});
+
+document.getElementById("modal-card-save").addEventListener("click", () => {
+  const name = document.getElementById("modal-name").value.trim();
+  if (!name) { document.getElementById("modal-name").focus(); return; }
+  const note = document.getElementById("modal-note").value.trim();
+  if (editCard) {
+    editCard.dataset.name = name;
+    editCard.dataset.note = note;
+    refreshCard(editCard);
+    saveState();
+    toast("Card updated.");
+  } else {
+    const el = document.getElementById("z-" + addZone);
+    el.appendChild(makeCard({ id: uid(), name, note }, addZone));
+    saveState();
+    toast("Card added.");
+  }
+  document.getElementById("modal-card").classList.remove("open");
+});
+
+document.getElementById("modal-name").addEventListener("keydown", e => {
+  if (e.key === "Enter") document.getElementById("modal-card-save").click();
+  if (e.key === "Escape") document.getElementById("modal-card-cancel").click();
+});
+document.getElementById("modal-note").addEventListener("keydown", e => {
+  if (e.key === "Enter") document.getElementById("modal-card-save").click();
+  if (e.key === "Escape") document.getElementById("modal-card-cancel").click();
+});
+
+document.getElementById("modal-card").addEventListener("click", e => {
+  if (e.target === document.getElementById("modal-card"))
+    document.getElementById("modal-card").classList.remove("open");
+});
+
+let deleteTarget = null;
+
+function openDeleteModal(card) {
+  deleteTarget = card;
+  document.getElementById("modal-delete-msg").textContent =
+    `Remove "${card.dataset.name}" from the board? This can't be undone.`;
+  document.getElementById("modal-delete").classList.add("open");
+}
+
+document.getElementById("modal-delete-cancel").addEventListener("click", () => {
+  document.getElementById("modal-delete").classList.remove("open");
+  deleteTarget = null;
+});
+
+document.getElementById("modal-delete-confirm").addEventListener("click", () => {
+  if (deleteTarget) { deleteTarget.remove(); saveState(); toast("Card removed."); }
+  document.getElementById("modal-delete").classList.remove("open");
+  deleteTarget = null;
+});
+
+document.getElementById("modal-delete").addEventListener("click", e => {
+  if (e.target === document.getElementById("modal-delete")) {
+    document.getElementById("modal-delete").classList.remove("open");
+    deleteTarget = null;
+  }
+});
+
+document.getElementById("btn-save-json").addEventListener("click", async () => {
+  try {
+    const snap = await getDoc(DOC_REF);
+    const state = snap.exists() ? snap.data() : {};
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "production_board_" + new Date().toISOString().slice(0,10) + ".json";
+    a.click();
+    toast("Board saved to file.");
+  } catch(e) {
+    toast("Could not download — check connection.");
+  }
+});
+
+document.getElementById("btn-load-json").addEventListener("click", () => {
+  document.getElementById("file-json").click();
+});
+
+document.getElementById("file-json").addEventListener("change", e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    try {
+      const state = JSON.parse(ev.target.result);
+      await setDoc(DOC_REF, state);
+      ZONE_IDS.forEach(zone => {
+        const el = document.getElementById("z-" + zone);
+        if (!el) return;
+        [...el.querySelectorAll(".card")].forEach(c => c.remove());
+        (state[zone] || []).forEach(item => el.appendChild(makeCard(item, zone)));
+      });
+      toast("Board restored.");
+    } catch(err) {
+      alert("Could not read that file. Make sure it's a valid board JSON export.");
+    }
+    e.target.value = "";
+  };
+  reader.readAsText(file);
+});
+
+document.getElementById("btn-csv-template").addEventListener("click", () => {
+  const rows = [
+    "name,note,lane,zone",
+    "Jones,,shop,measure",
+    "Jones,,site,walkthru",
+    "Smith,rush job,shop,bench",
+    "Patel,4/20 start,site,active",
+    "Davis,,shop,ready",
+    "Davis,,site,ready",
+    "Brown,,shop,glazing",
+    "Lee,,site,limbo",
+    "Clark,,shop,hold",
+    "Clark,,site,hold",
+    "Evans,,shop,final",
+    "",
+    "# ZONE REFERENCE",
+    "# measure   -> Upcoming / Shop / Measure-plan",
+    "# ready     -> Upcoming / Shop or Site / Ready  (lane determines which column)",
+    "# hold      -> Upcoming / Shop or Site / Hold   (lane determines which column)",
+    "# walkthru  -> Upcoming / Site / Walk-thru-plan",
+    "# bench     -> In Process / Shop / On bench",
+    "# glazing   -> In Process / Shop / Glazing-paint",
+    "# active    -> In Process / Site / Active",
+    "# limbo     -> In Process / Site / Limbo",
+    "# final     -> Final (accepts shop or site)",
+  ];
+  const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "production_board_template.csv";
+  a.click();
+  toast("CSV template downloaded.");
+});
+
+document.getElementById("btn-import-csv").addEventListener("click", () => {
+  document.getElementById("modal-csv-info").classList.add("open");
+});
+
+document.getElementById("modal-csv-cancel").addEventListener("click", () => {
+  document.getElementById("modal-csv-info").classList.remove("open");
+});
+
+document.getElementById("modal-csv-proceed").addEventListener("click", () => {
+  document.getElementById("modal-csv-info").classList.remove("open");
+  document.getElementById("file-csv").click();
+});
+
+document.getElementById("modal-csv-info").addEventListener("click", e => {
+  if (e.target === document.getElementById("modal-csv-info"))
+    document.getElementById("modal-csv-info").classList.remove("open");
+});
+
+document.getElementById("file-csv").addEventListener("change", e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const lines = ev.target.result
+      .split("\n")
+      .map(l => l.trim())
+      .filter(l => l && !l.startsWith("#"));
+
+    const headers = lines[0].toLowerCase().split(",").map(h => h.trim());
+    const iName = headers.indexOf("name");
+    const iNote = headers.indexOf("note");
+    const iLane = headers.indexOf("lane");
+    const iZone = headers.indexOf("zone");
+
+    if (iName < 0 || iLane < 0 || iZone < 0) {
+      alert("CSV must have columns: name, lane, zone\nThe note column is optional.");
+      e.target.value = "";
+      return;
+    }
+
+    let added = 0, skipped = 0;
+
+    lines.slice(1).forEach(line => {
+      const cols = line.split(",").map(c => c.trim().replace(/^"|"$/g, ""));
+      const name = cols[iName] || "";
+      if (!name) { skipped++; return; }
+      const note = iNote >= 0 ? (cols[iNote] || "") : "";
+      const lane = (cols[iLane] || "").toLowerCase().trim();
+      const zoneShort = (cols[iZone] || "").toLowerCase().trim();
+
+      const key = zoneShort + "-" + lane;
+      const zoneId = CSV_ZONE_RESOLVE[key] || CSV_ZONE_RESOLVE[zoneShort + "-"];
+      if (!zoneId) { skipped++; return; }
+
+      const zoneLane = laneOf(zoneId);
+      if (zoneLane !== "final" && lane !== zoneLane) { skipped++; return; }
+
+      const el = document.getElementById("z-" + zoneId);
+      if (!el) { skipped++; return; }
+
+      el.appendChild(makeCard({ id: uid(), name, note }, zoneId));
+      added++;
+    });
+
+    saveState();
+    toast(`Imported ${added} card${added !== 1 ? "s" : ""}${skipped ? `, ${skipped} skipped` : ""}.`);
+    e.target.value = "";
+  };
+  reader.readAsText(file);
+});
+
+// ── INIT ──
+(async () => {
+  toast("Loading board...");
+  const state = await loadState();
+  ZONE_IDS.forEach(zone => {
+    const el = document.getElementById("z-" + zone);
+    if (!el) return;
+    (state[zone] || []).forEach(item => el.appendChild(makeCard(item, zone)));
+  });
+  toast("Board loaded.");
+})();
+</script>
+</body>
+</html>
