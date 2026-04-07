@@ -1133,6 +1133,9 @@
     letter-spacing: 0.1em;
   }
 </style>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
 <div id="app">
@@ -1669,22 +1672,67 @@ let modalCallback = null;
 //  STORAGE
 // ════════════════════════════════════════════════
 
+// ── FIREBASE SETUP ──
+const firebaseConfig = {
+  apiKey: "AIzaSyBiwsuVyEormZua4fUh7rLeIAQp0BZ-y8A",
+  authDomain: "epstools-2913e.firebaseapp.com",
+  projectId: "epstools-2913e",
+  storageBucket: "epstools-2913e.firebasestorage.app",
+  messagingSenderId: "91969549327",
+  appId: "1:91969549327:web:6eea1d04d68eb01dabdf7a"
+};
+
+// Initialize only once
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const db_fs = firebase.firestore();
+const DB_DOC = db_fs.collection('eps_job_prep').doc('database');
+
 function saveDB() {
+  // Always write to localStorage immediately
   localStorage.setItem('eps_db', JSON.stringify(DB));
+  // Write to Firestore in background — don't await
+  DB_DOC.set(DB).catch(e => console.warn('Firestore write failed:', e));
 }
 
-function loadDB() {
+async function loadDB() {
+  // Try Firestore first
+  try {
+    const doc = await DB_DOC.get();
+    if (doc.exists) {
+      const data = doc.data();
+      // Validate it has the right shape
+      if (data.items && data.categories && data.templates) {
+        DB = data;
+        localStorage.setItem('eps_db', JSON.stringify(DB)); // keep local in sync
+        console.log('EPS: loaded from Firestore');
+        return;
+      }
+    }
+  } catch(e) {
+    console.warn('EPS: Firestore read failed, falling back to localStorage:', e);
+  }
+
+  // Fall back to localStorage
   const saved = localStorage.getItem('eps_db');
   if (saved) {
-    DB = JSON.parse(saved);
-  } else {
-    DB = {
-      categories: [...DEFAULT_CATEGORIES],
-      items: DEFAULT_ITEMS.map(i => ({...i})),
-      templates: DEFAULT_TEMPLATES.map(t => ({...t, groups: t.groups.map(g => ({...g}))}))
-    };
-    saveDB();
+    try {
+      DB = JSON.parse(saved);
+      console.log('EPS: loaded from localStorage');
+      // Push to Firestore so it stays in sync
+      DB_DOC.set(DB).catch(e => console.warn('Firestore sync failed:', e));
+      return;
+    } catch(e) {}
   }
+
+  // Neither — load defaults and seed both
+  DB = {
+    categories: [...DEFAULT_CATEGORIES],
+    items: DEFAULT_ITEMS.map(i => ({...i})),
+    templates: DEFAULT_TEMPLATES.map(t => ({...t, groups: t.groups.map(g => ({...g}))}))
+  };
+  localStorage.setItem('eps_db', JSON.stringify(DB));
+  DB_DOC.set(DB).catch(e => console.warn('Firestore seed failed:', e));
+  console.log('EPS: seeded from defaults');
 }
 
 function resetToDefaults() {
@@ -1694,7 +1742,7 @@ function resetToDefaults() {
     items: DEFAULT_ITEMS.map(i => ({...i})),
     templates: DEFAULT_TEMPLATES.map(t => ({...t, groups: t.groups.map(g => ({...g}))}))
   };
-  saveDB();
+  saveDB(); // writes to both localStorage and Firestore
   currentList = [];
   renderAll();
   toast('Reset to defaults');
@@ -2575,25 +2623,12 @@ function renderAll() {
 //  INIT
 // ════════════════════════════════════════════════
 
-// Clear any stale localStorage from old versions that lack itemIds
-(function() {
-  try {
-    const saved = localStorage.getItem('eps_db');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // If templates exist but first template's first group has no itemIds, it's old data — reset
-      const t = parsed.templates && parsed.templates[0];
-      const g = t && t.groups && t.groups[0];
-      if (g && (!g.hasOwnProperty('itemIds') || !DB.items[0]?.hasOwnProperty('vanStock'))) {
-        console.log('EPS: stale DB detected, resetting to defaults');
-        localStorage.removeItem('eps_db');
-      }
-    }
-  } catch(e) {}
+(async () => {
+  toast('Loading database...');
+  await loadDB();
+  renderAll();
+  toast('Ready');
 })();
-
-loadDB();
-renderAll();
 </script>
 </body>
 </html>
