@@ -1,0 +1,2599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EPS Job Prep v1.3 — East Portland Sash</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1a18;
+    --paper: #f4f0e8;
+    --aged: #e8e2d4;
+    --rust: #b84a2a;
+    --rust-light: #d4613a;
+    --sage: #5a6b4e;
+    --steel: #4a5568;
+    --muted: #8a8070;
+    --rule: #c8c0b0;
+    --highlight: #f0c040;
+    --white: #ffffff;
+    --danger: #c0392b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--ink);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* ── SHELL ── */
+  #app {
+    max-width: 960px;
+    margin: 0 auto;
+    background: var(--paper);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  #main-header {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 18px 28px 14px;
+    display: flex;
+    align-items: baseline;
+    gap: 18px;
+    border-bottom: 3px solid var(--rust);
+  }
+  #main-header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 0.08em;
+    color: var(--paper);
+    line-height: 1;
+  }
+  #main-header .sub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  #main-header .spacer { flex: 1; }
+  #main-header .version {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    color: #555;
+    letter-spacing: 0.1em;
+  }
+
+  /* ── NAV TABS ── */
+  #nav-tabs {
+    display: flex;
+    background: #242420;
+    border-bottom: 2px solid var(--rust);
+  }
+  .tab-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 10px 20px;
+    background: none;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .tab-btn:hover { color: var(--paper); }
+  .tab-btn.active {
+    color: var(--rust-light);
+    border-bottom-color: var(--rust-light);
+  }
+
+  /* ── VIEWS ── */
+  .view { display: none; padding: 24px 28px; }
+  .view.active { display: block; }
+
+  /* ── SECTION HEADERS ── */
+  .section-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  /* ── BUTTONS ── */
+  .btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 8px 16px;
+    border: 1.5px solid var(--ink);
+    background: none;
+    color: var(--ink);
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+  }
+  .btn:hover { background: var(--ink); color: var(--paper); }
+  .btn-primary {
+    background: var(--rust);
+    border-color: var(--rust);
+    color: var(--white);
+  }
+  .btn-primary:hover { background: var(--rust-light); border-color: var(--rust-light); color: var(--white); }
+  .btn-sm { padding: 4px 10px; font-size: 0.65rem; }
+  .btn-danger { border-color: var(--danger); color: var(--danger); }
+  .btn-danger:hover { background: var(--danger); color: var(--white); }
+  .btn-sage { border-color: var(--sage); color: var(--sage); }
+  .btn-sage:hover { background: var(--sage); color: var(--white); }
+
+  /* ── INPUTS ── */
+  input[type="text"], input[type="date"], select, textarea {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.85rem;
+    padding: 7px 10px;
+    border: 1.5px solid var(--rule);
+    background: var(--white);
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input[type="text"]:focus, input[type="date"]:focus, select:focus, textarea:focus {
+    border-color: var(--rust);
+  }
+  select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238a8070'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 28px;
+  }
+
+  /* ════════════════════════════════
+     VIEW 1: BUILD A LIST
+  ════════════════════════════════ */
+
+  #build-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .field-group { display: flex; flex-direction: column; gap: 5px; }
+  .field-group label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .field-group input, .field-group select { width: 100%; }
+  #build-controls .full-row { grid-column: 1 / -1; }
+
+  #template-row {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .template-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    padding: 7px 14px;
+    border: 1.5px solid var(--rule);
+    background: var(--aged);
+    color: var(--steel);
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .template-btn:hover, .template-btn.active {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--paper);
+  }
+
+  /* ── JOB LIST BUILDER ── */
+  #job-list-container {
+    margin-top: 8px;
+  }
+
+  .group-block {
+    margin-bottom: 14px;
+    border: 1.5px solid var(--rule);
+    background: var(--white);
+  }
+  .group-header {
+    display: flex;
+    align-items: center;
+    padding: 9px 12px;
+    background: var(--aged);
+    border-bottom: 1px solid var(--rule);
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .group-header:hover { background: #ddd8cc; }
+  .group-toggle {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    width: 16px;
+    flex-shrink: 0;
+  }
+  .group-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.05rem;
+    letter-spacing: 0.08em;
+    color: var(--ink);
+    flex: 1;
+  }
+  .group-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--muted);
+  }
+  .group-collapsed-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    background: var(--rust);
+    color: var(--white);
+    padding: 2px 7px;
+    letter-spacing: 0.08em;
+  }
+  .group-actions { display: flex; gap: 4px; }
+
+  .group-items { padding: 6px 0; }
+  .group-items.collapsed { display: none; }
+
+  .item-row {
+    display: flex;
+    align-items: center;
+    padding: 5px 12px;
+    gap: 8px;
+    border-bottom: 1px solid #f0ebe0;
+    transition: background 0.1s;
+  }
+  .item-row:last-child { border-bottom: none; }
+  .item-row:hover { background: #faf8f3; }
+  .item-required {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--rust);
+    flex-shrink: 0;
+  }
+  .item-optional {
+    width: 6px;
+    height: 6px;
+    flex-shrink: 0;
+  }
+  .item-name {
+    font-size: 0.88rem;
+    flex: 1;
+    color: var(--ink);
+  }
+  .item-notes {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--muted);
+    font-style: italic;
+  }
+  .item-remove {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    color: #ccc;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 5px;
+    transition: color 0.12s;
+  }
+  .item-remove:hover { color: var(--danger); }
+
+  /* add item row */
+  .add-item-row {
+    display: flex;
+    padding: 6px 10px;
+    gap: 6px;
+    border-top: 1px dashed var(--rule);
+    background: #faf8f3;
+  }
+  .add-item-row input { flex: 1; font-size: 0.82rem; padding: 5px 8px; }
+
+  /* custom item add panel */
+  #custom-add-panel {
+    margin-top: 16px;
+    padding: 14px;
+    border: 1.5px dashed var(--rule);
+    background: var(--aged);
+  }
+  #custom-add-panel .panel-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .custom-add-form {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+  .custom-add-form input { flex: 1; min-width: 160px; }
+  .custom-add-form select { min-width: 160px; }
+
+  /* notes field */
+  #notes-block {
+    margin-top: 16px;
+  }
+  #notes-block textarea {
+    width: 100%;
+    height: 70px;
+    resize: vertical;
+    font-size: 0.85rem;
+  }
+
+  /* action bar */
+  #list-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  #list-actions .spacer { flex: 1; }
+
+  /* ════════════════════════════════
+     VIEW 2: DATABASE MANAGER
+  ════════════════════════════════ */
+
+  #db-toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  #db-category-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 16px;
+  }
+  .cat-tab {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    background: var(--aged);
+    border: 1.5px solid var(--rule);
+    color: var(--steel);
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .cat-tab:hover, .cat-tab.active {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--paper);
+  }
+
+  #db-items-list {
+    border: 1.5px solid var(--rule);
+    background: var(--white);
+  }
+  .db-item-row {
+    display: flex;
+    align-items: center;
+    padding: 7px 12px;
+    gap: 10px;
+    border-bottom: 1px solid #f0ebe0;
+    transition: background 0.1s;
+  }
+  .db-item-row:last-child { border-bottom: none; }
+  .db-item-row:hover { background: #faf8f3; }
+  .db-item-name {
+    flex: 1;
+    font-size: 0.88rem;
+  }
+  .db-item-name input {
+    border: none;
+    background: none;
+    padding: 2px 4px;
+    width: 100%;
+    font-size: 0.88rem;
+  }
+  .db-item-name input:focus {
+    background: #fffdf5;
+    border: 1px solid var(--rust);
+  }
+  .db-item-cat {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--muted);
+    min-width: 120px;
+  }
+  .db-item-notes {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--muted);
+    min-width: 140px;
+  }
+
+  #db-add-form {
+    margin-top: 14px;
+    padding: 14px;
+    background: var(--aged);
+    border: 1.5px solid var(--rule);
+  }
+  #db-add-form .form-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+  #db-add-form input { flex: 1; min-width: 140px; }
+  #db-add-form select { min-width: 150px; }
+
+  /* category manager */
+  #cat-manager {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+  }
+  #cat-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 10px 0;
+  }
+  .cat-chip {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    padding: 4px 10px;
+    background: var(--aged);
+    border: 1.5px solid var(--rule);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .cat-chip-del {
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 0.8rem;
+    line-height: 1;
+    transition: color 0.12s;
+  }
+  .cat-chip-del:hover { color: var(--danger); }
+
+  #cat-add-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  #cat-add-row input { max-width: 200px; }
+
+  /* ════════════════════════════════
+     VIEW 3: TEMPLATES
+  ════════════════════════════════ */
+
+  #templates-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .template-card {
+    border: 1.5px solid var(--rule);
+    background: var(--white);
+  }
+  .template-card-header {
+    background: var(--aged);
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--rule);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .template-card-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.06em;
+    flex: 1;
+  }
+  .template-card-body {
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    color: var(--steel);
+  }
+  .template-group-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 0;
+    border-bottom: 1px solid #f0ebe0;
+  }
+  .template-group-line:last-child { border-bottom: none; }
+  .tgl-name {
+    font-size: 0.8rem;
+    flex: 1;
+  }
+  .tgl-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--muted);
+  }
+  .tgl-collapsed-toggle {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.58rem;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 1px 5px;
+    border: 1px solid var(--rule);
+    background: none;
+    transition: all 0.12s;
+  }
+  .tgl-collapsed-toggle.on {
+    background: var(--sage);
+    border-color: var(--sage);
+    color: var(--white);
+  }
+
+  #new-template-form {
+    margin-top: 20px;
+    padding: 16px;
+    background: var(--aged);
+    border: 1.5px solid var(--rule);
+  }
+  #new-template-form .form-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+    align-items: flex-end;
+  }
+  #new-template-form input { flex: 1; }
+
+  /* ════════════════════════════════
+     VIEW 4: DATA (import/export)
+  ════════════════════════════════ */
+
+  #data-view .data-section {
+    margin-bottom: 28px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--rule);
+  }
+  #data-view .data-section:last-child { border-bottom: none; }
+  #data-view h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.2rem;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+  #data-view p {
+    font-size: 0.84rem;
+    color: var(--steel);
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+  #csv-preview {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    background: var(--ink);
+    color: #aaa;
+    padding: 12px;
+    margin: 10px 0;
+    white-space: pre;
+    overflow-x: auto;
+  }
+  #import-drop {
+    border: 2px dashed var(--rule);
+    padding: 24px;
+    text-align: center;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    margin-bottom: 10px;
+  }
+  #import-drop:hover, #import-drop.dragover {
+    border-color: var(--rust);
+    background: #fff8f6;
+    color: var(--rust);
+  }
+  #import-file { display: none; }
+
+  /* ════════════════════════════════
+     PRINT VIEW
+  ════════════════════════════════ */
+
+  #print-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(20,20,18,0.88);
+    z-index: 100;
+    overflow-y: auto;
+    padding: 50px 30px 30px;
+  }
+  #print-overlay.visible { display: flex; align-items: flex-start; justify-content: center; }
+
+  #print-sheet {
+    background: white;
+    width: 8in;
+    min-height: 10.5in;
+    padding: 0.45in 0.5in 0.6in;
+    position: relative;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+    font-family: 'IBM Plex Sans', sans-serif;
+  }
+
+  .print-close {
+    position: fixed;
+    top: 12px;
+    right: 20px;
+    background: var(--rust);
+    color: white;
+    border: none;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    padding: 7px 14px;
+    cursor: pointer;
+    z-index: 101;
+  }
+  .print-btn-bar {
+    position: fixed;
+    top: 12px;
+    left: 20px;
+    display: flex;
+    gap: 8px;
+    z-index: 101;
+  }
+  .print-btn-bar button {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    padding: 7px 14px;
+    border: none;
+    cursor: pointer;
+  }
+  .print-btn-bar .do-print { background: var(--sage); color: white; }
+
+  /* ── Print sheet internals ── */
+  .ps-header {
+    border-bottom: 2px solid #1a1a18;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .ps-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.35rem;
+    letter-spacing: 0.06em;
+    color: #1a1a18;
+    line-height: 1;
+  }
+  .ps-logo span { color: #b84a2a; }
+  .ps-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #888;
+    border-left: 1.5px solid #ddd;
+    padding-left: 12px;
+    margin-left: 2px;
+  }
+  .ps-spacer { flex: 1; }
+  .ps-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem;
+    color: #666;
+    text-align: right;
+    line-height: 1.6;
+  }
+
+  /* job info strip — compact single row */
+  .ps-job-info {
+    display: flex;
+    gap: 0;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+    background: #f7f4ee;
+  }
+  .ps-info-field {
+    flex: 1;
+    padding: 5px 10px;
+    border-right: 1px solid #ddd;
+  }
+  .ps-info-field:last-child { border-right: none; }
+  .ps-info-field label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.52rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #999;
+    display: block;
+    margin-bottom: 1px;
+  }
+  .ps-info-field .val {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #1a1a18;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── COLUMN BODY ── */
+  .ps-columns {
+    /* set by JS: column-count 2 or 3 */
+    column-gap: 0.25in;
+    column-rule: 1px solid #e0ddd8;
+  }
+
+  /* Each group stays together, never breaks mid-group */
+  .ps-group {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 9px;
+  }
+
+  .ps-group-header {
+    display: flex;
+    align-items: center;
+    padding: 3px 0 2px;
+    border-bottom: 1.5px solid #1a1a18;
+    margin-bottom: 2px;
+    gap: 6px;
+  }
+  .ps-group-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.88rem;
+    letter-spacing: 0.07em;
+    color: #1a1a18;
+    flex: 1;
+    line-height: 1.1;
+  }
+  /* collapsed group: single checkbox on the right */
+  .ps-group-check {
+    width: 13px;
+    height: 13px;
+    border: 1.2px solid #aaa;
+    flex-shrink: 0;
+    display: inline-block;
+  }
+
+  /* full item list */
+  .ps-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 1.5px 4px 1.5px 2px;
+    border-bottom: 1px solid #f0ece4;
+    min-height: 18px;
+  }
+  .ps-item:last-child { border-bottom: none; }
+  .ps-item-check {
+    width: 11px;
+    height: 11px;
+    border: 1px solid #bbb;
+    flex-shrink: 0;
+    display: inline-block;
+  }
+  .ps-item-name {
+    font-size: 0.74rem;
+    line-height: 1.3;
+    color: #222;
+    flex: 1;
+  }
+
+  /* ── NOTES / FOOTER ── */
+  .ps-below-columns {
+    margin-top: 10px;
+    border-top: 1px solid #ccc;
+    padding-top: 7px;
+  }
+  .ps-notes-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #aaa;
+    margin-bottom: 4px;
+  }
+  .ps-notes-content {
+    font-size: 0.78rem;
+    color: #333;
+    line-height: 1.5;
+    white-space: pre-wrap;
+  }
+  .ps-write-line {
+    border-bottom: 1px solid #d8d4cc;
+    height: 20px;
+    margin-bottom: 2px;
+  }
+
+  .ps-footer {
+    margin-top: 10px;
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px solid #e0ddd8;
+    padding-top: 5px;
+  }
+  .ps-footer span {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.52rem;
+    color: #bbb;
+    letter-spacing: 0.07em;
+  }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--ink);
+    color: var(--paper);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    padding: 10px 18px;
+    border-left: 3px solid var(--rust);
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+    z-index: 200;
+  }
+  #toast.show { opacity: 1; }
+
+  /* ── MODAL ── */
+  #modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(20,20,18,0.7);
+    z-index: 150;
+    align-items: center;
+    justify-content: center;
+  }
+  #modal-overlay.visible { display: flex; }
+  #modal-box {
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    padding: 24px;
+    width: 380px;
+    max-width: 90vw;
+  }
+  #modal-box h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem;
+    letter-spacing: 0.06em;
+    margin-bottom: 12px;
+  }
+  #modal-box p {
+    font-size: 0.85rem;
+    color: var(--steel);
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+  .modal-item-name {
+    font-weight: 500;
+    color: var(--ink);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.82rem;
+    margin-bottom: 12px;
+  }
+  .modal-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .modal-row label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    min-width: 70px;
+  }
+  .modal-row select, .modal-row input { flex: 1; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+
+  /* ── VAN STOCK FLAG in DB ── */
+  .db-item-van {
+    min-width: 72px;
+    text-align: center;
+  }
+  .van-toggle {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.06em;
+    padding: 2px 8px;
+    border: 1.5px solid var(--rule);
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .van-toggle.on {
+    background: var(--sage);
+    border-color: var(--sage);
+    color: white;
+  }
+
+  /* ── EXTENDED ITEM EXPANDER ── */
+  .more-items-zone {
+    border-top: 1px dashed var(--rule);
+    background: #f7f5f0;
+  }
+  .more-items-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.1s;
+  }
+  .more-items-toggle:hover { background: #f0ece2; }
+  .more-items-toggle .mit-arrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    width: 12px;
+  }
+  .more-items-toggle .mit-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .more-items-toggle .mit-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--rust);
+    margin-left: 2px;
+  }
+  .more-items-list {
+    display: none;
+    padding: 4px 0 6px;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  .more-items-list.open { display: block; }
+  .more-item-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 12px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .more-item-row:hover { background: #eee9de; }
+  .more-item-check {
+    width: 13px;
+    height: 13px;
+    border: 1.2px solid var(--rule);
+    flex-shrink: 0;
+    display: inline-block;
+    transition: background 0.1s, border-color 0.1s;
+  }
+  .more-item-row:hover .more-item-check {
+    border-color: var(--sage);
+    background: #e8f0e4;
+  }
+  .more-item-name {
+    font-size: 0.82rem;
+    color: var(--steel);
+  }
+
+  /* ── TEMPLATE ITEM EDITOR ── */
+  .tmpl-group-editor {
+    margin-bottom: 12px;
+    border: 1.5px solid var(--rule);
+    background: var(--white);
+  }
+  .tmpl-group-editor-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    background: var(--aged);
+    border-bottom: 1px solid var(--rule);
+    cursor: pointer;
+    user-select: none;
+  }
+  .tmpl-group-editor-header:hover { background: #ddd8cc; }
+  .tge-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 0.06em;
+    flex: 1;
+  }
+  .tge-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--muted);
+  }
+  .tge-arrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    width: 12px;
+  }
+  .tmpl-item-list {
+    display: none;
+    padding: 4px 0;
+  }
+  .tmpl-item-list.open { display: block; }
+  .tmpl-item-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 12px;
+    border-bottom: 1px solid #f5f1ea;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .tmpl-item-row:last-child { border-bottom: none; }
+  .tmpl-item-row:hover { background: #faf7f2; }
+  .tmpl-item-cb {
+    width: 13px;
+    height: 13px;
+    border: 1.2px solid var(--rule);
+    flex-shrink: 0;
+    display: inline-block;
+    position: relative;
+    transition: all 0.1s;
+  }
+  .tmpl-item-cb.checked {
+    background: var(--sage);
+    border-color: var(--sage);
+  }
+  .tmpl-item-cb.checked::after {
+    content: '✓';
+    position: absolute;
+    top: -2px;
+    left: 1px;
+    font-size: 10px;
+    color: white;
+    line-height: 1;
+  }
+  .tmpl-item-label {
+    font-size: 0.82rem;
+    color: var(--ink);
+    flex: 1;
+  }
+  .tmpl-item-label.unchecked { color: var(--muted); }
+  .tmpl-editor-add-row {
+    display: flex;
+    gap: 6px;
+    padding: 6px 10px;
+    border-top: 1px dashed var(--rule);
+    background: #faf7f2;
+    align-items: center;
+  }
+  .tmpl-editor-add-row select { flex: 1; font-size: 0.78rem; padding: 4px 8px; }
+  .tmpl-card-actions {
+    display: flex;
+    gap: 6px;
+    padding: 10px 14px;
+    border-top: 1px solid var(--rule);
+    background: var(--aged);
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  @page {
+    margin: 0.45in 0.5in;
+    size: letter;
+  }
+  @media print {
+    html, body { height: auto !important; overflow: visible !important; }
+    body > * { display: none !important; }
+    #print-overlay { display: block !important; position: static !important; background: none !important; padding: 0 !important; overflow: visible !important; height: auto !important; }
+    #print-sheet { display: block !important; position: static !important; box-shadow: none !important; width: 100% !important; padding: 0 !important; min-height: unset !important; }
+    #print-sheet * { visibility: visible !important; }
+    .print-close, .print-btn-bar { display: none !important; }
+    .ps-columns { column-gap: 0.2in; }
+    .ps-group { break-inside: avoid; page-break-inside: avoid; }
+  }
+
+  /* empty state */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+  <header id="main-header">
+    <h1>EPS Job Prep</h1>
+    <div class="sub">East Portland Sash / Kerfworks Concern</div>
+    <div class="spacer"></div>
+    <div class="version">v1.3</div>
+  </header>
+
+  <!-- NAV -->
+  <nav id="nav-tabs">
+    <button class="tab-btn active" onclick="showView('build')">Build List</button>
+    <button class="tab-btn" onclick="showView('database')">Database</button>
+    <button class="tab-btn" onclick="showView('templates')">Templates</button>
+    <button class="tab-btn" onclick="showView('data')">Import / Export</button>
+  </nav>
+
+  <!-- ══ VIEW: BUILD ══ -->
+  <div id="view-build" class="view active">
+    <div class="section-label">Job Information</div>
+    <div id="build-controls">
+      <div class="field-group">
+        <label>Job / Client Name</label>
+        <input type="text" id="job-name" placeholder="e.g. Bjork — NE Hancock">
+      </div>
+      <div class="field-group">
+        <label>Date</label>
+        <input type="date" id="job-date">
+      </div>
+      <div class="field-group">
+        <label>Tech / Crew</label>
+        <input type="text" id="job-tech" placeholder="e.g. Geoffrey + Zach">
+      </div>
+      <div class="field-group">
+        <label>WO / Job #</label>
+        <input type="text" id="job-wo" placeholder="e.g. WO-2024-041">
+      </div>
+    </div>
+
+    <div class="section-label">Load Template</div>
+    <div id="template-row"></div>
+
+    <div class="section-label">Pack List</div>
+    <div id="job-list-container">
+      <div class="empty-state">Select a template above or add items manually</div>
+    </div>
+
+    <div id="custom-add-panel">
+      <div class="panel-title">Add Item to List</div>
+      <div class="custom-add-form">
+        <input type="text" id="custom-item-name" placeholder="Item name..." onkeydown="if(event.key==='Enter')addCustomItem()">
+        <select id="custom-item-group"></select>
+        <input type="text" id="custom-item-notes" placeholder="Notes (optional)" style="max-width:180px">
+        <button class="btn btn-sage btn-sm" onclick="addCustomItem()">+ Add to List</button>
+      </div>
+    </div>
+
+    <div id="notes-block">
+      <div class="section-label" style="margin-top:16px">WO Addendum Notes</div>
+      <textarea id="job-notes" placeholder="e.g. Client hardware — see WO. 9ft ceilings. Park in alley."></textarea>
+    </div>
+
+    <div id="list-actions">
+      <button class="btn btn-sm" onclick="clearList()">Clear List</button>
+      <div class="spacer"></div>
+      <button class="btn btn-sage" onclick="previewPrint()">Preview &amp; Print →</button>
+    </div>
+  </div>
+
+  <!-- ══ VIEW: DATABASE ══ -->
+  <div id="view-database" class="view">
+    <div id="db-toolbar">
+      <div class="section-label" style="margin:0;border:none">Item Database</div>
+      <div style="flex:1"></div>
+      <input type="text" id="db-search" placeholder="Search items..." style="width:180px" oninput="renderDB()">
+    </div>
+
+    <div id="db-category-tabs"></div>
+    <div id="db-items-list"></div>
+
+    <div id="db-add-form" style="margin-top:14px">
+      <div class="section-label" style="margin-bottom:10px">Add New Item</div>
+      <div class="form-row">
+        <input type="text" id="db-new-name" placeholder="Item name..." onkeydown="if(event.key==='Enter')dbAddItem()">
+        <select id="db-new-cat"></select>
+        <input type="text" id="db-new-notes" placeholder="Notes (optional)" style="max-width:200px">
+        <button class="btn btn-primary btn-sm" onclick="dbAddItem()">+ Add</button>
+      </div>
+    </div>
+
+    <div id="cat-manager">
+      <div class="section-label">Categories</div>
+      <div id="cat-list"></div>
+      <div id="cat-add-row">
+        <input type="text" id="new-cat-name" placeholder="New category name..." onkeydown="if(event.key==='Enter')addCategory()">
+        <button class="btn btn-sm" onclick="addCategory()">+ Add Category</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ VIEW: TEMPLATES ══ -->
+  <div id="view-templates" class="view">
+    <div class="section-label">Job Templates — click group badges to toggle collapsed print mode</div>
+    <div id="templates-grid"></div>
+
+    <div id="new-template-form">
+      <div class="section-label" style="margin-bottom:10px">New Template</div>
+      <div class="form-row">
+        <input type="text" id="new-tmpl-name" placeholder="Template name..." onkeydown="if(event.key==='Enter')addTemplate()">
+        <button class="btn btn-primary btn-sm" onclick="addTemplate()">+ Create Template</button>
+      </div>
+      <div style="font-size:0.78rem;color:var(--muted)">After creating, use the Database view to tag items to this template, or edit the group lists directly in the template card.</div>
+    </div>
+  </div>
+
+  <!-- ══ VIEW: DATA ══ -->
+  <div id="data-view" class="view">
+    <div class="data-section">
+      <h3>Export Database</h3>
+      <p>Save your entire item database and templates as a JSON file. Store this in Dropbox to sync between machines — import it on any other machine to restore your data.</p>
+      <button class="btn btn-primary" onclick="exportDB()">↓ Export DB to JSON</button>
+      &nbsp;
+      <button class="btn" onclick="exportCSV()">↓ Export Items as CSV</button>
+    </div>
+
+    <div class="data-section">
+      <h3>Import Database</h3>
+      <p>Import a previously exported JSON file to restore your database. <strong>This will merge with your current data</strong> — existing items won't be duplicated.</p>
+      <div id="import-drop" onclick="document.getElementById('import-file').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleFileDrop(event)">
+        Drop JSON file here or click to browse
+      </div>
+      <input type="file" id="import-file" accept=".json,.csv" onchange="handleFileImport(this.files[0])">
+    </div>
+
+    <div class="data-section">
+      <h3>Import from CSV</h3>
+      <p>Import items from a CSV file exported from Google Sheets. Expected columns:</p>
+      <div id="csv-preview">Item Name, Category, Notes
+Putty knife 1.5", Hand Tools, stiff blade
+Hyde knife, Hand Tools,
+Sash cord, Sundries, #8 pre-stretched
+...</div>
+      <p style="margin-top:8px">Category names will be created automatically if they don't exist.</p>
+      <button class="btn" onclick="document.getElementById('import-file').click()">↑ Choose CSV File</button>
+    </div>
+
+    <div class="data-section">
+      <h3>Reset</h3>
+      <p>Clear all data and reload factory defaults. <strong>This cannot be undone</strong> — export first if you want to keep your data.</p>
+      <button class="btn btn-danger" onclick="resetToDefaults()">⚠ Reset to Defaults</button>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- PRINT OVERLAY -->
+<div id="print-overlay">
+  <div class="print-btn-bar">
+    <button class="do-print" onclick="window.print()">⎙ Print</button>
+  </div>
+  <button class="print-close" onclick="closePrint()">✕ Close</button>
+  <div id="print-sheet"></div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay">
+  <div id="modal-box">
+    <h3 id="modal-title">Save to Database?</h3>
+    <p id="modal-desc">This item isn't in your database yet. Save it permanently?</p>
+    <div class="modal-item-name" id="modal-item-name"></div>
+    <div class="modal-row">
+      <label>Category</label>
+      <select id="modal-cat-select"></select>
+    </div>
+    <div class="modal-row">
+      <label>Notes</label>
+      <input type="text" id="modal-notes" placeholder="Optional...">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-sm" onclick="closeModal()">Skip</button>
+      <button class="btn btn-primary btn-sm" onclick="confirmSaveToDb()">Save to DB</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════
+//  DEFAULT DATA
+// ════════════════════════════════════════════════
+
+const DEFAULT_CATEGORIES = [
+  'Abrasives',
+  'Glass & Glazing',
+  'Hand Tools',
+  'Hardware & Weatherstrip',
+  'Lumber & Sheet Goods',
+  'Personal Kit',
+  'Power Tools',
+  'Safety / PPE',
+  'Site Setup',
+  'Solvents & Finishing',
+  'Sundries / Adhesives',
+];
+
+const DEFAULT_ITEMS = [
+
+  // ── ABRASIVES ──
+  {id:'abra01', name:'Festool 3" — 80 / 100 / 150', cat:'Abrasives', notes:'RO90 pads', vanStock:true, required:false},
+  {id:'abra02', name:'Festool 6" — 80 / 100 / 150', cat:'Abrasives', notes:'RO150 pads', vanStock:false, required:false},
+  {id:'abra03', name:'Festool tri — 80 / 100', cat:'Abrasives', notes:'', vanStock:true, required:false},
+  {id:'abra04', name:'Sanding blocks 80 / 100 / 150', cat:'Abrasives', notes:'', vanStock:false, required:false},
+  {id:'abra05', name:'Sanding sponges', cat:'Abrasives', notes:'', vanStock:true, required:false},
+
+  // ── GLASS & GLAZING ──
+  {id:'glas01', name:'Glass cleaner', cat:'Glass & Glazing', notes:'Sprayway', vanStock:true, required:false},
+  {id:'glas02', name:'Glass cups', cat:'Glass & Glazing', notes:'pair', vanStock:false, required:false},
+  {id:'glas03', name:'Glass cutter', cat:'Glass & Glazing', notes:'', vanStock:false, required:false},
+  {id:'glas04', name:'Glass stock — per WO', cat:'Glass & Glazing', notes:'see WO for sizes', vanStock:false, required:false},
+  {id:'glas05', name:'Glazing points — hand drive', cat:'Glass & Glazing', notes:'diamond points', vanStock:false, required:false},
+  {id:'glas06', name:'Portable glass cutting table', cat:'Glass & Glazing', notes:'', vanStock:false, required:false},
+  {id:'glas07', name:'Sarco Dual Glaze', cat:'Glass & Glazing', notes:'glazing compound', vanStock:true, required:false},
+  {id:'glas08', name:'Sarco Type M', cat:'Glass & Glazing', notes:'glazing compound', vanStock:false, required:false},
+
+  // ── HAND TOOLS ──
+  {id:'hand01', name:'2" carbide scraper', cat:'Hand Tools', notes:'', vanStock:false, required:false},
+  {id:'hand02', name:'Caulking gun', cat:'Hand Tools', notes:'', vanStock:true, required:false},
+  {id:'hand03', name:'Laser level', cat:'Hand Tools', notes:'', vanStock:false, required:false},
+  {id:'hand04', name:'Level set', cat:'Hand Tools', notes:'torpedo + 4ft', vanStock:false, required:false},
+  {id:'hand05', name:'Quick-grip clamps', cat:'Hand Tools', notes:'assorted', vanStock:false, required:false},
+  {id:'hand06', name:'Spring clamps', cat:'Hand Tools', notes:'', vanStock:true, required:false},
+
+  // ── HARDWARE & WEATHERSTRIP ──
+  {id:'hard01', name:'Brass ball-tip hinges - per WO', cat:'Hardware & Weatherstrip', notes:'2.5" or 3"', vanStock:false, required:false},
+  {id:'hard02', name:'Client hardware', cat:'Hardware & Weatherstrip', notes:'see WO', vanStock:false, required:false},
+  {id:'hard03', name:'Corner tube seal 3/16"', cat:'Hardware & Weatherstrip', notes:'', vanStock:false, required:false},
+  {id:'hard04', name:'Mortise pulleys', cat:'Hardware & Weatherstrip', notes:'', vanStock:false, required:false},
+  {id:'hard05', name:'Pile brush seal', cat:'Hardware & Weatherstrip', notes:'', vanStock:false, required:false},
+  {id:'hard06', name:'Press-fit pulleys', cat:'Hardware & Weatherstrip', notes:'', vanStock:true, required:false},
+  {id:'hard07', name:'Rare earth magnets', cat:'Hardware & Weatherstrip', notes:'', vanStock:false, required:false},
+  {id:'hard08', name:'Sash lifts — per WO finish', cat:'Hardware & Weatherstrip', notes:'', vanStock:false, required:false},
+  {id:'hard09', name:'Sash locks — per WO finish', cat:'Hardware & Weatherstrip', notes:'', vanStock:false, required:false},
+  {id:'hard10', name:'Sash weights', cat:'Hardware & Weatherstrip', notes:'', vanStock:true, required:false},
+  {id:'hard11', name:'Screws — brass assortment', cat:'Hardware & Weatherstrip', notes:'#6 #8 3/4" – 1.25"', vanStock:false, required:false},
+  {id:'hard12', name:'Screws — painted assortment', cat:'Hardware & Weatherstrip', notes:'', vanStock:false, required:false},
+  {id:'hard13', name:'Screws — stainless assortment', cat:'Hardware & Weatherstrip', notes:'#6 #8 3/4" – 2.5"', vanStock:false, required:false},
+  {id:'hard14', name:'Shims — wood', cat:'Hardware & Weatherstrip', notes:'cedar', vanStock:true, required:false},
+  {id:'hard15', name:'Shims — plastic U', cat:'Hardware & Weatherstrip', notes:'', vanStock:false, required:false},
+  {id:'hard16', name:'Shims — rubber glazing', cat:'Hardware & Weatherstrip', notes:'', vanStock:false, required:false},
+  {id:'hard17', name:'Shrouded pulleys', cat:'Hardware & Weatherstrip', notes:'', vanStock:false, required:false},
+  {id:'hard18', name:'Silicone bulb seal — assorted', cat:'Hardware & Weatherstrip', notes:'brown / white / bronze', vanStock:false, required:false},
+  {id:'hard19', name:'Storm hangers — per WO style', cat:'Hardware & Weatherstrip', notes:'see WO', vanStock:false, required:false},
+  {id:'hard20', name:'Storm hardware kit', cat:'Hardware & Weatherstrip', notes:'hooks / eyes / turn buttons', vanStock:false, required:false},
+  {id:'hard21', name:'Storm pushout hdw and kit — per WO', cat:'Hardware & Weatherstrip', notes:'', vanStock:false, required:false},
+  {id:'hard22', name:'Swissco tube balances - per WO', cat:'Hardware & Weatherstrip', notes:'', vanStock:false, required:false},
+  {id:'hard23', name:'V-bronze weatherstrip', cat:'Hardware & Weatherstrip', notes:'6\' sticks', vanStock:true, required:false},
+
+  // ── LUMBER & SHEET GOODS ──
+  {id:'lumb01', name:'CDX plywood 4x8', cat:'Lumber & Sheet Goods', notes:'', vanStock:false, required:false},
+  {id:'lumb02', name:'Douglas fir misc', cat:'Lumber & Sheet Goods', notes:'see WO', vanStock:true, required:false},
+  {id:'lumb03', name:'Frames — per WO', cat:'Lumber & Sheet Goods', notes:'see WO', vanStock:false, required:false},
+  {id:'lumb04', name:'Glass stop — storm / bead / IGU', cat:'Lumber & Sheet Goods', notes:'per WO', vanStock:false, required:false},
+  {id:'lumb05', name:'Interior Stop', cat:'Lumber & Sheet Goods', notes:'', vanStock:false, required:false},
+  {id:'lumb06', name:'Parting bead', cat:'Lumber & Sheet Goods', notes:'', vanStock:false, required:false},
+  {id:'lumb07', name:'Sashes — per WO', cat:'Lumber & Sheet Goods', notes:'see WO', vanStock:false, required:false},
+  {id:'lumb08', name:'Screen mould', cat:'Lumber & Sheet Goods', notes:'', vanStock:false, required:false},
+  {id:'lumb09', name:'Trim package — per WO', cat:'Lumber & Sheet Goods', notes:'see WO', vanStock:false, required:false},
+
+  // ── PERSONAL KIT ──
+  {id:'pers01', name:'1" Bahco scraper', cat:'Personal Kit', notes:'', vanStock:false, required:true},
+  {id:'pers02', name:'Awl', cat:'Personal Kit', notes:'', vanStock:false, required:true},
+  {id:'pers03', name:'Bead grabber', cat:'Personal Kit', notes:'glazing bead removal', vanStock:false, required:true},
+  {id:'pers04', name:'Chisels', cat:'Personal Kit', notes:'assorted', vanStock:false, required:true},
+  {id:'pers05', name:'Combo screwdriver', cat:'Personal Kit', notes:'flat & Phillips', vanStock:false, required:true},
+  {id:'pers06', name:'Combo square', cat:'Personal Kit', notes:'', vanStock:false, required:true},
+  {id:'pers07', name:'Diagonal cutters', cat:'Personal Kit', notes:'', vanStock:false, required:true},
+  {id:'pers08', name:'Drill motor', cat:'Personal Kit', notes:'', vanStock:false, required:true},
+  {id:'pers09', name:'Finish hammer', cat:'Personal Kit', notes:'', vanStock:false, required:true},
+  {id:'pers10', name:'Flat bar', cat:'Personal Kit', notes:'', vanStock:false, required:true},
+  {id:'pers11', name:'Glazing knife', cat:'Personal Kit', notes:'', vanStock:false, required:true},
+  {id:'pers12', name:'Hackout knife', cat:'Personal Kit', notes:'', vanStock:false, required:true},
+  {id:'pers13', name:'Hand plane', cat:'Personal Kit', notes:'', vanStock:false, required:true},
+  {id:'pers14', name:'Needle-nose pliers', cat:'Personal Kit', notes:'', vanStock:false, required:true},
+  {id:'pers15', name:'Pencils / markers', cat:'Personal Kit', notes:'', vanStock:false, required:true},
+  {id:'pers16', name:'Pull saw', cat:'Personal Kit', notes:'', vanStock:false, required:true},
+  {id:'pers17', name:'Razor frame / scraper', cat:'Personal Kit', notes:'', vanStock:false, required:true},
+  {id:'pers18', name:'Screw bits — R2 / Phil / Torx', cat:'Personal Kit', notes:'', vanStock:false, required:true},
+  {id:'pers19', name:'Tape measure', cat:'Personal Kit', notes:'', vanStock:false, required:true},
+  {id:'pers20', name:'Tin snips', cat:'Personal Kit', notes:'', vanStock:false, required:true},
+  {id:'pers21', name:'Tool belt / bags', cat:'Personal Kit', notes:'', vanStock:false, required:true},
+  {id:'pers22', name:'Utility knife', cat:'Personal Kit', notes:'+ spare blades', vanStock:false, required:true},
+  {id:'pers23', name:'Vix drill bit', cat:'Personal Kit', notes:'self-centering hinge bit', vanStock:false, required:true},
+  {id:'pers24', name:'2P10 CA glue + accelerator', cat:'Personal Kit', notes:'thick', vanStock:false, required:false},
+  {id:'pers25', name:'6" hook rule', cat:'Personal Kit', notes:'', vanStock:false, required:false},
+  {id:'pers26', name:'Brad point index', cat:'Personal Kit', notes:'', vanStock:false, required:false},
+  {id:'pers27', name:'End nippers', cat:'Personal Kit', notes:'', vanStock:false, required:false},
+  {id:'pers28', name:'Hand plane — #4 bench', cat:'Personal Kit', notes:'', vanStock:false, required:false},
+  {id:'pers29', name:'Impact / rattle gun', cat:'Personal Kit', notes:'', vanStock:false, required:false},
+  {id:'pers30', name:'Mallet', cat:'Personal Kit', notes:'', vanStock:false, required:false},
+  {id:'pers31', name:'Nail sets', cat:'Personal Kit', notes:'', vanStock:false, required:false},
+  {id:'pers32', name:'Personal additions', cat:'Personal Kit', notes:'tech discretion', vanStock:false, required:false},
+  {id:'pers33', name:'Phone / charger', cat:'Personal Kit', notes:'', vanStock:false, required:false},
+  {id:'pers34', name:'Punch', cat:'Personal Kit', notes:'', vanStock:false, required:false},
+  {id:'pers35', name:'Putty knife — 1.5" stiff', cat:'Personal Kit', notes:'', vanStock:false, required:false},
+  {id:'pers36', name:'Rain shell', cat:'Personal Kit', notes:'', vanStock:false, required:false},
+  {id:'pers37', name:'Spring clamps', cat:'Personal Kit', notes:'assorted', vanStock:false, required:false},
+  {id:'pers38', name:'Tote', cat:'Personal Kit', notes:'', vanStock:false, required:false},
+  {id:'pers39', name:'Water bottle', cat:'Personal Kit', notes:'', vanStock:false, required:false},
+
+  // ── POWER TOOLS ──
+  {id:'powe01', name:'Air hose', cat:'Power Tools', notes:'', vanStock:false, required:false},
+  {id:'powe02', name:'Angle grinder', cat:'Power Tools', notes:'', vanStock:false, required:false},
+  {id:'powe03', name:'Belt sander', cat:'Power Tools', notes:'', vanStock:false, required:false},
+  {id:'powe04', name:'Chop saw (choppy) + stand', cat:'Power Tools', notes:'', vanStock:false, required:false},
+  {id:'powe05', name:'Circular saw', cat:'Power Tools', notes:'', vanStock:false, required:false},
+  {id:'powe06', name:'Close-quarters drill', cat:'Power Tools', notes:'', vanStock:false, required:false},
+  {id:'powe07', name:'Compressor', cat:'Power Tools', notes:'', vanStock:false, required:false},
+  {id:'powe08', name:'Extension cord — 30ft 16g', cat:'Power Tools', notes:'', vanStock:true, required:false},
+  {id:'powe09', name:'Extension cord — 50ft 12g', cat:'Power Tools', notes:'', vanStock:false, required:false},
+  {id:'powe10', name:'Heat gun', cat:'Power Tools', notes:'', vanStock:false, required:false},
+  {id:'powe11', name:'HEPA vac', cat:'Power Tools', notes:'Festool CT', vanStock:false, required:false},
+  {id:'powe12', name:'Jigsaw', cat:'Power Tools', notes:'', vanStock:false, required:false},
+  {id:'powe13', name:'nailer 15g  + fasteners', cat:'Power Tools', notes:'finish nailer', vanStock:false, required:false},
+  {id:'powe14', name:'nailer 18g + fasteners', cat:'Power Tools', notes:'brad nailer', vanStock:false, required:false},
+  {id:'powe15', name:'nailer 23g + fasteners', cat:'Power Tools', notes:'pin nailer', vanStock:false, required:false},
+  {id:'powe16', name:'Oscillating multi-tool (wiggle saw)', cat:'Power Tools', notes:'+ blades', vanStock:false, required:false},
+  {id:'powe17', name:'Power planer', cat:'Power Tools', notes:'', vanStock:false, required:false},
+  {id:'powe18', name:'Router, brush seal T-cutter set up', cat:'Power Tools', notes:'', vanStock:false, required:false},
+  {id:'powe19', name:'Router, intlk w/s slotting set up', cat:'Power Tools', notes:'', vanStock:false, required:false},
+  {id:'powe20', name:'Sander combo', cat:'Power Tools', notes:'Festool', vanStock:false, required:false},
+  {id:'powe21', name:'Table saw + stand', cat:'Power Tools', notes:'', vanStock:false, required:false},
+  {id:'powe22', name:'Track saw', cat:'Power Tools', notes:'', vanStock:false, required:false},
+  {id:'powe23', name:'Trim router', cat:'Power Tools', notes:'for weatherstrip', vanStock:false, required:false},
+
+  // ── SAFETY / PPE ──
+  {id:'safe01', name:'Booties', cat:'Safety / PPE', notes:'', vanStock:true, required:false},
+  {id:'safe02', name:'Fall kit', cat:'Safety / PPE', notes:'', vanStock:false, required:false},
+  {id:'safe03', name:'First aid kit', cat:'Safety / PPE', notes:'', vanStock:true, required:false},
+  {id:'safe04', name:'Lead test kit', cat:'Safety / PPE', notes:'', vanStock:true, required:false},
+  {id:'safe05', name:'N95 respirators', cat:'Safety / PPE', notes:'w/ valve', vanStock:true, required:false},
+  {id:'safe06', name:'Nitrile gloves', cat:'Safety / PPE', notes:'S / M / L', vanStock:true, required:false},
+  {id:'safe07', name:'P100 half-mask respirator', cat:'Safety / PPE', notes:'+ spare filters', vanStock:false, required:false},
+  {id:'safe08', name:'RRP signage / barrier tape', cat:'Safety / PPE', notes:'RRP compliance', vanStock:true, required:false},
+  {id:'safe09', name:'Safety glasses', cat:'Safety / PPE', notes:'', vanStock:false, required:false},
+  {id:'safe10', name:'Tyvek / bunny suits', cat:'Safety / PPE', notes:'', vanStock:true, required:false},
+
+  // ── SITE SETUP ──
+  {id:'site01', name:'Canopy / pop-up tent', cat:'Site Setup', notes:'', vanStock:false, required:false},
+  {id:'site02', name:'Drop cloth', cat:'Site Setup', notes:'', vanStock:true, required:false},
+  {id:'site03', name:'Extension ladder — 24ft', cat:'Site Setup', notes:'', vanStock:false, required:false},
+  {id:'site04', name:'Extension ladder — 32 ft', cat:'Site Setup', notes:'', vanStock:false, required:false},
+  {id:'site05', name:'Ladder standoffs', cat:'Site Setup', notes:'', vanStock:false, required:false},
+  {id:'site06', name:'Power strip', cat:'Site Setup', notes:'', vanStock:false, required:false},
+  {id:'site07', name:'Sawhorses', cat:'Site Setup', notes:'pair', vanStock:false, required:false},
+  {id:'site08', name:'Sheetrock stand', cat:'Site Setup', notes:'', vanStock:false, required:false},
+  {id:'site09', name:'Shop light', cat:'Site Setup', notes:'', vanStock:false, required:false},
+  {id:'site10', name:'Step ladder — 4ft', cat:'Site Setup', notes:'', vanStock:false, required:false},
+  {id:'site11', name:'Step ladder — 6ft', cat:'Site Setup', notes:'', vanStock:false, required:false},
+  {id:'site12', name:'Step ladder — 8ft', cat:'Site Setup', notes:'', vanStock:false, required:false},
+  {id:'site13', name:'Three-way adapter', cat:'Site Setup', notes:'', vanStock:false, required:false},
+  {id:'site14', name:'Work table / bench top', cat:'Site Setup', notes:'', vanStock:false, required:false},
+  {id:'site15', name:'Ladder jacks / pick', cat:'Site Setup', notes:'', vanStock:false, required:false},
+  {id:'site16', name:'Roof jacks / 2 x 6', cat:'Site Setup', notes:'', vanStock:false, required:false},
+
+  // ── SOLVENTS & FINISHING ──
+  {id:'solv01', name:'Acetone', cat:'Solvents & Finishing', notes:'', vanStock:false, required:false},
+  {id:'solv02', name:'Acid brushes', cat:'Solvents & Finishing', notes:'', vanStock:false, required:false},
+  {id:'solv03', name:'Chip brushes', cat:'Solvents & Finishing', notes:'', vanStock:true, required:false},
+  {id:'solv04', name:'Client\'s top coat paint', cat:'Solvents & Finishing', notes:'per WO spec', vanStock:false, required:false},
+  {id:'solv05', name:'Denatured alcohol', cat:'Solvents & Finishing', notes:'', vanStock:false, required:false},
+  {id:'solv06', name:'Foam brushes', cat:'Solvents & Finishing', notes:'', vanStock:true, required:false},
+  {id:'solv07', name:'Mineral spirits', cat:'Solvents & Finishing', notes:'', vanStock:true, required:false},
+  {id:'solv08', name:'Syncoloids', cat:'Solvents & Finishing', notes:'', vanStock:true, required:false},
+  {id:'solv09', name:'Primer — grey', cat:'Solvents & Finishing', notes:'', vanStock:true, required:false},
+  {id:'solv10', name:'Primer — white', cat:'Solvents & Finishing', notes:'', vanStock:true, required:false},
+  {id:'solv11', name:'Raw linseed oil', cat:'Solvents & Finishing', notes:'', vanStock:false, required:false},
+  {id:'solv12', name:'Spackle — Zar', cat:'Solvents & Finishing', notes:'', vanStock:true, required:false},
+  {id:'solv13', name:'Teak oil', cat:'Solvents & Finishing', notes:'', vanStock:false, required:false},
+  {id:'solv14', name:'Turpentine', cat:'Solvents & Finishing', notes:'', vanStock:false, required:false},
+  {id:'solv15', name:'Turps and oil mix', cat:'Solvents & Finishing', notes:'', vanStock:true, required:false},
+  {id:'solv16', name:'Whiting', cat:'Solvents & Finishing', notes:'glazing compound extender', vanStock:false, required:false},
+
+  // ── SUNDRIES / ADHESIVES ──
+  {id:'sund01', name:'Abatron kit', cat:'Sundries / Adhesives', notes:'', vanStock:true, required:false},
+  {id:'sund02', name:'AC20 — black', cat:'Sundries / Adhesives', notes:'caulk frame', vanStock:true, required:false},
+  {id:'sund03', name:'AC20 — white', cat:'Sundries / Adhesives', notes:'caulk frame', vanStock:true, required:false},
+  {id:'sund04', name:'Borate powder', cat:'Sundries / Adhesives', notes:'', vanStock:true, required:false},
+  {id:'sund05', name:'Borate rods', cat:'Sundries / Adhesives', notes:'preservative treatment', vanStock:true, required:false},
+  {id:'sund06', name:'Exterior caulk — OSI, Vulkem', cat:'Sundries / Adhesives', notes:'', vanStock:true, required:false},
+  {id:'sund07', name:'Foam sheeting', cat:'Sundries / Adhesives', notes:'', vanStock:false, required:false},
+  {id:'sund08', name:'Fortiflash', cat:'Sundries / Adhesives', notes:'flashing membrane', vanStock:false, required:false},
+  {id:'sund09', name:'Gorilla glue', cat:'Sundries / Adhesives', notes:'', vanStock:false, required:false},
+  {id:'sund10', name:'Plastic sheeting — 4 mil', cat:'Sundries / Adhesives', notes:'', vanStock:false, required:false},
+  {id:'sund11', name:'Ram board', cat:'Sundries / Adhesives', notes:'floor protection', vanStock:false, required:false},
+  {id:'sund12', name:'Sash cord', cat:'Sundries / Adhesives', notes:'#8 pre-stretched', vanStock:true, required:false},
+  {id:'sund13', name:'Titebond III', cat:'Sundries / Adhesives', notes:'', vanStock:false, required:false},
+  {id:'sund14', name:'Walk-off mat / stik mat', cat:'Sundries / Adhesives', notes:'', vanStock:true, required:false},
+  {id:'sund15', name:'West System epoxy kit', cat:'Sundries / Adhesives', notes:'', vanStock:false, required:false},
+  {id:'sund16', name:'Z-flash', cat:'Sundries / Adhesives', notes:'', vanStock:false, required:false},
+
+  // ── SITE SETUP ──
+  {id:'site17', name:'Zip wall — poles / plates / zippers', cat:'Site Setup', notes:'containment', vanStock:true, required:false},
+
+  // ── SUNDRIES / ADHESIVES ──
+  {id:'sund17', name:'Baby wipes', cat:'Sundries / Adhesives', notes:'', vanStock:true, required:false},
+  {id:'sund18', name:'Blue shop towels', cat:'Sundries / Adhesives', notes:'', vanStock:true, required:false},
+  {id:'sund19', name:'Blue tape', cat:'Sundries / Adhesives', notes:'', vanStock:true, required:false},
+  {id:'sund20', name:'Cotton rags / towels', cat:'Sundries / Adhesives', notes:'', vanStock:true, required:false},
+  {id:'sund21', name:'Duct tape', cat:'Sundries / Adhesives', notes:'', vanStock:true, required:false},
+  {id:'sund22', name:'Garbage bags', cat:'Sundries / Adhesives', notes:'', vanStock:true, required:false},
+  {id:'sund23', name:'Garbage bucket / can', cat:'Sundries / Adhesives', notes:'', vanStock:true, required:false},
+  {id:'sund24', name:'Lithium grease', cat:'Sundries / Adhesives', notes:'', vanStock:true, required:false},
+  {id:'sund25', name:'Paper cups', cat:'Sundries / Adhesives', notes:'', vanStock:true, required:false},
+  {id:'sund26', name:'Paraffin wax', cat:'Sundries / Adhesives', notes:'', vanStock:true, required:false},
+  {id:'sund27', name:'Plastic scraper blades', cat:'Sundries / Adhesives', notes:'', vanStock:true, required:false},
+  {id:'sund28', name:'Silicone lube', cat:'Sundries / Adhesives', notes:'', vanStock:true, required:false},
+  {id:'sund29', name:'Simple Green', cat:'Sundries / Adhesives', notes:'1 gal', vanStock:true, required:false},
+  {id:'sund30', name:'Spec tape (double-sided)', cat:'Sundries / Adhesives', notes:'', vanStock:true, required:false},
+  {id:'sund31', name:'Sprayway glass cleaner', cat:'Sundries / Adhesives', notes:'', vanStock:true, required:false},
+  {id:'sund32', name:'Utility blade refills', cat:'Sundries / Adhesives', notes:'', vanStock:true, required:false},
+  {id:'sund33', name:'WD-40', cat:'Sundries / Adhesives', notes:'4 oz can', vanStock:true, required:false},
+  {id:'sund34', name:'Yellow microfiber towels', cat:'Sundries / Adhesives', notes:'', vanStock:true, required:false},
+  {id:'sund35', name:'Zip-lock bags — large', cat:'Sundries / Adhesives', notes:'', vanStock:true, required:false},
+  {id:'sund36', name:'Zip-lock bags — small', cat:'Sundries / Adhesives', notes:'', vanStock:true, required:false},
+  {id:'sund37', name:'Black Jack roof sealer', cat:'Sundries / Adhesives', notes:'', vanStock:true, required:false},
+];
+
+const DEFAULT_TEMPLATES = [
+  {
+    id:'tmpl1',
+    name:'Restoration Project Setup',
+    groups:[
+      {name:'Van Stock', category:'__van__', collapsed:true, itemIds:["abra01", "abra03", "abra05", "glas01", "glas07", "hand02", "hand06", "hard14", "hard23", "lumb02", "safe01", "safe03", "safe05", "safe06", "site02", "solv03", "solv06", "solv09", "solv10", "solv12", "solv15", "sund01", "sund12", "sund14", "site17", "sund17", "sund18", "sund19", "sund21", "sund23", "sund26", "sund31", "sund33", "sund34"]},
+      {name:'Abrasives', category:'Abrasives', collapsed:false, itemIds:["abra01", "abra03", "abra04", "abra05"]},
+      {name:'Glass & Glazing', category:'Glass & Glazing', collapsed:false, itemIds:["glas01", "glas07"]},
+      {name:'Hand Tools', category:'Hand Tools', collapsed:false, itemIds:["hand01", "hand02", "hand05", "hand06"]},
+      {name:'Hardware & Weatherstrip', category:'Hardware & Weatherstrip', collapsed:false, itemIds:["hard02", "hard08", "hard09", "hard11", "hard14", "hard18", "hard23"]},
+      {name:'Lumber & Sheet Goods', category:'Lumber & Sheet Goods', collapsed:false, itemIds:["lumb02", "lumb05", "lumb06"]},
+      {name:'Personal Kit', category:'Personal Kit', collapsed:true, itemIds:["pers01", "pers02", "pers03", "pers04", "pers05", "pers06", "pers07", "pers08", "pers09", "pers10", "pers11", "pers12", "pers13", "pers14", "pers15", "pers16", "pers17", "pers18", "pers19", "pers20", "pers21", "pers22", "pers23", "pers24", "pers25", "pers26", "pers27", "pers28", "pers29", "pers30", "pers31", "pers32", "pers33", "pers34", "pers35", "pers36", "pers37", "pers38", "pers39"]},
+      {name:'Power Tools', category:'Power Tools', collapsed:false, itemIds:["powe01", "powe05", "powe07", "powe10", "powe11", "powe14", "powe16", "powe20"]},
+      {name:'Safety / PPE', category:'Safety / PPE', collapsed:false, itemIds:["safe01", "safe03", "safe05", "safe06", "safe07", "safe09"]},
+      {name:'Site Setup', category:'Site Setup', collapsed:false, itemIds:["site02", "site08", "site13", "site14", "site17"]},
+      {name:'Solvents & Finishing', category:'Solvents & Finishing', collapsed:false, itemIds:["solv03", "solv06", "solv09", "solv10", "solv12", "solv15"]},
+      {name:'Sundries / Adhesives', category:'Sundries / Adhesives', collapsed:false, itemIds:["sund01", "sund10", "sund11", "sund12", "sund14", "sund17", "sund18", "sund19", "sund21", "sund23", "sund26", "sund31", "sund33", "sund34"]},
+    ]
+  },
+  {
+    id:'tmpl2',
+    name:'Storm Fitting',
+    groups:[
+      {name:'Van Stock', category:'__van__', collapsed:true, itemIds:["abra01", "hand06", "hard14", "powe08", "safe03", "safe05", "safe06", "site02", "solv08", "solv09", "solv10", "sund17", "sund18", "sund20", "sund22", "sund23", "sund26"]},
+      {name:'Abrasives', category:'Abrasives', collapsed:false, itemIds:["abra01", "abra04"]},
+      {name:'Hand Tools', category:'Hand Tools', collapsed:false, itemIds:["hand05", "hand06"]},
+      {name:'Hardware & Weatherstrip', category:'Hardware & Weatherstrip', collapsed:false, itemIds:["hard02", "hard05", "hard13", "hard14", "hard15", "hard19", "hard20"]},
+      {name:'Personal Kit', category:'Personal Kit', collapsed:true, itemIds:["pers01", "pers02", "pers03", "pers04", "pers05", "pers06", "pers07", "pers08", "pers09", "pers10", "pers11", "pers12", "pers13", "pers14", "pers15", "pers16", "pers17", "pers18", "pers19", "pers20", "pers21", "pers22", "pers23", "pers24", "pers25", "pers26", "pers27", "pers28", "pers29", "pers30", "pers31", "pers32", "pers33", "pers34", "pers35", "pers36", "pers37", "pers38", "pers39"]},
+      {name:'Power Tools', category:'Power Tools', collapsed:false, itemIds:["powe03", "powe08", "powe11", "powe17", "powe18", "powe20", "powe22"]},
+      {name:'Safety / PPE', category:'Safety / PPE', collapsed:false, itemIds:["safe02", "safe03", "safe05", "safe06", "safe09"]},
+      {name:'Site Setup', category:'Site Setup', collapsed:false, itemIds:["site01", "site02", "site03", "site04", "site05", "site06", "site07", "site10", "site11", "site12", "site13", "site14", "site15", "site16"]},
+      {name:'Solvents & Finishing', category:'Solvents & Finishing', collapsed:false, itemIds:["solv08", "solv09", "solv10"]},
+      {name:'Sundries / Adhesives', category:'Sundries / Adhesives', collapsed:false, itemIds:["sund17", "sund18", "sund20", "sund22", "sund23", "sund26"]},
+    ]
+  },
+  {
+    id:'tmpl3',
+    name:'Storm Install',
+    groups:[
+      {name:'Van Stock', category:'__van__', collapsed:true, itemIds:["glas01", "hand06", "hard14", "hard23", "powe08", "safe03", "safe05", "safe06", "site02", "solv03", "solv06", "solv08", "sund20", "sund23", "sund26", "sund31", "sund34"]},
+      {name:'Abrasives', category:'Abrasives', collapsed:false, itemIds:["abra04"]},
+      {name:'Glass & Glazing', category:'Glass & Glazing', collapsed:false, itemIds:["glas01", "glas02"]},
+      {name:'Hand Tools', category:'Hand Tools', collapsed:false, itemIds:["hand06"]},
+      {name:'Hardware & Weatherstrip', category:'Hardware & Weatherstrip', collapsed:false, itemIds:["hard02", "hard05", "hard13", "hard14", "hard15", "hard19", "hard20", "hard21", "hard23"]},
+      {name:'Lumber & Sheet Goods', category:'Lumber & Sheet Goods', collapsed:false, itemIds:["lumb03"]},
+      {name:'Personal Kit', category:'Personal Kit', collapsed:true, itemIds:["pers01", "pers02", "pers03", "pers04", "pers05", "pers06", "pers07", "pers08", "pers09", "pers10", "pers11", "pers12", "pers13", "pers14", "pers15", "pers16", "pers17", "pers18", "pers19", "pers20", "pers21", "pers22", "pers23", "pers24", "pers25", "pers26", "pers27", "pers28", "pers29", "pers30", "pers31", "pers32", "pers33", "pers34", "pers35", "pers36", "pers37", "pers38", "pers39"]},
+      {name:'Power Tools', category:'Power Tools', collapsed:false, itemIds:["powe03", "powe08", "powe11", "powe17", "powe18", "powe20", "powe22"]},
+      {name:'Safety / PPE', category:'Safety / PPE', collapsed:false, itemIds:["safe02", "safe03", "safe05", "safe06", "safe09"]},
+      {name:'Site Setup', category:'Site Setup', collapsed:false, itemIds:["site01", "site02", "site03", "site04", "site05", "site06", "site07", "site10", "site11", "site12", "site13", "site14", "site15", "site16"]},
+      {name:'Solvents & Finishing', category:'Solvents & Finishing', collapsed:false, itemIds:["solv03", "solv04", "solv06", "solv08"]},
+      {name:'Sundries / Adhesives', category:'Sundries / Adhesives', collapsed:false, itemIds:["sund20", "sund23", "sund26", "sund31", "sund34"]},
+    ]
+  },
+  {
+    id:'tmpl4',
+    name:'Glazing Service Call',
+    groups:[
+      {name:'Van Stock', category:'__van__', collapsed:true, itemIds:["glas01", "glas07", "hand02", "hand06", "hard14", "lumb02", "powe08", "safe03", "safe06", "site02", "solv03", "solv09", "solv10", "solv15", "sund17", "sund18", "sund20", "sund23", "sund27"]},
+      {name:'Abrasives', category:'Abrasives', collapsed:false, itemIds:["abra04"]},
+      {name:'Glass & Glazing', category:'Glass & Glazing', collapsed:false, itemIds:["glas01", "glas02", "glas03", "glas04", "glas05", "glas06", "glas07"]},
+      {name:'Hand Tools', category:'Hand Tools', collapsed:false, itemIds:["hand02", "hand05", "hand06"]},
+      {name:'Hardware & Weatherstrip', category:'Hardware & Weatherstrip', collapsed:false, itemIds:["hard14", "hard16"]},
+      {name:'Lumber & Sheet Goods', category:'Lumber & Sheet Goods', collapsed:false, itemIds:["lumb02", "lumb04"]},
+      {name:'Personal Kit', category:'Personal Kit', collapsed:true, itemIds:["pers01", "pers02", "pers03", "pers04", "pers05", "pers06", "pers07", "pers08", "pers09", "pers10", "pers11", "pers12", "pers13", "pers14", "pers15", "pers16", "pers17", "pers18", "pers19", "pers20", "pers21", "pers22", "pers23", "pers24", "pers25", "pers26", "pers27", "pers28", "pers29", "pers30", "pers31", "pers32", "pers33", "pers34", "pers35", "pers36", "pers37", "pers38", "pers39"]},
+      {name:'Power Tools', category:'Power Tools', collapsed:false, itemIds:["powe01", "powe07", "powe08", "powe11", "powe15", "powe16", "powe20"]},
+      {name:'Safety / PPE', category:'Safety / PPE', collapsed:false, itemIds:["safe02", "safe03", "safe06", "safe07", "safe09"]},
+      {name:'Site Setup', category:'Site Setup', collapsed:false, itemIds:["site01", "site02", "site07", "site11", "site14"]},
+      {name:'Solvents & Finishing', category:'Solvents & Finishing', collapsed:false, itemIds:["solv03", "solv05", "solv09", "solv10", "solv15"]},
+      {name:'Sundries / Adhesives', category:'Sundries / Adhesives', collapsed:false, itemIds:["sund10", "sund11", "sund17", "sund18", "sund20", "sund23", "sund27"]},
+    ]
+  },
+  {
+    id:'tmpl5',
+    name:'Unit Install',
+    groups:[
+      {name:'Van Stock', category:'__van__', collapsed:true, itemIds:["abra01", "glas01", "hand02", "hand06", "hard10", "hard14", "lumb02", "powe08", "safe03", "safe04", "safe05", "safe06", "safe08", "site02", "solv03", "solv06", "solv08", "solv10", "solv15", "sund02", "sund03", "sund06", "sund14", "sund17", "sund18", "sund19", "sund20", "sund22", "sund23", "sund26", "sund27", "sund30", "sund31", "sund33", "sund34"]},
+      {name:'Abrasives', category:'Abrasives', collapsed:false, itemIds:["abra01", "abra04"]},
+      {name:'Glass & Glazing', category:'Glass & Glazing', collapsed:false, itemIds:["glas01", "glas02", "glas06"]},
+      {name:'Hand Tools', category:'Hand Tools', collapsed:false, itemIds:["hand02", "hand03", "hand04", "hand05", "hand06"]},
+      {name:'Hardware & Weatherstrip', category:'Hardware & Weatherstrip', collapsed:false, itemIds:["hard02", "hard05", "hard10", "hard11", "hard12", "hard13", "hard14", "hard15"]},
+      {name:'Lumber & Sheet Goods', category:'Lumber & Sheet Goods', collapsed:false, itemIds:["lumb02", "lumb03", "lumb04", "lumb07", "lumb09"]},
+      {name:'Personal Kit', category:'Personal Kit', collapsed:true, itemIds:["pers01", "pers02", "pers03", "pers04", "pers05", "pers06", "pers07", "pers08", "pers09", "pers10", "pers11", "pers12", "pers13", "pers14", "pers15", "pers16", "pers17", "pers18", "pers19", "pers20", "pers21", "pers22", "pers23", "pers24", "pers25", "pers26", "pers27", "pers28", "pers29", "pers30", "pers31", "pers32", "pers33", "pers34", "pers35", "pers36", "pers37", "pers38", "pers39"]},
+      {name:'Power Tools', category:'Power Tools', collapsed:false, itemIds:["powe01", "powe02", "powe03", "powe04", "powe05", "powe06", "powe07", "powe08", "powe09", "powe11", "powe12", "powe13", "powe14", "powe16", "powe17", "powe21", "powe22"]},
+      {name:'Safety / PPE', category:'Safety / PPE', collapsed:false, itemIds:["safe02", "safe03", "safe04", "safe05", "safe06", "safe08", "safe09"]},
+      {name:'Site Setup', category:'Site Setup', collapsed:false, itemIds:["site01", "site02", "site10", "site11", "site12", "site14"]},
+      {name:'Solvents & Finishing', category:'Solvents & Finishing', collapsed:false, itemIds:["solv03", "solv04", "solv05", "solv06", "solv08", "solv10", "solv15"]},
+      {name:'Sundries / Adhesives', category:'Sundries / Adhesives', collapsed:false, itemIds:["sund02", "sund03", "sund06", "sund08", "sund14", "sund16", "sund17", "sund18", "sund19", "sund20", "sund22", "sund23", "sund26", "sund27", "sund30", "sund31", "sund33", "sund34"]},
+    ]
+  },
+];
+
+// ════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════
+
+let DB = { categories:[], items:[], templates:[] };
+let currentList = []; // [{groupName, groupCat, collapsed, items:[{id,name,notes,required,inDb}]}]
+let activeCatTab = 'All';
+let modalCallback = null;
+
+// ════════════════════════════════════════════════
+//  STORAGE
+// ════════════════════════════════════════════════
+
+function saveDB() {
+  localStorage.setItem('eps_db', JSON.stringify(DB));
+}
+
+function loadDB() {
+  const saved = localStorage.getItem('eps_db');
+  if (saved) {
+    DB = JSON.parse(saved);
+  } else {
+    DB = {
+      categories: [...DEFAULT_CATEGORIES],
+      items: DEFAULT_ITEMS.map(i => ({...i})),
+      templates: DEFAULT_TEMPLATES.map(t => ({...t, groups: t.groups.map(g => ({...g}))}))
+    };
+    saveDB();
+  }
+}
+
+function resetToDefaults() {
+  if (!confirm('Reset all data to factory defaults? This cannot be undone.')) return;
+  DB = {
+    categories: [...DEFAULT_CATEGORIES],
+    items: DEFAULT_ITEMS.map(i => ({...i})),
+    templates: DEFAULT_TEMPLATES.map(t => ({...t, groups: t.groups.map(g => ({...g}))}))
+  };
+  saveDB();
+  currentList = [];
+  renderAll();
+  toast('Reset to defaults');
+}
+
+// ════════════════════════════════════════════════
+//  NAVIGATION
+// ════════════════════════════════════════════════
+
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'database') renderDB();
+  if (name === 'templates') renderTemplates();
+}
+
+// ════════════════════════════════════════════════
+//  RENDER: BUILD VIEW
+// ════════════════════════════════════════════════
+
+function renderBuild() {
+  // set today's date if empty
+  const dateEl = document.getElementById('job-date');
+  if (!dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
+
+  // template buttons
+  const row = document.getElementById('template-row');
+  row.innerHTML = '';
+  DB.templates.forEach(t => {
+    const btn = document.createElement('button');
+    btn.className = 'template-btn';
+    btn.textContent = t.name;
+    btn.onclick = () => loadTemplate(t.id);
+    row.appendChild(btn);
+  });
+
+  // custom item group dropdown
+  renderGroupDropdown('custom-item-group');
+
+  renderJobList();
+}
+
+function renderGroupDropdown(elId) {
+  const sel = document.getElementById(elId);
+  if (!sel) return;
+  const current = sel.value;
+  sel.innerHTML = '';
+  // groups in current list
+  if (currentList.length) {
+    currentList.forEach(g => {
+      const o = document.createElement('option');
+      o.value = g.groupName;
+      o.textContent = g.groupName;
+      sel.appendChild(o);
+    });
+  }
+  const sep = document.createElement('option');
+  sep.disabled = true;
+  sep.textContent = '── New Group ──';
+  sel.appendChild(sep);
+  DB.categories.forEach(c => {
+    if (!currentList.find(g => g.groupName === c)) {
+      const o = document.createElement('option');
+      o.value = '__new__' + c;
+      o.textContent = '+ ' + c;
+      sel.appendChild(o);
+    }
+  });
+  if (current) sel.value = current;
+}
+
+function loadTemplate(tmplId) {
+  const t = DB.templates.find(t => t.id === tmplId);
+  if (!t) return;
+  currentList = t.groups.map(g => {
+    let items = [];
+    if (g.itemIds && g.itemIds.length) {
+      items = g.itemIds.map(id => {
+        const dbItem = DB.items.find(i => i.id === id);
+        if (!dbItem) return null;
+        return {id: dbItem.id, name: dbItem.name, notes: dbItem.notes||'', required: dbItem.required||false, inDb: true};
+      }).filter(Boolean);
+    } else if (g.name === 'Van Stock' || g.category === '__van__') {
+      // Van Stock: all vanStock-flagged items
+      items = DB.items.filter(i => i.vanStock)
+        .map(i => ({id:i.id, name:i.name, notes:i.notes||'', required:false, inDb:true}));
+    } else {
+      // Fallback: all items in category
+      items = DB.items.filter(i => i.cat === g.category)
+        .map(i => ({id:i.id, name:i.name, notes:i.notes||'', required:i.required||false, inDb:true}));
+    }
+    return {
+      groupName: g.name,
+      groupCat: g.category === '__van__' ? 'Van Stock' : g.category,
+      collapsed: g.collapsed || false,
+      items
+    };
+  });
+  document.querySelectorAll('.template-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent === t.name);
+  });
+  renderJobList();
+  renderGroupDropdown('custom-item-group');
+  toast('Loaded: ' + t.name);
+}
+
+function renderJobList() {
+  const container = document.getElementById('job-list-container');
+  if (!currentList.length) {
+    container.innerHTML = '<div class="empty-state">Select a template above or add items manually</div>';
+    return;
+  }
+  container.innerHTML = '';
+  currentList.forEach((group, gi) => {
+    const block = document.createElement('div');
+    block.className = 'group-block';
+    block.dataset.gi = gi;
+
+    const count = group.items.length;
+
+    // Find "more items" — DB items in this category not already on the list
+    // For Van Stock group, show all vanStock-flagged items not on list
+    const activeIds = new Set(group.items.map(i => i.id));
+    let moreItems = [];
+    if (group.groupName === 'Van Stock') {
+      moreItems = DB.items.filter(i => i.vanStock && !activeIds.has(i.id));
+    } else {
+      moreItems = DB.items.filter(i => i.cat === group.groupCat && !activeIds.has(i.id));
+    }
+
+    block.innerHTML = `
+      <div class="group-header" onclick="toggleGroupItems(${gi})">
+        <span class="group-toggle">${group.collapsed ? '▸' : '▾'}</span>
+        <span class="group-name">${group.groupName}</span>
+        <span class="group-meta">${count} item${count!==1?'s':''}</span>
+        ${group.collapsed ? '<span class="group-collapsed-badge">HEADING ONLY</span>' : ''}
+        <div class="group-actions" onclick="event.stopPropagation()">
+          <button class="btn btn-sm" title="Toggle heading-only mode" onclick="toggleGroupCollapsed(${gi})">${group.collapsed?'Collapse to heading':'Show items'}</button>
+          <button class="btn btn-sm btn-danger" onclick="removeGroup(${gi})">✕</button>
+        </div>
+      </div>
+      <div class="group-items${group.collapsed?' collapsed':''}" id="group-items-${gi}"></div>
+    `;
+
+    const itemsDiv = block.querySelector(`#group-items-${gi}`);
+
+    // Active items
+    group.items.forEach((item, ii) => {
+      const row = document.createElement('div');
+      row.className = 'item-row';
+      row.innerHTML = `
+        <div class="${item.required?'item-required':'item-optional'}"></div>
+        <span class="item-name">${item.name}</span>
+        ${item.notes ? `<span class="item-notes">${item.notes}</span>` : ''}
+        <button class="item-remove" onclick="removeItem(${gi},${ii})" title="Remove from list">✕</button>
+      `;
+      itemsDiv.appendChild(row);
+    });
+
+    // More items expander
+    if (moreItems.length > 0) {
+      const moreZone = document.createElement('div');
+      moreZone.className = 'more-items-zone';
+      moreZone.innerHTML = `
+        <div class="more-items-toggle" onclick="toggleMoreItems(this)">
+          <span class="mit-arrow">▸</span>
+          <span class="mit-label">More ${group.groupName}</span>
+          <span class="mit-count">${moreItems.length} available</span>
+        </div>
+        <div class="more-items-list" id="more-${gi}"></div>
+      `;
+      const moreList = moreZone.querySelector(`#more-${gi}`);
+      moreItems.forEach(item => {
+        const mRow = document.createElement('div');
+        mRow.className = 'more-item-row';
+        mRow.onclick = () => quickAddItem(gi, item.id);
+        mRow.innerHTML = `
+          <span class="more-item-check"></span>
+          <span class="more-item-name">${item.name}</span>
+        `;
+        moreList.appendChild(mRow);
+      });
+      itemsDiv.appendChild(moreZone);
+    }
+
+    // Add item freeform input
+    const addRow = document.createElement('div');
+    addRow.className = 'add-item-row';
+    addRow.innerHTML = `
+      <input type="text" placeholder="Add item to ${group.groupName}..."
+        onkeydown="if(event.key==='Enter')addItemToGroup(${gi},this)">
+      <button class="btn btn-sm btn-sage" onclick="addItemToGroup(${gi},this.previousElementSibling)">+</button>
+    `;
+    itemsDiv.appendChild(addRow);
+
+    container.appendChild(block);
+  });
+}
+
+function toggleMoreItems(toggleEl) {
+  const list = toggleEl.nextElementSibling;
+  const arrow = toggleEl.querySelector('.mit-arrow');
+  const isOpen = list.classList.toggle('open');
+  arrow.textContent = isOpen ? '▾' : '▸';
+}
+
+function quickAddItem(gi, itemId) {
+  const dbItem = DB.items.find(i => i.id === itemId);
+  if (!dbItem) return;
+  // Check not already in list
+  if (currentList[gi].items.find(i => i.id === itemId)) return;
+  currentList[gi].items.push({
+    id: dbItem.id,
+    name: dbItem.name,
+    notes: dbItem.notes || '',
+    required: dbItem.required || false,
+    inDb: true
+  });
+  renderJobList();
+  toast(dbItem.name + ' added');
+}
+
+function toggleGroupItems(gi) {
+  const el = document.getElementById(`group-items-${gi}`);
+  el.classList.toggle('collapsed');
+  const block = document.querySelector(`[data-gi="${gi}"] .group-toggle`);
+  if (block) block.textContent = el.classList.contains('collapsed') ? '▸' : '▾';
+}
+
+function toggleGroupCollapsed(gi) {
+  currentList[gi].collapsed = !currentList[gi].collapsed;
+  renderJobList();
+}
+
+function removeGroup(gi) {
+  currentList.splice(gi, 1);
+  renderJobList();
+  renderGroupDropdown('custom-item-group');
+}
+
+function removeItem(gi, ii) {
+  currentList[gi].items.splice(ii, 1);
+  renderJobList();
+}
+
+function addItemToGroup(gi, inputEl) {
+  const name = inputEl.value.trim();
+  if (!name) return;
+  const inDb = DB.items.find(i => i.name.toLowerCase() === name.toLowerCase());
+  const newItem = {
+    id: inDb ? inDb.id : 'custom_' + Date.now(),
+    name: inDb ? inDb.name : name,
+    notes: inDb ? (inDb.notes||'') : '',
+    required: false,
+    inDb: !!inDb
+  };
+  currentList[gi].items.push(newItem);
+  inputEl.value = '';
+  renderJobList();
+
+  if (!inDb) {
+    // ask to save to db
+    openModal(name, '', (cat, notes) => {
+      dbAddItemDirect(name, cat, notes);
+      const item = currentList[gi]?.items.find(i => i.name === name);
+      if (item) { item.inDb = true; }
+      toast('Saved "' + name + '" to database');
+    });
+  }
+}
+
+function addCustomItem() {
+  const nameEl = document.getElementById('custom-item-name');
+  const groupEl = document.getElementById('custom-item-group');
+  const notesEl = document.getElementById('custom-item-notes');
+  const name = nameEl.value.trim();
+  if (!name) { nameEl.focus(); return; }
+
+  let groupVal = groupEl.value;
+  let targetGroupName, targetGroupCat;
+
+  if (groupVal.startsWith('__new__')) {
+    targetGroupCat = groupVal.replace('__new__', '');
+    targetGroupName = targetGroupCat;
+    currentList.push({ groupName: targetGroupName, groupCat: targetGroupCat, collapsed: false, items: [] });
+  } else {
+    targetGroupName = groupVal;
+    const g = currentList.find(g => g.groupName === targetGroupName);
+    targetGroupCat = g ? g.groupCat : groupVal;
+  }
+
+  const gi = currentList.findIndex(g => g.groupName === targetGroupName);
+  if (gi === -1) return;
+
+  const inDb = DB.items.find(i => i.name.toLowerCase() === name.toLowerCase());
+  currentList[gi].items.push({
+    id: inDb ? inDb.id : 'custom_' + Date.now(),
+    name: inDb ? inDb.name : name,
+    notes: notesEl.value.trim() || (inDb ? inDb.notes||'' : ''),
+    required: false,
+    inDb: !!inDb
+  });
+
+  nameEl.value = '';
+  notesEl.value = '';
+  renderJobList();
+  renderGroupDropdown('custom-item-group');
+
+  if (!inDb) {
+    openModal(name, notesEl.value, (cat, notes) => {
+      dbAddItemDirect(name, cat, notes);
+      toast('Saved "' + name + '" to database');
+    });
+  }
+}
+
+function clearList() {
+  if (currentList.length && !confirm('Clear the current list?')) return;
+  currentList = [];
+  document.querySelectorAll('.template-btn').forEach(b => b.classList.remove('active'));
+  renderJobList();
+  renderGroupDropdown('custom-item-group');
+}
+
+// ════════════════════════════════════════════════
+//  RENDER: DATABASE VIEW
+// ════════════════════════════════════════════════
+
+function renderDB() {
+  renderCatTabs();
+  renderDBItems();
+  renderCatManager();
+  // populate dropdowns
+  ['db-new-cat','modal-cat-select'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '';
+    DB.categories.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c; o.textContent = c;
+      sel.appendChild(o);
+    });
+    if (cur) sel.value = cur;
+  });
+}
+
+function renderCatTabs() {
+  const el = document.getElementById('db-category-tabs');
+  el.innerHTML = '';
+  ['All', '__van__', ...DB.categories].forEach(c => {
+    const btn = document.createElement('button');
+    const label = c === '__van__' ? 'Van Stock ★' : c;
+    btn.className = 'cat-tab' + (c === activeCatTab ? ' active' : '');
+    btn.textContent = label;
+    btn.onclick = () => { activeCatTab = c; renderDB(); };
+    el.appendChild(btn);
+  });
+}
+
+function renderDBItems() {
+  const search = document.getElementById('db-search')?.value.toLowerCase() || '';
+  const list = document.getElementById('db-items-list');
+  list.innerHTML = '';
+
+  let items = DB.items;
+  if (activeCatTab !== 'All') items = items.filter(i => i.cat === activeCatTab);
+  if (activeCatTab === '__van__') items = DB.items.filter(i => i.vanStock);
+  if (search) items = items.filter(i => i.name.toLowerCase().includes(search) || (i.notes||'').toLowerCase().includes(search));
+
+  if (!items.length) {
+    list.innerHTML = '<div class="empty-state">No items found</div>';
+    return;
+  }
+
+  items.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'db-item-row';
+    row.innerHTML = `
+      <div class="db-item-name">
+        <input type="text" value="${escHtml(item.name)}"
+          onblur="dbRenameItem('${item.id}', this.value)"
+          onkeydown="if(event.key==='Enter')this.blur()">
+      </div>
+      <div class="db-item-cat">${item.cat}</div>
+      <div class="db-item-van">
+        <button class="van-toggle${item.vanStock?' on':''}" data-vsid="${item.id}" onclick="dbToggleVanStock('${item.id}')">${item.vanStock?'VAN ✓':'VAN'}</button>
+      </div>
+      <div class="db-item-notes">${item.notes||''}</div>
+      <button class="btn btn-sm btn-danger" onclick="dbDeleteItem('${item.id}')">✕</button>
+    `;
+    list.appendChild(row);
+  });
+}
+
+function renderCatManager() {
+  const el = document.getElementById('cat-list');
+  el.innerHTML = '';
+  DB.categories.forEach(c => {
+    const chip = document.createElement('div');
+    chip.className = 'cat-chip';
+    chip.innerHTML = `${c} <span class="cat-chip-del" onclick="deleteCategory('${c}')" title="Delete category">✕</span>`;
+    el.appendChild(chip);
+  });
+}
+
+function dbAddItem() {
+  const name = document.getElementById('db-new-name').value.trim();
+  const cat = document.getElementById('db-new-cat').value;
+  const notes = document.getElementById('db-new-notes').value.trim();
+  if (!name) return;
+  dbAddItemDirect(name, cat, notes);
+  document.getElementById('db-new-name').value = '';
+  document.getElementById('db-new-notes').value = '';
+  renderDB();
+  toast('Added: ' + name);
+}
+
+function dbAddItemDirect(name, cat, notes, vanStock=false) {
+  if (DB.items.find(i => i.name.toLowerCase() === name.toLowerCase())) return;
+  DB.items.push({ id:'item_'+Date.now()+'_'+Math.random().toString(36).slice(2,6), name, cat, notes:notes||'', vanStock:vanStock||false });
+  saveDB();
+}
+
+function dbToggleVanStock(id) {
+  const item = DB.items.find(i => i.id === id);
+  if (!item) return;
+  item.vanStock = !item.vanStock;
+  saveDB();
+  // update button in place without full re-render
+  const btn = document.querySelector(`[data-vsid="${id}"]`);
+  if (btn) {
+    btn.classList.toggle('on', item.vanStock);
+    btn.textContent = item.vanStock ? 'VAN ✓' : 'VAN';
+  }
+}
+
+function dbRenameItem(id, newName) {
+  const item = DB.items.find(i => i.id === id);
+  if (item && newName.trim()) { item.name = newName.trim(); saveDB(); }
+}
+
+function dbDeleteItem(id) {
+  if (!confirm('Remove this item from the database?')) return;
+  DB.items = DB.items.filter(i => i.id !== id);
+  saveDB();
+  renderDB();
+  toast('Item removed');
+}
+
+function addCategory() {
+  const name = document.getElementById('new-cat-name').value.trim();
+  if (!name || DB.categories.includes(name)) return;
+  DB.categories.push(name);
+  saveDB();
+  document.getElementById('new-cat-name').value = '';
+  renderDB();
+  toast('Category added: ' + name);
+}
+
+function deleteCategory(name) {
+  const count = DB.items.filter(i => i.cat === name).length;
+  if (count && !confirm(`Delete "${name}"? ${count} item(s) in this category will lose their category assignment.`)) return;
+  DB.categories = DB.categories.filter(c => c !== name);
+  saveDB();
+  if (activeCatTab === name) activeCatTab = 'All';
+  renderDB();
+  toast('Category removed: ' + name);
+}
+
+// ════════════════════════════════════════════════
+//  RENDER: TEMPLATES VIEW
+// ════════════════════════════════════════════════
+
+function renderTemplates() {
+  const grid = document.getElementById('templates-grid');
+  grid.innerHTML = '';
+
+  DB.templates.forEach(t => {
+    const card = document.createElement('div');
+    card.className = 'template-card';
+    card.style.gridColumn = '1 / -1'; // full width for item editor
+
+    // Build group editors
+    const groupEditors = t.groups.map((g, gi) => {
+      // Get all items available for this group
+      let allCatItems;
+      if (g.name === 'Van Stock') {
+        allCatItems = DB.items.filter(i => i.vanStock);
+      } else {
+        allCatItems = DB.items.filter(i => i.cat === g.category);
+      }
+      const selectedIds = new Set(g.itemIds || []);
+      const selectedCount = allCatItems.filter(i => selectedIds.has(i.id)).length;
+
+      const itemRows = allCatItems.map(item => {
+        const checked = selectedIds.has(item.id);
+        return `
+          <div class="tmpl-item-row" onclick="toggleTemplateItem('${t.id}',${gi},'${item.id}')">
+            <span class="tmpl-item-cb${checked?' checked':''}"></span>
+            <span class="tmpl-item-label${checked?'':' unchecked'}">${item.name}</span>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="tmpl-group-editor">
+          <div class="tmpl-group-editor-header" onclick="toggleTmplGroupEditor(this)">
+            <span class="tge-arrow">▸</span>
+            <span class="tge-name">${g.name}</span>
+            <span class="tge-meta">${selectedCount} of ${allCatItems.length} selected</span>
+            <button class="tgl-collapsed-toggle${g.collapsed?' on':''} btn-sm"
+              onclick="event.stopPropagation();toggleTemplateGroupCollapsed('${t.id}',${gi})"
+              title="Toggle heading-only on print" style="margin-left:8px">
+              ${g.collapsed ? 'HDG ONLY' : 'FULL'}
+            </button>
+            <button class="btn btn-sm btn-danger" style="margin-left:4px"
+              onclick="event.stopPropagation();removeTemplateGroup('${t.id}',${gi})">✕</button>
+          </div>
+          <div class="tmpl-item-list">
+            ${itemRows || '<div class="empty-state" style="padding:12px">No items in this category</div>'}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    card.innerHTML = `
+      <div class="template-card-header">
+        <span class="template-card-name">${t.name}</span>
+        <button class="btn btn-sm btn-danger" onclick="deleteTemplate('${t.id}')">Delete</button>
+      </div>
+      <div class="template-card-body" style="padding:10px 14px">
+        ${groupEditors || '<div style="color:var(--muted);font-size:0.78rem;padding:8px 0">No groups yet — add one below</div>'}
+      </div>
+      <div class="tmpl-card-actions">
+        <select id="tmpl-add-group-cat-${t.id}" style="font-size:0.72rem;padding:4px 8px">
+          <option value="__van__">Van Stock (flag)</option>
+          ${DB.categories.map(c=>`<option value="${c}">${c}</option>`).join('')}
+        </select>
+        <button class="btn btn-sm btn-sage" onclick="addGroupToTemplate('${t.id}')">+ Add Group</button>
+        <div style="flex:1"></div>
+        <button class="btn btn-sm" onclick="selectAllInTemplate('${t.id}')">Check All</button>
+        <button class="btn btn-sm" onclick="selectNoneInTemplate('${t.id}')">Uncheck All</button>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function toggleTmplGroupEditor(headerEl) {
+  const list = headerEl.nextElementSibling;
+  const arrow = headerEl.querySelector('.tge-arrow');
+  const isOpen = list.classList.toggle('open');
+  arrow.textContent = isOpen ? '▾' : '▸';
+}
+
+function toggleTemplateItem(tmplId, gi, itemId) {
+  const t = DB.templates.find(t => t.id === tmplId);
+  if (!t || !t.groups[gi]) return;
+  if (!t.groups[gi].itemIds) t.groups[gi].itemIds = [];
+  const ids = t.groups[gi].itemIds;
+  const idx = ids.indexOf(itemId);
+  if (idx === -1) {
+    ids.push(itemId);
+  } else {
+    ids.splice(idx, 1);
+  }
+  saveDB();
+  renderTemplates();
+}
+
+function selectAllInTemplate(tmplId) {
+  const t = DB.templates.find(t => t.id === tmplId);
+  if (!t) return;
+  t.groups.forEach(g => {
+    let items = g.name === 'Van Stock'
+      ? DB.items.filter(i => i.vanStock)
+      : DB.items.filter(i => i.cat === g.category);
+    g.itemIds = items.map(i => i.id);
+  });
+  saveDB();
+  renderTemplates();
+}
+
+function selectNoneInTemplate(tmplId) {
+  const t = DB.templates.find(t => t.id === tmplId);
+  if (!t) return;
+  t.groups.forEach(g => { g.itemIds = []; });
+  saveDB();
+  renderTemplates();
+}
+
+function toggleTemplateGroupCollapsed(tmplId, gi) {
+  const t = DB.templates.find(t => t.id === tmplId);
+  if (t) { t.groups[gi].collapsed = !t.groups[gi].collapsed; saveDB(); renderTemplates(); }
+}
+
+function removeTemplateGroup(tmplId, gi) {
+  const t = DB.templates.find(t => t.id === tmplId);
+  if (t) { t.groups.splice(gi, 1); saveDB(); renderTemplates(); }
+}
+
+function addGroupToTemplate(tmplId) {
+  const t = DB.templates.find(t => t.id === tmplId);
+  const val = document.getElementById(`tmpl-add-group-cat-${tmplId}`).value;
+  if (!t || !val) return;
+  if (val === '__van__') {
+    t.groups.push({ name: 'Van Stock', category: '__van__', collapsed: true, itemIds: [] });
+  } else {
+    t.groups.push({ name: val, category: val, collapsed: false, itemIds: [] });
+  }
+  saveDB();
+  renderTemplates();
+  toast('Group added to ' + t.name);
+}
+
+function addTemplate() {
+  const name = document.getElementById('new-tmpl-name').value.trim();
+  if (!name) return;
+  DB.templates.push({ id:'tmpl_'+Date.now(), name, groups:[] });
+  saveDB();
+  document.getElementById('new-tmpl-name').value = '';
+  renderTemplates();
+  renderBuild();
+  toast('Template created: ' + name);
+}
+
+function deleteTemplate(id) {
+  if (!confirm('Delete this template?')) return;
+  DB.templates = DB.templates.filter(t => t.id !== id);
+  saveDB();
+  renderTemplates();
+  renderBuild();
+  toast('Template deleted');
+}
+
+// ════════════════════════════════════════════════
+//  PRINT
+// ════════════════════════════════════════════════
+
+function previewPrint() {
+  const jobName = document.getElementById('job-name').value || 'Unnamed Job';
+  const jobDate = document.getElementById('job-date').value || '';
+  const jobTech = document.getElementById('job-tech').value || '';
+  const jobWO = document.getElementById('job-wo').value || '';
+  const notes = document.getElementById('job-notes').value || '';
+
+  const fmtDate = jobDate ? new Date(jobDate + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+
+  // Auto-flow: count total line-equivalents to decide columns
+  // Collapsed group = 1 line, expanded group = 1 heading + N items
+  let totalLines = 0;
+  currentList.forEach(g => {
+    totalLines += g.collapsed ? 1 : (1 + g.items.length);
+  });
+  const colCount = totalLines <= 18 ? 2 : 3;
+
+  // Build group HTML — no item notes on print
+  let groupsHTML = '';
+  currentList.forEach(group => {
+    if (group.collapsed) {
+      // Heading-only: group name + single checkbox
+      groupsHTML += `
+        <div class="ps-group">
+          <div class="ps-group-header">
+            <span class="ps-group-name">${group.groupName}</span>
+            <span class="ps-group-check"></span>
+          </div>
+        </div>`;
+    } else {
+      const itemsHTML = group.items.map(item => `
+        <div class="ps-item">
+          <span class="ps-item-check"></span>
+          <span class="ps-item-name">${item.name}</span>
+        </div>`).join('');
+      groupsHTML += `
+        <div class="ps-group">
+          <div class="ps-group-header">
+            <span class="ps-group-name">${group.groupName}</span>
+          </div>
+          ${itemsHTML}
+        </div>`;
+    }
+  });
+
+  // Notes / write-in lines
+  const notesHTML = `
+    <div class="ps-below-columns">
+      <div class="ps-notes-label">WO Addendum / Notes</div>
+      ${notes
+        ? `<div class="ps-notes-content">${notes}</div>`
+        : `<div class="ps-write-line"></div><div class="ps-write-line"></div><div class="ps-write-line"></div>`
+      }
+    </div>`;
+
+  document.getElementById('print-sheet').innerHTML = `
+    <div class="ps-header">
+      <div class="ps-logo">East Portland <span>Sash</span></div>
+      <div class="ps-title">Job Prep / Pack List</div>
+      <div class="ps-spacer"></div>
+      <div class="ps-meta">
+        ${fmtDate || ''}${jobWO ? (fmtDate ? '<br>' : '') + 'WO: ' + jobWO : ''}
+      </div>
+    </div>
+    <div class="ps-job-info">
+      <div class="ps-info-field"><label>Job / Client</label><div class="val">${jobName}</div></div>
+      <div class="ps-info-field"><label>Tech / Crew</label><div class="val">${jobTech || '___________'}</div></div>
+      <div class="ps-info-field"><label>Date</label><div class="val">${fmtDate || '___________'}</div></div>
+    </div>
+    <div class="ps-columns" style="column-count:${colCount}">
+      ${groupsHTML}
+    </div>
+    ${notesHTML}
+    <div class="ps-footer">
+      <span>East Portland Sash / Kerfworks Concern LLC — CCB #180257</span>
+      <span>Pack List — WO Addendum</span>
+    </div>
+  `;
+
+  document.getElementById('print-overlay').classList.add('visible');
+}
+
+function closePrint() {
+  document.getElementById('print-overlay').classList.remove('visible');
+}
+
+// ════════════════════════════════════════════════
+//  IMPORT / EXPORT
+// ════════════════════════════════════════════════
+
+function exportDB() {
+  const blob = new Blob([JSON.stringify(DB, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'eps-job-prep-db-' + new Date().toISOString().split('T')[0] + '.json';
+  a.click();
+  toast('Database exported');
+}
+
+function exportCSV() {
+  const rows = [['Item Name','Category','Notes']];
+  DB.items.forEach(i => rows.push([`"${i.name}"`, `"${i.cat}"`, `"${i.notes||''}"`]));
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'eps-items-' + new Date().toISOString().split('T')[0] + '.csv';
+  a.click();
+  toast('CSV exported');
+}
+
+function handleFileDrop(e) {
+  e.preventDefault();
+  document.getElementById('import-drop').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFileImport(file);
+}
+
+function handleFileImport(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      if (file.name.endsWith('.json')) {
+        const data = JSON.parse(e.target.result);
+        mergeImport(data);
+      } else if (file.name.endsWith('.csv')) {
+        importCSV(e.target.result);
+      } else {
+        alert('Please use a .json or .csv file');
+      }
+    } catch(err) {
+      alert('Error reading file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function mergeImport(data) {
+  let added = 0;
+  // merge categories
+  (data.categories||[]).forEach(c => { if (!DB.categories.includes(c)) { DB.categories.push(c); } });
+  // merge items (by name)
+  (data.items||[]).forEach(item => {
+    if (!DB.items.find(i => i.name.toLowerCase() === item.name.toLowerCase())) {
+      DB.items.push(item);
+      added++;
+    }
+  });
+  // merge templates (by name)
+  (data.templates||[]).forEach(t => {
+    if (!DB.templates.find(x => x.name === t.name)) DB.templates.push(t);
+  });
+  saveDB();
+  renderAll();
+  toast(`Import complete — ${added} new items added`);
+}
+
+function importCSV(text) {
+  const lines = text.split('\n').filter(l => l.trim());
+  const header = lines[0].toLowerCase();
+  const startRow = (header.includes('item') || header.includes('name')) ? 1 : 0;
+  let added = 0;
+  lines.slice(startRow).forEach(line => {
+    const parts = line.split(',').map(s => s.trim().replace(/^"|"$/g,''));
+    const name = parts[0]; const cat = parts[1]||'Hand Tools'; const notes = parts[2]||'';
+    if (!name) return;
+    if (!DB.categories.includes(cat)) DB.categories.push(cat);
+    if (!DB.items.find(i => i.name.toLowerCase() === name.toLowerCase())) {
+      DB.items.push({ id:'csv_'+Date.now()+'_'+Math.random().toString(36).slice(2,5), name, cat, notes });
+      added++;
+    }
+  });
+  saveDB();
+  renderAll();
+  toast(`CSV import complete — ${added} items added`);
+}
+
+// ════════════════════════════════════════════════
+//  MODAL (save to db)
+// ════════════════════════════════════════════════
+
+function openModal(itemName, notes, callback) {
+  modalCallback = callback;
+  document.getElementById('modal-item-name').textContent = '"' + itemName + '"';
+  document.getElementById('modal-notes').value = notes || '';
+  const sel = document.getElementById('modal-cat-select');
+  sel.innerHTML = '';
+  DB.categories.forEach(c => {
+    const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o);
+  });
+  document.getElementById('modal-overlay').classList.add('visible');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('visible');
+  modalCallback = null;
+}
+
+function confirmSaveToDb() {
+  const cat = document.getElementById('modal-cat-select').value;
+  const notes = document.getElementById('modal-notes').value;
+  if (modalCallback) modalCallback(cat, notes);
+  closeModal();
+  renderDB();
+}
+
+// ════════════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════════════
+
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ════════════════════════════════════════════════
+//  UTILS
+// ════════════════════════════════════════════════
+
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderAll() {
+  try { renderBuild(); } catch(e) { console.warn('renderBuild:', e); }
+  try { renderDB(); } catch(e) { console.warn('renderDB:', e); }
+  try { renderTemplates(); } catch(e) { console.warn('renderTemplates:', e); }
+}
+
+// ════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════
+
+// Clear any stale localStorage from old versions that lack itemIds
+(function() {
+  try {
+    const saved = localStorage.getItem('eps_db');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // If templates exist but first template's first group has no itemIds, it's old data — reset
+      const t = parsed.templates && parsed.templates[0];
+      const g = t && t.groups && t.groups[0];
+      if (g && (!g.hasOwnProperty('itemIds') || !DB.items[0]?.hasOwnProperty('vanStock'))) {
+        console.log('EPS: stale DB detected, resetting to defaults');
+        localStorage.removeItem('eps_db');
+      }
+    }
+  } catch(e) {}
+})();
+
+loadDB();
+renderAll();
+</script>
+</body>
+</html>
