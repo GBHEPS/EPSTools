@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EPS — Schedule Board</title>
+<title>Kerfworks — Schedule Board</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -544,8 +544,22 @@ header h1 {
 
 <div id="toast"></div>
 
-<script>
-const STORAGE_KEY = "eps_schedule_board_v2";
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBiwsuVyEormZua4fUh7rLeIAQp0BZ-y8A",
+  authDomain: "epstools-2913e.firebaseapp.com",
+  projectId: "epstools-2913e",
+  storageBucket: "epstools-2913e.firebasestorage.app",
+  messagingSenderId: "91969549327",
+  appId: "1:91969549327:web:6eea1d04d68eb01dabdf7a"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+const DOC_REF = doc(db, "boards", "schedule");
 
 const FIXED_EMPLOYEES = ["Adam","Sam","Addy","Aly","Maxx"];
 const FLOATER_DEFAULTS = ["Floater A","Floater B"];
@@ -611,24 +625,35 @@ let addContext = null;
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
 
-function loadState() {
+async function loadState() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const s = JSON.parse(raw);
+    const snap = await getDoc(DOC_REF);
+    if (snap.exists()) {
+      const s = snap.data();
       cards = s.cards || [];
       prodClients = s.prodClients || [];
       floaterNames = s.floaterNames || [...FLOATER_DEFAULTS];
       if (s.anchorMonday) anchorMonday = fromKey(s.anchorMonday);
     }
-  } catch(e) {}
+  } catch(e) {
+    console.warn("Firestore load failed", e);
+  }
 }
 
+let saveTimer = null;
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    cards, prodClients, floaterNames,
-    anchorMonday: dateKey(anchorMonday),
-  }));
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    try {
+      await setDoc(DOC_REF, {
+        cards, prodClients, floaterNames,
+        anchorMonday: dateKey(anchorMonday),
+      });
+    } catch(e) {
+      console.warn("Firestore save failed", e);
+      toast("Auto-save failed — check connection.");
+    }
+  }, 800);
 }
 
 function toast(msg) {
@@ -1116,13 +1141,19 @@ document.getElementById("btn-today").addEventListener("click", () => {
 });
 
 // ── JSON SAVE ──
-document.getElementById("btn-save-json").addEventListener("click", () => {
-  const blob = new Blob([JSON.stringify({cards, prodClients, anchorMonday: dateKey(anchorMonday)}, null, 2)], {type:"application/json"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "schedule_" + new Date().toISOString().slice(0,10) + ".json";
-  a.click();
-  toast("Schedule saved.");
+document.getElementById("btn-save-json").addEventListener("click", async () => {
+  try {
+    const snap = await getDoc(DOC_REF);
+    const s = snap.exists() ? snap.data() : {cards, prodClients, anchorMonday: dateKey(anchorMonday)};
+    const blob = new Blob([JSON.stringify(s, null, 2)], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "schedule_" + new Date().toISOString().slice(0,10) + ".json";
+    a.click();
+    toast("Schedule saved.");
+  } catch(e) {
+    toast("Could not download — check connection.");
+  }
 });
 
 // ── JSON RESTORE ──
@@ -1133,13 +1164,15 @@ document.getElementById("file-json").addEventListener("change", e => {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = ev => {
+  reader.onload = async ev => {
     try {
       const s = JSON.parse(ev.target.result);
       cards = s.cards || [];
       prodClients = s.prodClients || [];
+      floaterNames = s.floaterNames || [...FLOATER_DEFAULTS];
       if (s.anchorMonday) anchorMonday = fromKey(s.anchorMonday);
-      saveState(); renderBoard();
+      await setDoc(DOC_REF, { cards, prodClients, floaterNames, anchorMonday: dateKey(anchorMonday) });
+      renderBoard();
       toast("Schedule restored.");
     } catch(err) { alert("Could not read that file."); }
     e.target.value = "";
@@ -1155,7 +1188,7 @@ document.getElementById("file-prod").addEventListener("change", e => {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = ev => {
+  reader.onload = async ev => {
     try {
       const state = JSON.parse(ev.target.result);
       const existing = new Set(prodClients);
@@ -1171,7 +1204,7 @@ document.getElementById("file-prod").addEventListener("change", e => {
         });
       });
       prodClients.sort();
-      saveState();
+      await setDoc(DOC_REF, { cards, prodClients, floaterNames, anchorMonday: dateKey(anchorMonday) });
       populateClientDatalist();
       toast(`${added} new client${added !== 1 ? "s" : ""} added from production board.`);
     } catch(err) { alert("Could not read that file. Make sure it's a production board JSON export."); }
@@ -1262,8 +1295,12 @@ document.getElementById("board-outer").addEventListener("click", e => {
 });
 
 // ── INIT ──
-loadState();
-renderBoard();
+(async () => {
+  toast("Loading schedule...");
+  await loadState();
+  renderBoard();
+  toast("Schedule loaded.");
+})();
 
 // Reflow card widths on window resize
 window.addEventListener("resize", () => {
