@@ -17,7 +17,6 @@ body {
   min-height: 100vh;
 }
 
-/* MARQUEE */
 .marquee-bar {
   background: #000000;
   border-top: 3px solid #ff0000;
@@ -34,7 +33,6 @@ marquee {
   letter-spacing: 2px;
 }
 
-/* HEADER */
 .header {
   background: linear-gradient(180deg, #cc0000, #880000);
   border: 4px outset #ff6666;
@@ -76,7 +74,6 @@ marquee {
   50% { opacity: 0; }
 }
 
-/* MAIN LAYOUT */
 .main {
   display: flex;
   gap: 12px;
@@ -84,7 +81,6 @@ marquee {
   align-items: flex-start;
 }
 
-/* SIDEBAR */
 .sidebar {
   width: 180px;
   flex-shrink: 0;
@@ -141,12 +137,8 @@ marquee {
   margin-top: 8px;
 }
 
-/* CONTENT */
-.content {
-  flex: 1;
-}
+.content { flex: 1; }
 
-/* TABLE */
 .tools-table {
   width: 100%;
   border-collapse: collapse;
@@ -188,26 +180,10 @@ marquee {
 .tools-table tr:nth-child(even) td { background: #000077; }
 .tools-table tr:hover td { background: #003399; }
 
-.tool-name {
-  color: #00ffff;
-  font-weight: bold;
-  font-size: 14px;
-}
+.tool-name { color: #00ffff; font-weight: bold; font-size: 14px; }
+.tool-desc { color: #cccccc; font-size: 11px; margin-top: 3px; line-height: 1.4; }
+.tool-status { color: #00ff00; font-size: 10px; font-weight: bold; }
 
-.tool-desc {
-  color: #cccccc;
-  font-size: 11px;
-  margin-top: 3px;
-  line-height: 1.4;
-}
-
-.tool-status {
-  color: #00ff00;
-  font-size: 10px;
-  font-weight: bold;
-}
-
-/* BUTTONS */
 .bevel-btn {
   display: inline-block;
   background: #c0c0c0;
@@ -223,24 +199,11 @@ marquee {
   letter-spacing: 1px;
 }
 
-.bevel-btn:hover {
-  background: #dddddd;
-  border: 3px inset #ffffff;
-}
-
-.bevel-btn:active {
-  border: 3px inset #888888;
-}
-
-.bevel-btn.green {
-  background: #009900;
-  color: #ffffff;
-  border-color: #00ff00;
-}
-
+.bevel-btn:hover { background: #dddddd; border: 3px inset #ffffff; }
+.bevel-btn:active { border: 3px inset #888888; }
+.bevel-btn.green { background: #009900; color: #ffffff; border-color: #00ff00; }
 .bevel-btn.green:hover { background: #00bb00; }
 
-/* GUESTBOOK / ABOUT BOX */
 .info-box {
   background: #000066;
   border: 4px outset #aaaaaa;
@@ -258,30 +221,11 @@ marquee {
   margin-bottom: 10px;
 }
 
-.info-box p {
-  color: #cccccc;
-  font-size: 12px;
-  line-height: 1.6;
-  margin-bottom: 6px;
-}
+.info-box p { color: #cccccc; font-size: 12px; line-height: 1.6; margin-bottom: 6px; }
+.info-box ul { list-style: none; padding: 0; }
+.info-box ul li { color: #aaffaa; font-size: 11px; padding: 2px 0; }
+.info-box ul li::before { content: ">> "; color: #ffff00; }
 
-.info-box ul {
-  list-style: none;
-  padding: 0;
-}
-
-.info-box ul li {
-  color: #aaffaa;
-  font-size: 11px;
-  padding: 2px 0;
-}
-
-.info-box ul li::before {
-  content: ">> ";
-  color: #ffff00;
-}
-
-/* FOOTER */
 footer {
   background: #000000;
   border-top: 3px solid #ff6600;
@@ -295,28 +239,11 @@ footer {
 
 footer a { color: #ffff00; }
 
-.star-divider {
-  color: #ffff00;
-  font-size: 14px;
-  text-align: center;
-  margin: 6px 0;
-  letter-spacing: 6px;
-}
+.star-divider { color: #ffff00; font-size: 14px; text-align: center; margin: 6px 0; letter-spacing: 6px; }
 
-/* SPINNING LOGO */
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.spinning-star { display: inline-block; animation: spin 3s linear infinite; font-size: 20px; color: #ffff00; }
 
-.spinning-star {
-  display: inline-block;
-  animation: spin 3s linear infinite;
-  font-size: 20px;
-  color: #ffff00;
-}
-
-/* RAINBOW TEXT */
 .rainbow {
   background: linear-gradient(90deg, #ff0000, #ff7700, #ffff00, #00ff00, #0000ff, #8b00ff);
   -webkit-background-clip: text;
@@ -395,42 +322,31 @@ footer a { color: #ffff00; }
       <tbody>
         <tr>
           <td style="color:#ffff00;font-weight:bold;text-align:center;">01</td>
-          <td>
-            <div class="tool-name">Production Board</div>
-          </td>
-          <td>
-            <div class="tool-desc">Track active jobs through the shop workflow. Drag cards between stages, log notes, monitor status across shop and site lanes.</div>
-          </td>
+          <td><div class="tool-name">Production Board</div></td>
+          <td><div class="tool-desc">Track active jobs through the shop workflow. Drag cards between stages, log notes, monitor status across shop and site lanes.</div></td>
           <td><div class="tool-status">&#9679; LIVE</div></td>
-          <td>
-            <a href="https://gbheps.github.io/EPSTools/production_board_v1.html" target="_blank" class="bevel-btn green">OPEN &gt;&gt;</a>
-          </td>
+          <td><a href="https://gbheps.github.io/EPSTools/production_board_v1.html" target="_blank" class="bevel-btn green">OPEN &gt;&gt;</a></td>
         </tr>
         <tr>
           <td style="color:#ffff00;font-weight:bold;text-align:center;">02</td>
-          <td>
-            <div class="tool-name">Schedule Board</div>
-          </td>
-          <td>
-            <div class="tool-desc">Two-week crew scheduling at a glance. Assign techs to jobs by day, manage capacity, plan upcoming site and shop work.</div>
-          </td>
+          <td><div class="tool-name">Schedule Board</div></td>
+          <td><div class="tool-desc">Two-week crew scheduling at a glance. Assign techs to jobs by day, manage capacity, plan upcoming site and shop work.</div></td>
           <td><div class="tool-status">&#9679; LIVE</div></td>
-          <td>
-            <a href="https://gbheps.github.io/EPSTools/schedule_board_v1.html" target="_blank" class="bevel-btn green">OPEN &gt;&gt;</a>
-          </td>
+          <td><a href="https://gbheps.github.io/EPSTools/schedule_board_v1.html" target="_blank" class="bevel-btn green">OPEN &gt;&gt;</a></td>
         </tr>
         <tr>
           <td style="color:#ffff00;font-weight:bold;text-align:center;">03</td>
-          <td>
-            <div class="tool-name">Storm Calculator</div>
-          </td>
-          <td>
-            <div class="tool-desc">Storm window and screen dimension calculator. Enter field measurements, generate cut lists, material takeoffs, and shop packets.</div>
-          </td>
+          <td><div class="tool-name">Storm Calculator</div></td>
+          <td><div class="tool-desc">Storm window and screen dimension calculator. Enter field measurements, generate cut lists, material takeoffs, and shop packets.</div></td>
           <td><div class="tool-status">&#9679; LIVE</div></td>
-          <td>
-            <a href="https://gbheps.github.io/EPSTools/storm_window_calculator_v17.html" target="_blank" class="bevel-btn green">OPEN &gt;&gt;</a>
-          </td>
+          <td><a href="https://gbheps.github.io/EPSTools/storm_window_calculator_v17.html" target="_blank" class="bevel-btn green">OPEN &gt;&gt;</a></td>
+        </tr>
+        <tr>
+          <td style="color:#ffff00;font-weight:bold;text-align:center;">04</td>
+          <td><div class="tool-name">Job Prep</div></td>
+          <td><div class="tool-desc">Prepare job packets for field crews. Generate checklists, material lists, and site instructions for upcoming installations.</div></td>
+          <td><div class="tool-status">&#9679; LIVE</div></td>
+          <td><a href="https://gbheps.github.io/EPSTools/eps-job-prep.html" target="_blank" class="bevel-btn green">OPEN &gt;&gt;</a></td>
         </tr>
       </tbody>
     </table>
