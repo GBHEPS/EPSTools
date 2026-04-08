@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EPS Tools -- East Portland Sash</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Comic Neue', 'Comic Sans MS', cursive;
+  background-color: #000080;
+  background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='2' cy='2' r='1' fill='%23003399' /%3E%3C/svg%3E");
+  color: #ffff00;
+  min-height: 100vh;
+}
+
+/* MARQUEE */
+.marquee-bar {
+  background: #000000;
+  border-top: 3px solid #ff0000;
+  border-bottom: 3px solid #ff0000;
+  padding: 6px 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+marquee {
+  color: #00ff00;
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+/* HEADER */
+.header {
+  background: linear-gradient(180deg, #cc0000, #880000);
+  border: 4px outset #ff6666;
+  margin: 12px;
+  padding: 16px;
+  text-align: center;
+  position: relative;
+}
+
+.header h1 {
+  font-size: 32px;
+  color: #ffff00;
+  text-shadow: 3px 3px 0 #000000, -1px -1px 0 #ff6600;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.header .subtitle {
+  color: #ffffff;
+  font-size: 13px;
+  margin-top: 6px;
+  letter-spacing: 1px;
+}
+
+.under-construction {
+  display: inline-block;
+  background: #ffff00;
+  color: #000000;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 2px 8px;
+  border: 2px solid #ff6600;
+  margin-top: 8px;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* MAIN LAYOUT */
+.main {
+  display: flex;
+  gap: 12px;
+  margin: 12px;
+  align-items: flex-start;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 180px;
+  flex-shrink: 0;
+}
+
+.sidebar-box {
+  background: #000080;
+  border: 3px inset #aaaaaa;
+  padding: 10px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.sidebar-box h3 {
+  font-size: 12px;
+  color: #00ffff;
+  border-bottom: 1px solid #ffff00;
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.sidebar-box p {
+  font-size: 11px;
+  color: #ffffff;
+  line-height: 1.5;
+}
+
+.hit-counter {
+  font-family: 'Courier New', monospace;
+  font-size: 20px;
+  color: #00ff00;
+  background: #000000;
+  border: 2px inset #555;
+  padding: 4px 10px;
+  letter-spacing: 4px;
+  display: block;
+  margin: 6px auto;
+}
+
+.ie-badge {
+  font-size: 10px;
+  color: #ffff00;
+  border: 2px outset #999;
+  background: #003399;
+  padding: 4px 6px;
+  display: inline-block;
+  margin-top: 6px;
+}
+
+.webring {
+  font-size: 10px;
+  color: #aaffaa;
+  margin-top: 8px;
+}
+
+/* CONTENT */
+.content {
+  flex: 1;
+}
+
+/* TABLE */
+.tools-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #000066;
+  border: 4px outset #aaaaaa;
+  margin-bottom: 14px;
+}
+
+.tools-table caption {
+  background: #003399;
+  color: #ffff00;
+  font-size: 16px;
+  font-weight: bold;
+  padding: 8px;
+  border: 2px outset #aaaaaa;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.tools-table th {
+  background: #003399;
+  color: #ffffff;
+  padding: 6px 8px;
+  font-size: 12px;
+  border: 2px outset #aaaaaa;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.tools-table td {
+  padding: 8px 10px;
+  border: 1px solid #336699;
+  vertical-align: top;
+  font-size: 12px;
+}
+
+.tools-table tr:nth-child(odd) td { background: #000055; }
+.tools-table tr:nth-child(even) td { background: #000077; }
+.tools-table tr:hover td { background: #003399; }
+
+.tool-name {
+  color: #00ffff;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.tool-desc {
+  color: #cccccc;
+  font-size: 11px;
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+.tool-status {
+  color: #00ff00;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+/* BUTTONS */
+.bevel-btn {
+  display: inline-block;
+  background: #c0c0c0;
+  color: #000000;
+  font-family: 'Comic Neue', 'Comic Sans MS', cursive;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 5px 14px;
+  border: 3px outset #ffffff;
+  text-decoration: none;
+  cursor: pointer;
+  text-align: center;
+  letter-spacing: 1px;
+}
+
+.bevel-btn:hover {
+  background: #dddddd;
+  border: 3px inset #ffffff;
+}
+
+.bevel-btn:active {
+  border: 3px inset #888888;
+}
+
+.bevel-btn.green {
+  background: #009900;
+  color: #ffffff;
+  border-color: #00ff00;
+}
+
+.bevel-btn.green:hover { background: #00bb00; }
+
+/* GUESTBOOK / ABOUT BOX */
+.info-box {
+  background: #000066;
+  border: 4px outset #aaaaaa;
+  padding: 12px;
+  margin-bottom: 14px;
+}
+
+.info-box h2 {
+  color: #ffff00;
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  border-bottom: 2px solid #ff6600;
+  padding-bottom: 4px;
+  margin-bottom: 10px;
+}
+
+.info-box p {
+  color: #cccccc;
+  font-size: 12px;
+  line-height: 1.6;
+  margin-bottom: 6px;
+}
+
+.info-box ul {
+  list-style: none;
+  padding: 0;
+}
+
+.info-box ul li {
+  color: #aaffaa;
+  font-size: 11px;
+  padding: 2px 0;
+}
+
+.info-box ul li::before {
+  content: ">> ";
+  color: #ffff00;
+}
+
+/* FOOTER */
+footer {
+  background: #000000;
+  border-top: 3px solid #ff6600;
+  border-bottom: 3px solid #ff6600;
+  text-align: center;
+  padding: 10px;
+  margin-top: 12px;
+  font-size: 11px;
+  color: #888888;
+}
+
+footer a { color: #ffff00; }
+
+.star-divider {
+  color: #ffff00;
+  font-size: 14px;
+  text-align: center;
+  margin: 6px 0;
+  letter-spacing: 6px;
+}
+
+/* SPINNING LOGO */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spinning-star {
+  display: inline-block;
+  animation: spin 3s linear infinite;
+  font-size: 20px;
+  color: #ffff00;
+}
+
+/* RAINBOW TEXT */
+.rainbow {
+  background: linear-gradient(90deg, #ff0000, #ff7700, #ffff00, #00ff00, #0000ff, #8b00ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: bold;
+}
+</style>
+</head>
+<body>
+
+<div class="marquee-bar">
+  <marquee scrollamount="4">
+    *** WELCOME TO EAST PORTLAND SASH INTERNAL TOOLS *** BEST VIEWED IN 800x600 *** NETSCAPE NAVIGATOR 4.0 RECOMMENDED *** THIS SITE IS UNDER CONSTRUCTION *** KERFWORKS CONCERN LLC CCB #180257 *** NO UNAUTHORIZED ACCESS *** YOU ARE VISITOR #000420 ***
+  </marquee>
+</div>
+
+<div class="header">
+  <div class="spinning-star">&#9733;</div>
+  <h1>East Portland Sash</h1>
+  <div class="subtitle">Kerfworks Concern LLC &mdash; CCB #180257 &mdash; Internal Tools Suite v2.0</div>
+  <div class="under-construction">&#9888; SITE UNDER CONSTRUCTION &#9888;</div>
+</div>
+
+<div class="main">
+
+  <div class="sidebar">
+    <div class="sidebar-box">
+      <h3>Visitors</h3>
+      <span class="hit-counter">000420</span>
+      <div style="font-size:10px;color:#aaaaaa;">since Apr 2026</div>
+    </div>
+
+    <div class="sidebar-box">
+      <h3>System Status</h3>
+      <p style="color:#00ff00;font-size:11px;">&#9679; All systems GO</p>
+      <p style="color:#00ff00;font-size:11px;">&#9679; Firebase ONLINE</p>
+      <p style="color:#00ff00;font-size:11px;">&#9679; GitHub Pages UP</p>
+    </div>
+
+    <div class="sidebar-box">
+      <h3>Compatible With</h3>
+      <div class="ie-badge">&#127760; Internet Explorer 6</div>
+      <div class="ie-badge" style="margin-top:4px;">&#127760; Netscape 4.0</div>
+      <div class="ie-badge" style="margin-top:4px;">&#127760; AOL Browser</div>
+    </div>
+
+    <div class="sidebar-box">
+      <h3>Links</h3>
+      <div class="webring">
+        <a href="#" style="color:#ffff00;">&#8592; Prev</a>
+        &nbsp;WebRing&nbsp;
+        <a href="#" style="color:#ffff00;">Next &#8594;</a>
+      </div>
+      <p style="margin-top:8px;">
+        <a href="mailto:geoffrey@eastportlandsash.com" style="color:#aaffaa;font-size:10px;">&#9993; Email Webmaster</a>
+      </p>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <div class="star-divider">&#10022; &#10022; &#10022; TOOL SUITE &#10022; &#10022; &#10022;</div>
+
+    <table class="tools-table">
+      <caption>&#9733; Shop Tools &#9733;</caption>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Tool Name</th>
+          <th>Description</th>
+          <th>Status</th>
+          <th>Launch</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="color:#ffff00;font-weight:bold;text-align:center;">01</td>
+          <td>
+            <div class="tool-name">Production Board</div>
+          </td>
+          <td>
+            <div class="tool-desc">Track active jobs through the shop workflow. Drag cards between stages, log notes, monitor status across shop and site lanes.</div>
+          </td>
+          <td><div class="tool-status">&#9679; LIVE</div></td>
+          <td>
+            <a href="https://gbheps.github.io/EPSTools/production_board_v1.html" target="_blank" class="bevel-btn green">OPEN &gt;&gt;</a>
+          </td>
+        </tr>
+        <tr>
+          <td style="color:#ffff00;font-weight:bold;text-align:center;">02</td>
+          <td>
+            <div class="tool-name">Schedule Board</div>
+          </td>
+          <td>
+            <div class="tool-desc">Two-week crew scheduling at a glance. Assign techs to jobs by day, manage capacity, plan upcoming site and shop work.</div>
+          </td>
+          <td><div class="tool-status">&#9679; LIVE</div></td>
+          <td>
+            <a href="https://gbheps.github.io/EPSTools/schedule_board_v1.html" target="_blank" class="bevel-btn green">OPEN &gt;&gt;</a>
+          </td>
+        </tr>
+        <tr>
+          <td style="color:#ffff00;font-weight:bold;text-align:center;">03</td>
+          <td>
+            <div class="tool-name">Storm Calculator</div>
+          </td>
+          <td>
+            <div class="tool-desc">Storm window and screen dimension calculator. Enter field measurements, generate cut lists, material takeoffs, and shop packets.</div>
+          </td>
+          <td><div class="tool-status">&#9679; LIVE</div></td>
+          <td>
+            <a href="https://gbheps.github.io/EPSTools/storm_window_calculator_v17.html" target="_blank" class="bevel-btn green">OPEN &gt;&gt;</a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="star-divider">&#10022; &#10022; &#10022;</div>
+
+    <div class="info-box">
+      <h2>&#128196; About This Suite</h2>
+      <p>These tools are built for internal use by East Portland Sash field and shop staff. No app install required — just open in any browser and go. Data syncs across machines via Firebase where applicable.</p>
+      <p>For best results use Chrome or Safari. If something looks off, try a hard refresh (Cmd+Shift+R on Mac).</p>
+    </div>
+
+    <div class="info-box">
+      <h2>&#128274; Access &amp; Tips</h2>
+      <ul>
+        <li>Bookmark this page for quick access on any machine</li>
+        <li>Production and Schedule boards auto-sync via Firebase</li>
+        <li>Storm Calculator saves projects to the cloud — use Project Library to reload past jobs</li>
+        <li>All tools print — use Cmd+P for shop packets and schedule printouts</li>
+        <li>Tools open in a new tab so you can keep this page open</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <div style="color:#ffff00;font-size:13px;margin-bottom:6px;">
+    &copy; 2026 East Portland Sash / Kerfworks Concern LLC &mdash; CCB #180257 &mdash; All Rights Reserved
+  </div>
+  <div>
+    <span class="rainbow">Made with Claude AI &bull; Hosted on GitHub Pages &bull; Powered by Firebase</span>
+  </div>
+  <div style="margin-top:6px;font-size:10px;">
+    Portland, OR &bull; Internal use only &bull; Unauthorized access prohibited
+  </div>
+</footer>
+
+</body>
+</html>
