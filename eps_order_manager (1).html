@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EPS Order Manager</title>
+<style>
+  :root {
+    --bg: #f5f3ef; --surface: #ffffff; --surface2: #f0ede8;
+    --border: #ddd9d2; --border-strong: #c8c3ba;
+    --text: #1a1816; --text2: #5a5650; --text3: #9a958e;
+    --accent: #2d5a3d; --accent-light: #e8f0ea; --accent-text: #1e3d29;
+    --amber: #8a5c00; --amber-light: #fff3d4;
+    --red: #8a2020; --red-light: #fdeaea;
+    --blue: #1a4a7a; --blue-light: #e8f0fa;
+    --radius: 6px; --radius-lg: 10px;
+    --shadow-md: 0 2px 8px rgba(0,0,0,0.12);
+    --header-h: 52px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Georgia', serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
+  .app-header { background: var(--accent); color: white; padding: 0 24px; display: flex; align-items: center; gap: 16px; height: var(--header-h); position: sticky; top: 0; z-index: 200; }
+  .app-logo { font-size: 18px; font-weight: bold; letter-spacing: 0.05em; }
+  .app-logo span { opacity: 0.6; font-weight: normal; margin-left: 8px; font-size: 13px; }
+  .app-nav { display: flex; gap: 2px; margin-left: auto; }
+  .nav-btn { background: none; border: none; color: rgba(255,255,255,0.7); padding: 8px 14px; border-radius: var(--radius); cursor: pointer; font-size: 13px; font-family: inherit; transition: all 0.15s; }
+  .nav-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+  .nav-btn.active { background: rgba(255,255,255,0.2); color: white; font-weight: bold; }
+  .app-body { display: flex; height: calc(100vh - var(--header-h)); overflow: hidden; }
+  .main-panel { flex: 1; overflow-y: auto; padding: 20px 24px; min-width: 0; }
+  .side-panel { width: 290px; background: var(--surface); border-left: 1px solid var(--border); overflow-y: auto; display: flex; flex-direction: column; flex-shrink: 0; }
+  .tab-view { display: none; }
+  .tab-view.active { display: block; }
+  .toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+  .toolbar-sticky { position: sticky; top: 0; z-index: 100; background: var(--bg); padding: 14px 0 10px; margin-bottom: 4px; border-bottom: 1px solid var(--border); margin-left: -24px; margin-right: -24px; padding-left: 24px; padding-right: 24px; }
+  .toolbar-title { font-size: 16px; font-weight: bold; white-space: nowrap; }
+  .search-box { padding: 7px 11px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; font-family: inherit; background: var(--surface); color: var(--text); }
+  .search-box:focus { outline: none; border-color: var(--accent); }
+  select.filter-sel { padding: 7px 9px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; font-family: inherit; background: var(--surface); color: var(--text); }
+  .btn { padding: 7px 13px; border-radius: var(--radius); font-size: 13px; font-family: inherit; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text); transition: all 0.15s; white-space: nowrap; }
+  .btn:hover { background: var(--surface2); }
+  .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .btn-primary:hover { background: var(--accent-text); }
+  .btn-sm { padding: 4px 9px; font-size: 12px; }
+  .btn-danger { color: var(--red); border-color: #f5cccc; background: transparent; }
+  .btn-danger:hover { background: var(--red-light); }
+  .btn-edit { color: var(--blue); border-color: #c5d8f0; background: transparent; }
+  .btn-edit:hover { background: var(--blue-light); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 10px; }
+  .table-wrap { border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-top: 10px; }
+  .table-scroll { overflow-y: auto; max-height: calc(100vh - var(--header-h) - 120px); }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .tbl thead th { position: sticky; top: 0; z-index: 10; text-align: left; padding: 9px 10px; background: var(--surface2); border-bottom: 2px solid var(--border); color: var(--text2); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: normal; white-space: nowrap; }
+  .tbl td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .tbl tbody tr:last-child td { border-bottom: none; }
+  .tbl tbody tr:hover td { background: var(--surface2); }
+  .tbl input[type=number] { width: 62px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; font-family: inherit; text-align: right; background: var(--surface); }
+  .tbl input[type=number]:focus { outline: none; border-color: var(--accent); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+  .badge-green { background: var(--accent-light); color: var(--accent-text); }
+  .badge-amber { background: var(--amber-light); color: var(--amber); }
+  .badge-gray { background: var(--surface2); color: var(--text2); }
+  .badge-blue { background: var(--blue-light); color: var(--blue); }
+  .side-header { padding: 13px 16px; border-bottom: 1px solid var(--border); font-size: 12px; font-weight: bold; color: var(--text2); text-transform: uppercase; letter-spacing: 0.06em; }
+  .side-section { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  .side-section-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); margin-bottom: 6px; }
+  .batch-item { padding: 7px 9px; border-radius: var(--radius); cursor: pointer; display: flex; align-items: center; gap: 7px; margin-bottom: 3px; border: 1px solid transparent; }
+  .batch-item:hover { background: var(--surface2); }
+  .batch-item.active-batch { background: var(--accent-light); border-color: var(--accent); }
+  .batch-item-name { font-size: 13px; font-weight: bold; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .batch-item-count { font-size: 11px; color: var(--text3); white-space: nowrap; }
+  .batch-status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .dot-open { background: var(--accent); }
+  .dot-submitted { background: var(--blue); }
+  .dot-ordered { background: var(--amber); }
+  .dot-complete { background: var(--text3); }
+  .vendor-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .vendor-row:last-child { border-bottom: none; }
+  .vendor-name { font-weight: bold; }
+  .vendor-items { color: var(--text2); font-size: 11px; margin-top: 1px; }
+  .batch-workspace { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: visible; }
+  .batch-workspace-header { border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+  .batch-workspace-header { padding: 11px 15px; background: var(--surface2); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .item-search-row { padding: 11px 15px; border-bottom: 1px solid var(--border); }
+  .item-search-wrap { position: relative; }
+  .search-results-dropdown { position: absolute; z-index: 100; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-md); min-height: 200px; max-height: 420px; overflow-y: auto; width: 440px; top: 100%; left: 0; }
+  .search-result-item { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid var(--border); }
+  .search-result-item:last-child { border-bottom: none; }
+  .search-result-item:hover { background: var(--surface2); }
+  .sri-name { font-size: 13px; font-weight: bold; }
+  .sri-meta { font-size: 11px; color: var(--text2); }
+  .empty-state { text-align: center; padding: 48px 24px; color: var(--text3); }
+  .empty-icon { font-size: 32px; margin-bottom: 8px; }
+  .cat-row-sku { font-family: monospace; font-size: 12px; color: var(--text2); }
+  .vendor-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 14px; overflow: hidden; }
+  .vendor-card-header { padding: 11px 15px; background: var(--surface2); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .vendor-card-name { font-size: 15px; font-weight: bold; flex: 1; }
+  .import-area { border: 2px dashed var(--border-strong); border-radius: var(--radius-lg); padding: 14px; background: var(--surface); margin-bottom: 10px; }
+  .import-area textarea { width: 100%; height: 170px; font-family: monospace; font-size: 12px; border: 1px solid var(--border); border-radius: var(--radius); padding: 9px; resize: vertical; margin-top: 8px; background: var(--bg); color: var(--text); }
+  .import-preview { font-size: 12px; margin-top: 8px; padding: 8px 10px; border-radius: var(--radius); display: none; }
+  .import-preview.ok { background: var(--accent-light); color: var(--accent-text); }
+  .import-preview.warn { background: var(--amber-light); color: var(--amber); }
+  .import-preview.err { background: var(--red-light); color: var(--red); }
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 500; display: flex; align-items: center; justify-content: center; }
+  .modal { background: var(--surface); border-radius: var(--radius-lg); padding: 22px; width: 480px; max-width: 95vw; box-shadow: var(--shadow-md); max-height: 90vh; overflow-y: auto; }
+  .modal-title { font-size: 16px; font-weight: bold; margin-bottom: 14px; }
+  .form-row { margin-bottom: 11px; }
+  .form-label { font-size: 11px; color: var(--text2); margin-bottom: 3px; display: block; text-transform: uppercase; letter-spacing: 0.04em; }
+  .form-input { width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; font-family: inherit; background: var(--surface); color: var(--text); }
+  .form-input:focus { outline: none; border-color: var(--accent); }
+  .form-input.input-error { border-color: var(--red); }
+  .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; margin-bottom: 11px; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+  .dup-warning { background: var(--amber-light); color: var(--amber); font-size: 11px; padding: 4px 8px; border-radius: var(--radius); margin-top: 4px; display: none; }
+  .status-bar { font-size: 12px; color: var(--text3); padding: 5px 0; }
+  .text-mono { font-family: monospace; }
+  .sortable { cursor: pointer; user-select: none; }
+  .sortable:hover { background: var(--border); }
+  .sort-ind::after { content: ""; margin-left: 4px; }
+  .sort-ind.asc::after { content: "▲"; font-size: 9px; }
+  .sort-ind.desc::after { content: "▼"; font-size: 9px; }
+  .vsku-cell { max-width: 80px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; font-family: monospace; font-size: 12px; color: var(--text2); }
+  .vsku-cell:hover { color: var(--blue); text-decoration: underline; }
+  .copy-toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--accent); color: white; padding: 6px 16px; border-radius: 20px; font-size: 12px; z-index: 999; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+  .loading { color: var(--text3); font-style: italic; padding: 24px; text-align: center; }
+  @media print {
+    .app-header, .side-panel, .no-print { display: none !important; }
+    .app-body { height: auto; overflow: visible; }
+    .main-panel { overflow: visible; padding: 0; }
+    .vendor-card { break-inside: avoid; }
+    .table-scroll { max-height: none; overflow: visible; }
+  }
+</style>
+</head>
+<body>
+<div class="app-header">
+  <div class="app-logo">EPS <span>Order Manager</span></div>
+  <nav class="app-nav">
+    <button class="nav-btn active" onclick="switchTab('orderpad')">Order Pad</button>
+    <button class="nav-btn" onclick="switchTab('vendor')">Vendor View</button>
+    <button class="nav-btn" onclick="switchTab('catalog')">Catalog</button>
+    <button class="nav-btn" onclick="switchTab('import')">Import</button>
+  </nav>
+</div>
+
+<div class="app-body">
+  <div class="main-panel">
+
+    <!-- ORDER PAD -->
+    <div id="tab-orderpad" class="tab-view active">
+      <div class="toolbar">
+        <span class="toolbar-title">Order Pad</span>
+        <button class="btn btn-primary btn-sm" onclick="openNewBatchModal()">+ New client batch</button>
+      </div>
+      <div id="batch-workspace">
+        <div class="empty-state"><div class="empty-icon">📋</div><div>Select a client batch from the sidebar, or create a new one.</div></div>
+      </div>
+    </div>
+
+    <!-- VENDOR VIEW -->
+    <div id="tab-vendor" class="tab-view">
+      <div class="toolbar">
+        <span class="toolbar-title">Vendor View</span>
+        <select class="filter-sel" id="vendor-batch-filter" onchange="renderVendorView()"><option value="all">All open batches</option></select>
+        <button class="btn btn-sm no-print" onclick="window.print()">Print / PDF</button>
+      </div>
+      <div id="vendor-content"><div class="loading">Loading...</div></div>
+    </div>
+
+    <!-- CATALOG -->
+    <div id="tab-catalog" class="tab-view">
+      <div class="toolbar toolbar-sticky">
+        <span class="toolbar-title">Catalog</span>
+        <input class="search-box" id="cat-search" placeholder="Search…" oninput="renderCatalog()" style="width:190px;">
+        <select class="filter-sel" id="cat-cat-filter" onchange="renderCatalog()"><option value="">All categories</option></select>
+        <select class="filter-sel" id="cat-vendor-filter" onchange="renderCatalog()"><option value="">All vendors</option></select>
+        <select class="filter-sel" id="cat-active-filter" onchange="renderCatalog()">
+          <option value="">All items</option><option value="true">Stocked</option><option value="false">Order-as-needed</option>
+        </select>
+        <button class="btn btn-sm no-print" onclick="exportCatalogCSV()">Export CSV</button>
+        <button class="btn btn-primary btn-sm" onclick="openNewItemModal()">+ Add item</button>
+      </div>
+      <div class="table-wrap">
+        <div class="table-scroll">
+          <table class="tbl">
+            <thead><tr>
+              <th class="sortable" onclick="sortCatalog('sku')">SKU <span class="sort-ind" data-col="sku"></span></th>
+              <th class="sortable" onclick="sortCatalog('name')">Description <span class="sort-ind" data-col="name"></span></th>
+              <th class="sortable" onclick="sortCatalog('category')">Category <span class="sort-ind" data-col="category"></span></th>
+              <th class="sortable" onclick="sortCatalog('subcategory')">Sub-cat <span class="sort-ind" data-col="subcategory"></span></th>
+              <th>Unit</th>
+              <th class="sortable" onclick="sortCatalog('vendor')">Vendor <span class="sort-ind" data-col="vendor"></span></th>
+              <th style="width:80px;">Vendor SKU</th>
+              <th class="sortable" onclick="sortCatalog('active')" style="width:52px;">Sort <span class="sort-ind" data-col="active"></span></th>
+              <th>Notes</th><th style="width:90px;"></th>
+            </tr></thead>
+            <tbody id="catalog-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="status-bar" id="catalog-status"></div>
+    </div>
+
+    <!-- IMPORT -->
+    <div id="tab-import" class="tab-view">
+      <div class="toolbar"><span class="toolbar-title">Import Catalog</span></div>
+      <div class="card">
+        <p style="margin-bottom:10px;color:var(--text2);font-size:13px;">Paste CSV or tab-separated data. First row = header.<br>
+        Expected: <span class="text-mono" style="font-size:11px;">active, sku, category, subcategory, name, unit, vendor, vendor_sku, notes</span></p>
+        <div class="import-area">
+          <div style="color:var(--text2);font-size:13px;">Paste your data below</div>
+          <textarea id="import-csv" placeholder="active,sku,category,subcategory,name,..."></textarea>
+        </div>
+        <div id="import-preview" class="import-preview"></div>
+        <div style="display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap;">
+          <button class="btn" onclick="previewImport()">Preview</button>
+          <button class="btn btn-primary" onclick="runImport()">Import to catalog</button>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+            <input type="checkbox" id="import-addonly" checked> Add new only (skip existing SKUs)
+          </label>
+          <button class="btn btn-sm btn-danger no-print" onclick="clearCatalog()" style="margin-left:auto;">⚠ Clear catalog</button>
+        </div>
+      </div>
+      <div class="card" style="margin-top:14px;">
+        <div style="font-size:14px;font-weight:bold;margin-bottom:8px;">Column mapping <span style="font-size:12px;font-weight:normal;color:var(--text2);">(0-based index)</span></div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;" id="col-mapping"></div>
+        <button class="btn btn-sm" style="margin-top:10px;" onclick="saveColMapping()">Save mapping</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="side-panel">
+    <div class="side-header">Client Batches</div>
+    <div class="side-section">
+      <div class="side-section-title">Open</div>
+      <div id="batch-list-open"></div>
+    </div>
+    <div class="side-section">
+      <div class="side-section-title">Submitted</div>
+      <div id="batch-list-submitted"></div>
+    </div>
+    <div class="side-section">
+      <div class="side-section-title">Ordered</div>
+      <div id="batch-list-ordered"></div>
+    </div>
+    <div class="side-section">
+      <div class="side-section-title">Vendor Rollup — Open</div>
+      <div id="vendor-rollup"></div>
+    </div>
+    <div class="side-section">
+      <div class="side-section-title">Recently Completed</div>
+      <div id="batch-list-complete" style="font-size:12px;color:var(--text3);"></div>
+    </div>
+  </div>
+</div>
+
+<!-- NEW BATCH MODAL -->
+<div id="modal-batch" class="modal-backdrop" style="display:none;">
+  <div class="modal">
+    <div class="modal-title">New client batch</div>
+    <div class="form-row"><label class="form-label">Client name</label><input class="form-input" id="new-batch-name" placeholder="e.g. Kengla"></div>
+    <div class="form-row"><label class="form-label">Notes (optional)</label><input class="form-input" id="new-batch-notes" placeholder="Job notes..."></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('modal-batch')">Cancel</button>
+      <button class="btn btn-primary" onclick="createBatch()">Create batch</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD / EDIT ITEM MODAL -->
+<div id="modal-item" class="modal-backdrop" style="display:none;">
+  <div class="modal">
+    <div class="modal-title" id="item-modal-title">Add catalog item</div>
+    <div class="form-row-2">
+      <div>
+        <label class="form-label">SKU</label>
+        <input class="form-input" id="item-sku" placeholder="e.g. 73061" oninput="checkSkuDuplicate()">
+        <div class="dup-warning" id="sku-dup-warning"></div>
+      </div>
+      <div><label class="form-label">Unit</label><input class="form-input" id="item-unit" placeholder="ea / lf / pack"></div>
+    </div>
+    <div class="form-row"><label class="form-label">Description</label><input class="form-input" id="item-name" placeholder="Item description"></div>
+    <div class="form-row-2">
+      <div><label class="form-label">Category</label><input class="form-input" id="item-cat" placeholder="HARDWARE"></div>
+      <div><label class="form-label">Sub-category</label><input class="form-input" id="item-subcat" placeholder="primary window"></div>
+    </div>
+    <div class="form-row-2">
+      <div><label class="form-label">Vendor</label><input class="form-input" id="item-vendor" placeholder="Vendor name"></div>
+      <div><label class="form-label">Vendor SKU</label><input class="form-input" id="item-vsku" placeholder="Vendor's part #"></div>
+    </div>
+    <div class="form-row"><label class="form-label">Notes</label><input class="form-input" id="item-notes" placeholder="Order qty, specs, etc."></div>
+    <div class="form-row">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" id="item-active" checked> Include in sort (active)</label>
+    </div>
+    <input type="hidden" id="item-edit-id">
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('modal-item')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveItem()">Save item</button>
+    </div>
+  </div>
+</div>
+
+<!-- SUBMIT ORDER MODAL -->
+<div id="modal-order" class="modal-backdrop" style="display:none;">
+  <div class="modal">
+    <div class="modal-title">Submit to order queue</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Marks pending items as "Submitted" — grouped for ordering. Use the Vendor View to mark items as Ordered once the PO is placed.</p>
+    <div id="order-batch-checklist" style="margin-bottom:14px;"></div>
+    <div class="form-row"><label class="form-label">Order notes</label><input class="form-input" id="order-notes" placeholder="PO#, contact, date called, etc."></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('modal-order')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitOrder()">Mark as ordered</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getFirestore, collection, doc, getDocs, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, writeBatch } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBiwsuVyEormZua4fUh7rLeIAQp0BZ-y8A",
+  authDomain: "epstools-2913e.firebaseapp.com",
+  projectId: "epstools-2913e",
+  storageBucket: "epstools-2913e.firebasestorage.app",
+  messagingSenderId: "91969549327",
+  appId: "1:91969549327:web:7a2b3c4d5e6f7a8b9c0d1e"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+let catalog = [], batches = [], activeBatchId = null, currentTab = 'orderpad';
+let colMap = { active:0, sku:1, category:2, subcategory:3, name:4, unit:5, vendor:6, vendor_sku:7, notes:8 };
+
+window.switchTab = (tab) => {
+  currentTab = tab;
+  document.querySelectorAll('.tab-view').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach((btn,i) => btn.classList.toggle('active', ['orderpad','vendor','catalog','import'][i]===tab));
+  if (tab==='vendor') renderVendorView();
+  if (tab==='catalog') renderCatalog();
+};
+
+async function bootstrap() {
+  await loadCatalog();
+  await loadBatches();
+  renderSidebar();
+  renderBatchWorkspace();
+  renderColMapping();
+}
+
+async function loadCatalog() {
+  const snap = await getDocs(collection(db,'inv_catalog'));
+  catalog = snap.docs.map(d=>({id:d.id,...d.data()}));
+  catalog.sort((a,b)=>(a.category||'').localeCompare(b.category||'')||(a.name||'').localeCompare(b.name||''));
+}
+
+async function loadBatches() {
+  const snap = await getDocs(query(collection(db,'inv_batches'),orderBy('created','desc')));
+  batches = snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+
+window.renderCatalog = () => {
+  const q = document.getElementById('cat-search').value.toLowerCase();
+  const catF = document.getElementById('cat-cat-filter').value;
+  const vendF = document.getElementById('cat-vendor-filter').value;
+  const actF = document.getElementById('cat-active-filter').value;
+  const cats = [...new Set(catalog.map(i=>i.category).filter(Boolean))].sort();
+  const vends = [...new Set(catalog.map(i=>i.vendor).filter(Boolean))].sort();
+  const catSel = document.getElementById('cat-cat-filter'), vendSel = document.getElementById('cat-vendor-filter');
+  const cc = catSel.value, vc2 = vendSel.value;
+  catSel.innerHTML = '<option value="">All categories</option>'+cats.map(c=>`<option${cc===c?' selected':''}>${c}</option>`).join('');
+  vendSel.innerHTML = '<option value="">All vendors</option>'+vends.map(v=>`<option${vc2===v?' selected':''}>${v}</option>`).join('');
+  const filtered = catalog.filter(item => {
+    const mQ = !q||(item.name||'').toLowerCase().includes(q)||(item.sku||'').toLowerCase().includes(q)||(item.vendor||'').toLowerCase().includes(q)||(item.subcategory||'').toLowerCase().includes(q)||(item.notes||'').toLowerCase().includes(q);
+    return mQ&&(!catF||item.category===catF)&&(!vendF||item.vendor===vendF)&&(!actF||String(item.active)===actF);
+  });
+  // Apply sort
+  filtered.sort((a, b) => {
+    let av = sortCol === 'active' ? (a.active ? '1' : '0') : (a[sortCol] || '').toLowerCase();
+    let bv = sortCol === 'active' ? (b.active ? '1' : '0') : (b[sortCol] || '').toLowerCase();
+    return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+  });
+  document.getElementById('catalog-tbody').innerHTML = filtered.map(item=>`
+    <tr>
+      <td class="cat-row-sku">${esc(item.sku||'—')}</td>
+      <td style="min-width:150px;">${esc(item.name||'')}</td>
+      <td style="color:var(--text2);white-space:nowrap;">${esc(item.category||'')}</td>
+      <td style="color:var(--text2);">${esc(item.subcategory||'')}</td>
+      <td>${esc(item.unit||'')}</td>
+      <td>${esc(item.vendor||'')}</td>
+      <td class="vsku-cell" onclick="copyVsku('${esc(item.vendor_sku||'')}')" title="${esc(item.vendor_sku||'')}">${esc(item.vendor_sku||'')}</td>
+      <td style="text-align:center;"><input type="checkbox" ${item.active?'checked':''} onchange="toggleActive('${item.id}',this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent);"></td>
+      <td style="color:var(--text2);font-size:12px;max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(item.notes||'')}">${esc(item.notes||'')}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-sm btn-edit" onclick="openEditItemModal('${item.id}')">Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteItem('${item.id}')">✕</button>
+      </td>
+    </tr>`).join('');
+  document.getElementById('catalog-status').textContent = `${filtered.length} of ${catalog.length} items`;
+};
+
+window.deleteItem = async (id) => {
+  if (!confirm('Delete this item?')) return;
+  await deleteDoc(doc(db,'inv_catalog',id));
+  catalog = catalog.filter(i=>i.id!==id);
+  renderCatalog(); renderSidebar();
+};
+
+window.openNewItemModal = () => {
+  document.getElementById('item-modal-title').textContent = 'Add catalog item';
+  ['sku','name','cat','subcat','unit','vendor','vsku','notes'].forEach(f=>document.getElementById('item-'+f).value='');
+  document.getElementById('item-active').checked=true;
+  document.getElementById('item-edit-id').value='';
+  document.getElementById('sku-dup-warning').style.display='none';
+  document.getElementById('item-sku').classList.remove('input-error');
+  openModal('modal-item');
+};
+
+window.openEditItemModal = (id) => {
+  const item = catalog.find(i=>i.id===id);
+  if (!item) return;
+  document.getElementById('item-modal-title').textContent = 'Edit catalog item';
+  document.getElementById('item-sku').value = item.sku||'';
+  document.getElementById('item-name').value = item.name||'';
+  document.getElementById('item-cat').value = item.category||'';
+  document.getElementById('item-subcat').value = item.subcategory||'';
+  document.getElementById('item-unit').value = item.unit||'';
+  document.getElementById('item-vendor').value = item.vendor||'';
+  document.getElementById('item-vsku').value = item.vendor_sku||'';
+  document.getElementById('item-notes').value = item.notes||'';
+  document.getElementById('item-active').checked = !!item.active;
+  document.getElementById('item-edit-id').value = id;
+  document.getElementById('sku-dup-warning').style.display='none';
+  document.getElementById('item-sku').classList.remove('input-error');
+  openModal('modal-item');
+};
+
+window.checkSkuDuplicate = () => {
+  const editId = document.getElementById('item-edit-id').value;
+  const sku = document.getElementById('item-sku').value.trim();
+  const skuInput = document.getElementById('item-sku');
+  const warning = document.getElementById('sku-dup-warning');
+  if (!sku) { warning.style.display='none'; skuInput.classList.remove('input-error'); return; }
+  const dup = catalog.find(i=>i.sku===sku&&i.id!==editId);
+  if (dup) {
+    warning.style.display='block';
+    warning.textContent = `⚠ SKU "${sku}" already exists: ${dup.name}`;
+    skuInput.classList.add('input-error');
+  } else {
+    warning.style.display='none';
+    skuInput.classList.remove('input-error');
+  }
+};
+
+window.saveItem = async () => {
+  const editId = document.getElementById('item-edit-id').value;
+  const sku = document.getElementById('item-sku').value.trim();
+  const name = document.getElementById('item-name').value.trim();
+  if (!name) { alert('Description is required.'); return; }
+  if (sku) {
+    const dup = catalog.find(i=>i.sku===sku&&i.id!==editId);
+    if (dup && !confirm(`SKU "${sku}" already exists (${dup.name}). Save anyway?`)) return;
+  }
+  const data = {
+    sku, name,
+    category: document.getElementById('item-cat').value.trim(),
+    subcategory: document.getElementById('item-subcat').value.trim(),
+    unit: document.getElementById('item-unit').value.trim(),
+    vendor: document.getElementById('item-vendor').value.trim(),
+    vendor_sku: document.getElementById('item-vsku').value.trim(),
+    notes: document.getElementById('item-notes').value.trim(),
+    active: document.getElementById('item-active').checked,
+  };
+  if (editId) {
+    await updateDoc(doc(db,'inv_catalog',editId), data);
+    const idx = catalog.findIndex(i=>i.id===editId);
+    if (idx>=0) catalog[idx]={id:editId,...data};
+  } else {
+    const ref = await addDoc(collection(db,'inv_catalog'), data);
+    catalog.push({id:ref.id,...data});
+    catalog.sort((a,b)=>(a.category||'').localeCompare(b.category||'')||(a.name||'').localeCompare(b.name||''));
+  }
+  closeModal('modal-item');
+  renderCatalog();
+};
+
+window.openNewBatchModal = () => {
+  document.getElementById('new-batch-name').value='';
+  document.getElementById('new-batch-notes').value='';
+  openModal('modal-batch');
+  setTimeout(()=>document.getElementById('new-batch-name').focus(),100);
+};
+
+window.createBatch = async () => {
+  const name = document.getElementById('new-batch-name').value.trim();
+  if (!name) { alert('Client name required.'); return; }
+  const data = {client:name, notes:document.getElementById('new-batch-notes').value.trim(), status:'open', created:serverTimestamp(), lineItems:[]};
+  const ref = await addDoc(collection(db,'inv_batches'), data);
+  batches.unshift({id:ref.id,...data,created:new Date()});
+  activeBatchId = ref.id;
+  closeModal('modal-batch');
+  renderSidebar(); renderBatchWorkspace(); updateVendorBatchFilter();
+};
+
+window.selectBatch = (id) => { activeBatchId=id; renderSidebar(); renderBatchWorkspace(); switchTab('orderpad'); };
+function getActiveBatch() { return batches.find(b=>b.id===activeBatchId); }
+
+window.renderBatchWorkspace = () => {
+  const batch = getActiveBatch();
+  const ws = document.getElementById('batch-workspace');
+  if (!batch) { ws.innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><div>Select a client batch from the sidebar, or create a new one.</div></div>'; return; }
+  const rows = (batch.lineItems||[]).map((li,idx)=>{
+    const item = catalog.find(i=>i.id===li.itemId);
+    if (!item) return '';
+    const liB = {pending:'badge-gray',submitted:'badge-blue',ordered:'badge-amber',received:'badge-green'}[li.status]||'badge-gray';
+    const liL = {pending:'Pending',submitted:'Submitted',ordered:'Ordered',received:'Received'}[li.status]||'—';
+    return `<tr>
+      <td class="cat-row-sku">${esc(item.sku||'—')}</td>
+      <td>${esc(item.name)}</td>
+      <td style="color:var(--text2)">${esc(item.vendor||'—')}</td>
+      <td>${esc(item.unit||'')}</td>
+      <td><input type="number" min="0" value="${li.qty}" onchange="updateLineQty('${batch.id}',${idx},this.value)"></td>
+      <td><span class="badge ${liB}">${liL}</span></td>
+      <td style="white-space:nowrap;">
+        ${(li.status==='ordered'||li.status==='submitted')?`<button class="btn btn-sm" onclick="markReceived('${batch.id}',${idx})" style="background:var(--accent-light);color:var(--accent-text);border-color:var(--accent-light);">Received</button> `:''}
+        <button class="btn btn-sm btn-danger" onclick="removeLineItem('${batch.id}',${idx})">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+  // Auto-calculate batch status: lowest status wins
+  const lis = batch.lineItems||[];
+  const hasPending = lis.some(li=>li.status==='pending');
+  const hasSubmitted = lis.some(li=>li.status==='submitted');
+  const hasOrdered = lis.some(li=>li.status==='ordered');
+  const allReceived = lis.length > 0 && lis.every(li=>li.status==='received');
+  const autoStatus = allReceived?'complete':hasPending?'open':hasSubmitted?'submitted':hasOrdered?'ordered':'open';
+  if (autoStatus !== batch.status && batch.status !== 'complete') {
+    batch.status = autoStatus;
+    updateDoc(doc(db,'inv_batches',batch.id), {status: autoStatus});
+  }
+  const sb2 = {open:'badge-green',submitted:'badge-blue',ordered:'badge-amber',complete:'badge-gray'}[batch.status]||'badge-gray';
+  const sl2 = {open:'Open',submitted:'Submitted',ordered:'Ordered',complete:'Complete'}[batch.status]||batch.status;
+  ws.innerHTML = `<div class="batch-workspace">
+    <div class="batch-workspace-header">
+      <span style="font-size:15px;font-weight:bold;">${esc(batch.client)}</span>
+      <span class="badge ${sb2}">${sl2}</span>
+      ${batch.notes?`<span style="font-size:12px;color:var(--text2);">${esc(batch.notes)}</span>`:''}
+      <span style="margin-left:auto;display:flex;gap:6px;">
+        <button class="btn btn-sm btn-edit" onclick="openEditBatchModal('${batch.id}')">Edit</button>
+        ${batch.status!=='complete'&&(batch.lineItems||[]).some(li=>li.status==='pending')?`<button class="btn btn-sm" onclick="openOrderModal()">Submit order →</button>`:''}
+        ${batch.status==='complete'?'':`<button class="btn btn-sm btn-primary" onclick="completeBatch('${batch.id}')">Mark complete</button>`}
+        <button class="btn btn-sm btn-danger" onclick="deleteBatch('${batch.id}')">Delete</button>
+      </span>
+    </div>
+    ${batch.status!=='complete'?`<div class="item-search-row"><div class="item-search-wrap">
+      <input class="search-box" id="item-search-input" placeholder="Search catalog to add items…" oninput="searchCatalogItems()" onkeydown="handleSearchKey(event)" autocomplete="off" style="width:100%;max-width:440px;">
+      <div id="item-search-results" class="search-results-dropdown" style="display:none;"></div>
+    </div></div>`:''}
+    <div class="table-scroll" style="max-height:calc(100vh - 290px);">
+      <table class="tbl">
+        <thead><tr><th>SKU</th><th>Description</th><th>Vendor</th><th>Unit</th><th>Qty</th><th>Status</th><th></th></tr></thead>
+        <tbody>${rows||'<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px;">No items yet. Search above to add.</td></tr>'}</tbody>
+      </table>
+    </div>
+  </div>`;
+  document.addEventListener('click', e=>{
+    const sr=document.getElementById('item-search-results');
+    if(sr&&!sr.contains(e.target)&&e.target.id!=='item-search-input') sr.style.display='none';
+  },{once:true});
+};
+
+let searchHighlightIdx = -1;
+
+window.searchCatalogItems = () => {
+  searchHighlightIdx = -1;
+  const q = document.getElementById('item-search-input').value.toLowerCase();
+  const results = document.getElementById('item-search-results');
+  if (!q||q.length<2) { results.style.display='none'; return; }
+  const batch = getActiveBatch();
+  const existing = new Set((batch?.lineItems||[]).map(li=>li.itemId));
+  const matches = catalog.filter(i=>!existing.has(i.id)&&((i.name||'').toLowerCase().includes(q)||(i.sku||'').toLowerCase().includes(q)||(i.subcategory||'').toLowerCase().includes(q)||(i.vendor||'').toLowerCase().includes(q)||(i.notes||'').toLowerCase().includes(q))).slice(0,14);
+  if (!matches.length) { results.style.display='none'; return; }
+  results.style.display='block';
+  results.innerHTML = matches.map((i,idx)=>`<div class="search-result-item" data-idx="${idx}" data-id="${i.id}" onclick="addLineItem('${i.id}')">
+    <div class="sri-name">${esc(i.name)}</div>
+    <div class="sri-meta">${esc(i.sku||'—')} · ${esc(i.vendor||'?')} · ${esc(i.unit||'')}</div>
+  </div>`).join('');
+};
+
+window.handleSearchKey = (e) => {
+  const results = document.getElementById('item-search-results');
+  if (!results || results.style.display === 'none') return;
+  const items = results.querySelectorAll('.search-result-item');
+  if (!items.length) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    searchHighlightIdx = Math.min(searchHighlightIdx + 1, items.length - 1);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    searchHighlightIdx = Math.max(searchHighlightIdx - 1, 0);
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    const idx = searchHighlightIdx >= 0 ? searchHighlightIdx : 0;
+    const target = items[idx];
+    if (target) { addLineItem(target.dataset.id); document.getElementById('item-search-input').value = ''; results.style.display = 'none'; searchHighlightIdx = -1; }
+    return;
+  } else if (e.key === 'Escape') {
+    results.style.display = 'none'; searchHighlightIdx = -1; return;
+  } else { return; }
+  items.forEach((el, i) => {
+    el.style.background = i === searchHighlightIdx ? 'var(--accent-light)' : '';
+    el.style.color = i === searchHighlightIdx ? 'var(--accent-text)' : '';
+  });
+  items[searchHighlightIdx]?.scrollIntoView({block:'nearest'});
+};
+
+window.addLineItem = async (itemId) => {
+  const batch = getActiveBatch(); if(!batch) return;
+  const lineItems = [...(batch.lineItems||[]),{itemId,qty:1,status:'pending'}];
+  await updateDoc(doc(db,'inv_batches',batch.id),{lineItems});
+  batch.lineItems=lineItems; renderBatchWorkspace(); renderSidebar();
+};
+
+window.updateLineQty = async (batchId,idx,val) => {
+  const batch=batches.find(b=>b.id===batchId); if(!batch) return;
+  batch.lineItems[idx].qty=parseInt(val)||0;
+  await updateDoc(doc(db,'inv_batches',batchId),{lineItems:batch.lineItems});
+  renderSidebar();
+};
+
+window.removeLineItem = async (batchId,idx) => {
+  const batch=batches.find(b=>b.id===batchId); if(!batch) return;
+  batch.lineItems.splice(idx,1);
+  await updateDoc(doc(db,'inv_batches',batchId),{lineItems:batch.lineItems});
+  renderBatchWorkspace(); renderSidebar();
+};
+
+window.markReceived = async (batchId,idx) => {
+  const batch=batches.find(b=>b.id===batchId); if(!batch) return;
+  batch.lineItems[idx].status='received';
+  batch.lineItems[idx].receivedDate=new Date().toISOString().split('T')[0];
+  const allRec=batch.lineItems.every(li=>li.status==='received');
+  const anyPend2=batch.lineItems.some(li=>li.status==='pending');
+  const anySubm2=batch.lineItems.some(li=>li.status==='submitted');
+  const anyOrd2=batch.lineItems.some(li=>li.status==='ordered');
+  const newStatus=allRec?'complete':anyPend2?'open':anySubm2?'submitted':anyOrd2?'ordered':'complete';
+  batch.status=newStatus;
+  const updates={lineItems:batch.lineItems,status:newStatus};
+  await updateDoc(doc(db,'inv_batches',batchId),updates);
+  renderBatchWorkspace(); renderSidebar();
+};
+
+window.completeBatch = async (batchId) => {
+  if(!confirm('Mark this batch as complete?')) return;
+  const batch=batches.find(b=>b.id===batchId); if(!batch) return;
+  batch.status='complete';
+  await updateDoc(doc(db,'inv_batches',batchId),{status:'complete'});
+  activeBatchId=null; renderSidebar(); renderBatchWorkspace();
+};
+
+window.deleteBatch = async (batchId) => {
+  if(!confirm('Delete this client batch? Cannot be undone.')) return;
+  await deleteDoc(doc(db,'inv_batches',batchId));
+  batches=batches.filter(b=>b.id!==batchId);
+  if(activeBatchId===batchId) activeBatchId=null;
+  renderSidebar(); renderBatchWorkspace();
+};
+
+window.openOrderModal = () => {
+  const open=batches.filter(b=>b.status!=='complete'&&(b.lineItems||[]).some(li=>li.status==='pending'||li.status==='submitted'));
+  document.getElementById('order-batch-checklist').innerHTML=open.map(b=>{
+    const pendingCount=(b.lineItems||[]).filter(li=>li.status==='pending').length;
+    return `<label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:13px;cursor:pointer;">
+      <input type="checkbox" value="${b.id}" ${b.id===activeBatchId?'checked':''}>
+      ${esc(b.client)} <span style="color:var(--text3);font-size:11px;">(${pendingCount} pending)</span>
+    </label>`;}).join('');
+  document.getElementById('order-notes').value='';
+  openModal('modal-order');
+};
+
+window.submitOrder = async () => {
+  const checked=[...document.querySelectorAll('#order-batch-checklist input:checked')].map(i=>i.value);
+  if(!checked.length){alert('Select at least one batch.');return;}
+  const notes=document.getElementById('order-notes').value;
+  const dateOrdered=new Date().toISOString().split('T')[0];
+  for(const batchId of checked){
+    const batch=batches.find(b=>b.id===batchId); if(!batch) continue;
+    batch.lineItems=batch.lineItems.map(li=>li.status==='pending'?{...li,status:'submitted',dateSubmitted:dateOrdered}:li);
+    const allRec=batch.lineItems.every(li=>li.status==='received');
+    const anyPend=batch.lineItems.some(li=>li.status==='pending');
+    const anySubm=batch.lineItems.some(li=>li.status==='submitted');
+    const anyOrd=batch.lineItems.some(li=>li.status==='ordered');
+    batch.status=allRec?'complete':anyPend?'open':anySubm?'submitted':anyOrd?'ordered':'open';
+    await updateDoc(doc(db,'inv_batches',batchId),{lineItems:batch.lineItems,status:batch.status,dateOrdered,orderNotes:notes});
+  }
+  closeModal('modal-order'); renderSidebar(); renderBatchWorkspace();
+};
+
+function renderSidebar() {
+  const bHTML=b=>{
+    const dc={open:'dot-open',submitted:'dot-submitted',ordered:'dot-ordered',complete:'dot-complete'}[b.status]||'';
+    const n=(b.lineItems||[]).length;
+    return `<div class="batch-item ${activeBatchId===b.id?'active-batch':''}" onclick="selectBatch('${b.id}')">
+      <div class="batch-status-dot ${dc}"></div>
+      <span class="batch-item-name">${esc(b.client)}</span>
+      <span class="batch-item-count">${n} item${n!==1?'s':''}</span>
+    </div>`;
+  };
+  const open=batches.filter(b=>b.status==='open');
+  const submitted=batches.filter(b=>b.status==='submitted');
+  const ordered=batches.filter(b=>b.status==='ordered');
+  const done=batches.filter(b=>b.status==='complete').slice(0,5);
+  document.getElementById('batch-list-open').innerHTML=open.length?open.map(bHTML).join(''):'<div style="font-size:12px;color:var(--text3);">No open batches</div>';
+  document.getElementById('batch-list-submitted').innerHTML=submitted.length?submitted.map(bHTML).join(''):'<div style="font-size:12px;color:var(--text3);">None</div>';
+  document.getElementById('batch-list-ordered').innerHTML=ordered.length?ordered.map(bHTML).join(''):'<div style="font-size:12px;color:var(--text3);">None</div>';
+  document.getElementById('batch-list-complete').innerHTML=done.length?done.map(b=>`<div style="padding:3px 0;">✓ ${esc(b.client)}</div>`).join(''):'None';
+  renderVendorRollup();
+}
+
+function renderVendorRollup() {
+  const openBatches=batches.filter(b=>b.status!=='complete');
+  const rollup={};
+  for(const batch of openBatches) for(const li of (batch.lineItems||[])){
+    if(li.status!=='pending'&&li.status!=='submitted') continue;
+    const item=catalog.find(i=>i.id===li.itemId); if(!item) continue;
+    const v=item.vendor||'Unknown';
+    if(!rollup[v]) rollup[v]=[];
+    rollup[v].push({name:item.name,qty:li.qty});
+  }
+  const vr=document.getElementById('vendor-rollup');
+  const vendors=Object.keys(rollup).sort();
+  if(!vendors.length){vr.innerHTML='<div style="font-size:12px;color:var(--text3);">No pending or submitted items</div>';return;}
+  vr.innerHTML=vendors.map(v=>{
+    const items=rollup[v];
+    const total=items.reduce((s,i)=>s+(parseInt(i.qty)||0),0);
+    const preview=items.slice(0,2).map(i=>`${i.qty} ${i.name}`).join(', ')+(items.length>2?` +${items.length-2} more`:'');
+    return `<div class="vendor-row">
+      <div><div class="vendor-name">${esc(v)}</div><div class="vendor-items">${esc(preview)}</div></div>
+      <div style="font-size:12px;font-weight:bold;color:var(--text2);white-space:nowrap;">${total}</div>
+    </div>`;
+  }).join('');
+}
+
+function updateVendorBatchFilter() {
+  const sel=document.getElementById('vendor-batch-filter');
+  const cur=sel.value;
+  sel.innerHTML='<option value="all">All open batches</option>'+batches.filter(b=>b.status!=='complete').map(b=>`<option value="${b.id}"${cur===b.id?' selected':''}>${esc(b.client)}</option>`).join('');
+}
+
+// Track per-vendor line item keys to allow "mark as ordered" with checkboxes
+window._vendorLineKeys = {};
+
+window.renderVendorView = () => {
+  updateVendorBatchFilter();
+  const fv=document.getElementById('vendor-batch-filter').value;
+  const target=fv==='all'?batches.filter(b=>b.status!=='complete'):batches.filter(b=>b.id===fv);
+  const rollup={};
+  for(const batch of target) for(let idx=0;idx<(batch.lineItems||[]).length;idx++){
+    const li=batch.lineItems[idx];
+    const item=catalog.find(i=>i.id===li.itemId); if(!item) continue;
+    const v=item.vendor||'Unknown';
+    if(!rollup[v]) rollup[v]={};
+    const key=batch.id+'|'+idx;
+    if(!rollup[v][li.itemId]) rollup[v][li.itemId]={item,qty:0,clients:[],keys:[]};
+    rollup[v][li.itemId].qty+=parseInt(li.qty)||0;
+    rollup[v][li.itemId].clients.push({client:batch.client,qty:li.qty,status:li.status,batchId:batch.id,idx});
+    if(li.status==='submitted') rollup[v][li.itemId].keys.push(key);
+  }
+  const vendors=Object.keys(rollup).sort();
+  const vc=document.getElementById('vendor-content');
+  if(!vendors.length){vc.innerHTML='<div class="empty-state"><div class="empty-icon">📦</div><div>No items in selected batches.</div></div>';return;}
+  window._vendorLineKeys={};
+  vc.innerHTML=vendors.map(v=>{
+    const items=Object.values(rollup[v]);
+    const hasSubmitted=items.some(it=>it.keys.length>0);
+    // Collect all submitted keys for this vendor
+    const allKeys=items.flatMap(it=>it.keys);
+    window._vendorLineKeys[v]=allKeys;
+    const rows=items.map(({item,qty,clients,keys})=>{
+      const allRec=clients.every(c=>c.status==='received');
+      const allOrd=clients.every(c=>c.status==='ordered'||c.status==='received');
+      const allSubm=clients.every(c=>c.status==='submitted'||c.status==='ordered'||c.status==='received');
+      const badge=allRec?'<span class="badge badge-green">Received</span>':allOrd?'<span class="badge badge-amber">Ordered</span>':allSubm?'<span class="badge badge-blue">Submitted</span>':'<span class="badge badge-gray">Pending</span>';
+      const hasSubKeys=keys.length>0;
+      const checkboxes=hasSubKeys?keys.map(k=>`<input type="checkbox" data-key="${k}" checked style="accent-color:var(--amber);cursor:pointer;" title="Include in order">`).join(' '):'';
+      return `<tr>
+        <td class="cat-row-sku">${esc(item.sku||'—')}</td>
+        <td>${esc(item.name)}</td>
+        <td class="vsku-cell" onclick="copyVsku('${esc(item.vendor_sku||'')}')}" title="${esc(item.vendor_sku||'')}">${esc(item.vendor_sku||'')}</td>
+        <td>${esc(item.unit||'')}</td>
+        <td style="font-weight:bold;">${qty}</td>
+        <td style="font-size:12px;color:var(--text2);">${clients.map(c=>`${esc(c.client)}: ${c.qty}`).join(', ')}</td>
+        <td>${badge}</td>
+        <td style="white-space:nowrap;">${checkboxes}</td>
+      </tr>`;
+    }).join('');
+    const markBtn=hasSubmitted?`<button class="btn btn-sm btn-primary" onclick="markVendorOrdered('${esc(v)}')">Mark as ordered</button>`:'';
+    return `<div class="vendor-card">
+      <div class="vendor-card-header">
+        <div class="vendor-card-name">${esc(v)}</div>
+        <span style="font-size:12px;color:var(--text2);">${items.length} line item${items.length!==1?'s':''}</span>
+        ${markBtn}
+      </div>
+      <table class="tbl"><thead><tr><th>SKU</th><th>Description</th><th>Vendor SKU</th><th>Unit</th><th>Total Qty</th><th>By client</th><th>Status</th><th style="width:60px;">Include</th></tr></thead>
+      <tbody>${rows}</tbody></table>
+    </div>`;
+  }).join('');
+};
+
+window.markVendorOrdered = async (vendor) => {
+  const dateOrdered=new Date().toISOString().split('T')[0];
+  // Find checked boxes for this vendor
+  const cards=document.getElementById('vendor-content').querySelectorAll('.vendor-card');
+  let checkedKeys=[];
+  cards.forEach(card=>{
+    const name=card.querySelector('.vendor-card-name')?.textContent?.trim();
+    if(name===vendor){
+      card.querySelectorAll('input[type=checkbox][data-key]:checked').forEach(cb=>checkedKeys.push(cb.dataset.key));
+    }
+  });
+  if(!checkedKeys.length){alert('No submitted items checked for this vendor.');return;}
+  // Group by batchId
+  const byBatch={};
+  checkedKeys.forEach(k=>{const[bId,idx]=k.split('|');if(!byBatch[bId])byBatch[bId]=[];byBatch[bId].push(parseInt(idx));});
+  for(const[batchId,idxs] of Object.entries(byBatch)){
+    const batch=batches.find(b=>b.id===batchId); if(!batch) continue;
+    idxs.forEach(i=>{if(batch.lineItems[i]?.status==='submitted'){batch.lineItems[i].status='ordered';batch.lineItems[i].dateOrdered=dateOrdered;}});
+    // Recalc status
+    const allRec=batch.lineItems.every(li=>li.status==='received');
+    const anyPend=batch.lineItems.some(li=>li.status==='pending');
+    const anySubm=batch.lineItems.some(li=>li.status==='submitted');
+    const anyOrd=batch.lineItems.some(li=>li.status==='ordered');
+    batch.status=allRec?'complete':anyPend?'open':anySubm?'submitted':anyOrd?'ordered':'open';
+    await updateDoc(doc(db,'inv_batches',batchId),{lineItems:batch.lineItems,status:batch.status});
+  }
+  renderSidebar(); renderVendorView();
+};
+
+window.exportCatalogCSV = () => {
+  const headers=['active','sku','category','subcategory','name','unit','vendor','vendor_sku','notes'];
+  const rows=catalog.map(item=>headers.map(h=>{
+    let v=item[h];
+    if(typeof v==='boolean') v=v?'TRUE':'FALSE';
+    v=String(v||'');
+    if(v.includes(',')||v.includes('"')||v.includes('\n')) v='"'+v.replace(/"/g,'""')+'"';
+    return v;
+  }).join(','));
+  const csv=[headers.join(','),...rows].join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download=`eps_catalog_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+};
+
+function renderColMapping() {
+  document.getElementById('col-mapping').innerHTML=Object.keys(colMap).map(f=>`
+    <div><label class="form-label">${f}</label>
+    <input class="form-input" id="colmap-${f}" type="number" value="${colMap[f]}" min="0" style="width:58px;padding:5px 7px;"></div>`).join('');
+}
+
+window.saveColMapping = () => {
+  Object.keys(colMap).forEach(f=>{colMap[f]=parseInt(document.getElementById('colmap-'+f).value)||0;});
+  alert('Column mapping saved.');
+};
+
+function parseCSV(text) {
+  const lines=text.trim().split('\n');
+  const isTab=(lines[0]||'').includes('\t');
+  const delim=isTab?'\t':',';
+  return lines.map(line=>{
+    // Tab-separated: never treat quotes as field delimiters (inch marks would break parsing)
+    if(isTab) return line.split('\t').map(c=>c.trim().replace(/^"|"$/g,''));
+    // CSV: proper quoted-field parsing
+    const cols=[]; let cur='',inQ=false;
+    for(let i=0;i<line.length;i++){
+      if(line[i]==='"'&&!inQ){inQ=true;}
+      else if(line[i]==='"'&&inQ&&line[i+1]==='"'){cur+='"';i++;}
+      else if(line[i]==='"'&&inQ){inQ=false;}
+      else if(line[i]===delim&&!inQ){cols.push(cur.trim());cur='';}
+      else{cur+=line[i];}
+    }
+    cols.push(cur.trim()); return cols;
+  });
+}
+
+function csvRowToItem(row) {
+  const g=f=>(row[colMap[f]]||'').trim();
+  const name=g('name'); if(!name) return null;
+  const activeRaw=g('active').toUpperCase();
+  return {
+    active: activeRaw==='FALSE'?false:true, // blank or TRUE both → true
+    sku:g('sku'), category:g('category'), subcategory:g('subcategory'),
+    name, unit:g('unit'),
+    vendor:g('vendor'), vendor_sku:g('vendor_sku'), notes:g('notes'),
+  };
+}
+
+window.previewImport = () => {
+  const text=document.getElementById('import-csv').value;
+  const prev=document.getElementById('import-preview');
+  prev.style.display='block';
+  if(!text.trim()){prev.className='import-preview err';prev.textContent='No data to preview.';return;}
+  const rows=parseCSV(text);
+  const items=rows.slice(1).map(csvRowToItem).filter(Boolean);
+  const skus=items.map(i=>i.sku).filter(Boolean);
+  const csvDups=[...new Set(skus.filter((s,i)=>skus.indexOf(s)!==i))];
+  const existingHits=items.filter(i=>i.sku&&catalog.find(c=>c.sku===i.sku)).map(i=>i.sku);
+  let msg=`${items.length} valid items found.`, cls='ok';
+  if(csvDups.length){msg+=` ⚠ Duplicate SKUs in CSV: ${csvDups.join(', ')}.`;cls='warn';}
+  if(existingHits.length){msg+=` ${existingHits.length} SKU(s) already in catalog (will be skipped): ${existingHits.slice(0,6).join(', ')}${existingHits.length>6?'…':''}.`;cls='warn';}
+  if(!csvDups.length&&!existingHits.length) msg+=' Ready to import.';
+  prev.className='import-preview '+cls; prev.textContent=msg;
+};
+
+window.runImport = async () => {
+  const text=document.getElementById('import-csv').value;
+  if(!text.trim()){alert('No data.');return;}
+  const rows=parseCSV(text);
+  const items=rows.slice(1).map(csvRowToItem).filter(Boolean);
+  if(!items.length){alert('No valid items. Check column mapping.');return;}
+  const addOnly=document.getElementById('import-addonly').checked;
+  const skus=items.map(i=>i.sku).filter(Boolean);
+  const csvDups=[...new Set(skus.filter((s,i)=>skus.indexOf(s)!==i))];
+  if(csvDups.length&&!confirm(`Duplicate SKUs in CSV: ${csvDups.join(', ')}.\nOnly first occurrence imported. Proceed?`)) return;
+  let added=0,skipped=0;
+  const seen=new Set();
+  for(const item of items){
+    if(item.sku&&seen.has(item.sku)){skipped++;continue;}
+    if(item.sku) seen.add(item.sku);
+    const existing=item.sku?catalog.find(i=>i.sku===item.sku):null;
+    if(addOnly&&existing){skipped++;continue;}
+    if(!addOnly&&existing){
+      await updateDoc(doc(db,'inv_catalog',existing.id),item);
+      Object.assign(existing,item); added++;
+    } else {
+      const ref=await addDoc(collection(db,'inv_catalog'),item);
+      catalog.push({id:ref.id,...item}); added++;
+    }
+  }
+  catalog.sort((a,b)=>(a.category||'').localeCompare(b.category||'')||(a.name||'').localeCompare(b.name||''));
+  const prev=document.getElementById('import-preview');
+  prev.style.display='block'; prev.className='import-preview ok';
+  prev.textContent=`Done: ${added} added, ${skipped} skipped.`;
+  renderCatalog(); renderSidebar();
+};
+
+window.clearCatalog = async () => {
+  if(!confirm('Delete ALL catalog items? Cannot be undone.')) return;
+  if(!confirm('Second confirmation — permanently delete everything?')) return;
+  const snap=await getDocs(collection(db,'inv_catalog'));
+  const b=writeBatch(db); snap.docs.forEach(d=>b.delete(d.ref)); await b.commit();
+  catalog=[];
+  const prev=document.getElementById('import-preview');
+  prev.style.display='block'; prev.className='import-preview ok';
+  prev.textContent='Catalog cleared. Ready for fresh import.';
+  renderCatalog();
+};
+
+window.openEditBatchModal = (id) => {
+  const batch = batches.find(b=>b.id===id); if(!batch) return;
+  document.getElementById('edit-batch-name').value = batch.client || '';
+  document.getElementById('edit-batch-notes').value = batch.notes || '';
+  document.getElementById('edit-batch-id').value = id;
+  openModal('modal-edit-batch');
+  setTimeout(()=>document.getElementById('edit-batch-name').focus(), 100);
+};
+
+window.saveEditBatch = async () => {
+  const id = document.getElementById('edit-batch-id').value;
+  const name = document.getElementById('edit-batch-name').value.trim();
+  if (!name) { alert('Client name required.'); return; }
+  const notes = document.getElementById('edit-batch-notes').value.trim();
+  const batch = batches.find(b=>b.id===id); if(!batch) return;
+  batch.client = name; batch.notes = notes;
+  await updateDoc(doc(db,'inv_batches',id), {client:name, notes});
+  closeModal('modal-edit-batch');
+  renderSidebar(); renderBatchWorkspace();
+};
+
+window.toggleActive = async (id, val) => {
+  await updateDoc(doc(db,'inv_catalog',id), { active: val });
+  const item = catalog.find(i=>i.id===id);
+  if (item) item.active = val;
+};
+
+// Sort state
+let sortCol = 'category', sortDir = 'asc';
+
+window.sortCatalog = (col) => {
+  if (sortCol === col) { sortDir = sortDir === 'asc' ? 'desc' : 'asc'; }
+  else { sortCol = col; sortDir = 'asc'; }
+  document.querySelectorAll('.sort-ind').forEach(el => el.className = 'sort-ind');
+  const ind = document.querySelector(`.sort-ind[data-col="${col}"]`);
+  if (ind) ind.className = 'sort-ind ' + sortDir;
+  renderCatalog();
+};
+
+window.copyVsku = (val) => {
+  if (!val) return;
+  navigator.clipboard.writeText(val).catch(() => {});
+  const t = document.getElementById('copy-toast');
+  t.style.opacity = '1';
+  setTimeout(() => t.style.opacity = '0', 1400);
+};
+
+window.openModal=id=>document.getElementById(id).style.display='flex';
+window.closeModal=id=>document.getElementById(id).style.display='none';
+document.querySelectorAll('.modal-backdrop').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.style.display='none';}));
+document.getElementById('new-batch-name').addEventListener('keydown',e=>{if(e.key==='Enter')createBatch();});
+
+function esc(str){return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+bootstrap();
+</script>
+<div id="copy-toast" class="copy-toast">Copied to clipboard</div>
+
+<!-- EDIT BATCH MODAL -->
+<div id="modal-edit-batch" class="modal-backdrop" style="display:none;">
+  <div class="modal">
+    <div class="modal-title">Edit client batch</div>
+    <div class="form-row"><label class="form-label">Client name</label><input class="form-input" id="edit-batch-name" placeholder="Client name"></div>
+    <div class="form-row"><label class="form-label">Notes</label><input class="form-input" id="edit-batch-notes" placeholder="Job notes..."></div>
+    <input type="hidden" id="edit-batch-id">
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('modal-edit-batch')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEditBatch()">Save</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
