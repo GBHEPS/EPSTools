@@ -50,10 +50,12 @@
   .table-wrap { border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-top: 10px; }
   .table-scroll { overflow-y: auto; max-height: calc(100vh - var(--header-h) - 120px); }
   .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .tbl thead th { position: sticky; top: 0; z-index: 10; text-align: left; padding: 9px 10px; background: var(--surface2); border-bottom: 2px solid var(--border); color: var(--text2); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: normal; white-space: nowrap; }
-  .tbl td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .tbl thead th { position: sticky; top: 0; z-index: 10; text-align: left; padding: 9px 10px; background: var(--surface2); border-bottom: 2px solid var(--border); color: var(--text2); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: normal; white-space: nowrap; overflow: hidden; }
+  .tbl td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; white-space: normal; word-break: break-word; }
   .tbl tbody tr:last-child td { border-bottom: none; }
   .tbl tbody tr:hover td { background: var(--surface2); }
+  .tbl tbody tr[onclick]:hover { outline: 1px solid var(--blue); }
+  .tbl tbody tr[onclick]:hover td { background: var(--blue-light); }
   .tbl input[type=number] { width: 62px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; font-family: inherit; text-align: right; background: var(--surface); }
   .tbl input[type=number]:focus { outline: none; border-color: var(--accent); }
   .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: bold; }
@@ -74,6 +76,8 @@
   .dot-submitted { background: var(--blue); }
   .dot-ordered { background: var(--amber); }
   .dot-complete { background: var(--text3); }
+  .dot-shop { background: #0e9e8a; }
+  .badge-teal { background: #d4f4ef; color: #0a6b5e; }
   .vendor-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
   .vendor-row:last-child { border-bottom: none; }
   .vendor-name { font-weight: bold; }
@@ -138,6 +142,7 @@
   <nav class="app-nav">
     <button class="nav-btn active" onclick="switchTab('orderpad')">Order Pad</button>
     <button class="nav-btn" onclick="switchTab('vendor')">Vendor View</button>
+    <button class="nav-btn" onclick="switchTab('pulllist')">Pull List</button>
     <button class="nav-btn" onclick="switchTab('catalog')">Catalog</button>
     <button class="nav-btn" onclick="switchTab('import')">Import</button>
   </nav>
@@ -162,9 +167,20 @@
       <div class="toolbar">
         <span class="toolbar-title">Vendor View</span>
         <select class="filter-sel" id="vendor-batch-filter" onchange="renderVendorView()"><option value="all">All open batches</option></select>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" id="vendor-show-received" onchange="renderVendorView()"> Show received</label>
         <button class="btn btn-sm no-print" onclick="window.print()">Print / PDF</button>
       </div>
       <div id="vendor-content"><div class="loading">Loading...</div></div>
+    </div>
+
+    <!-- PULL LIST -->
+    <div id="tab-pulllist" class="tab-view">
+      <div class="toolbar toolbar-sticky">
+        <span class="toolbar-title">Pull List</span>
+        <span class="status-bar" id="pulllist-status"></span>
+        <button class="btn btn-sm no-print" onclick="printPullList()">Print pull list ↗</button>
+      </div>
+      <div id="pulllist-content"><div class="loading">Loading...</div></div>
     </div>
 
     <!-- CATALOG -->
@@ -175,7 +191,7 @@
         <select class="filter-sel" id="cat-cat-filter" onchange="renderCatalog()"><option value="">All categories</option></select>
         <select class="filter-sel" id="cat-vendor-filter" onchange="renderCatalog()"><option value="">All vendors</option></select>
         <select class="filter-sel" id="cat-active-filter" onchange="renderCatalog()">
-          <option value="">All items</option><option value="true">Stocked</option><option value="false">Order-as-needed</option>
+          <option value="">All items</option><option value="true">Stocked only</option><option value="false">Order-as-needed only</option>
         </select>
         <button class="btn btn-sm no-print" onclick="exportCatalogCSV()">Export CSV</button>
         <button class="btn btn-primary btn-sm" onclick="openNewItemModal()">+ Add item</button>
@@ -184,15 +200,15 @@
         <div class="table-scroll">
           <table class="tbl">
             <thead><tr>
-              <th class="sortable" onclick="sortCatalog('sku')">SKU <span class="sort-ind" data-col="sku"></span></th>
-              <th class="sortable" onclick="sortCatalog('name')">Description <span class="sort-ind" data-col="name"></span></th>
-              <th class="sortable" onclick="sortCatalog('category')">Category <span class="sort-ind" data-col="category"></span></th>
-              <th class="sortable" onclick="sortCatalog('subcategory')">Sub-cat <span class="sort-ind" data-col="subcategory"></span></th>
-              <th>Unit</th>
-              <th class="sortable" onclick="sortCatalog('vendor')">Vendor <span class="sort-ind" data-col="vendor"></span></th>
+              <th class="sortable" onclick="sortCatalog('sku')" style="width:90px;">SKU <span class="sort-ind" data-col="sku"></span></th>
+              <th class="sortable" onclick="sortCatalog('name')" style="width:22%;">Description <span class="sort-ind" data-col="name"></span></th>
+              <th class="sortable" onclick="sortCatalog('category')" style="width:12%;">Category <span class="sort-ind" data-col="category"></span></th>
+              <th class="sortable" onclick="sortCatalog('subcategory')" style="width:11%;">Sub-cat <span class="sort-ind" data-col="subcategory"></span></th>
+              <th style="width:48px;">Unit</th>
+              <th class="sortable" onclick="sortCatalog('vendor')" style="width:12%;">Vendor <span class="sort-ind" data-col="vendor"></span></th>
               <th style="width:80px;">Vendor SKU</th>
-              <th class="sortable" onclick="sortCatalog('active')" style="width:52px;">Sort <span class="sort-ind" data-col="active"></span></th>
-              <th>Notes</th><th style="width:90px;"></th>
+              <th class="sortable" onclick="sortCatalog('active')" style="width:60px;">Stocked <span class="sort-ind" data-col="active"></span></th>
+              <th style="width:14%;">Notes</th><th style="width:90px;"></th>
             </tr></thead>
             <tbody id="catalog-tbody"></tbody>
           </table>
@@ -203,12 +219,15 @@
 
     <!-- IMPORT -->
     <div id="tab-import" class="tab-view">
-      <div class="toolbar"><span class="toolbar-title">Import Catalog</span></div>
+      <div class="toolbar"><span class="toolbar-title">Import / Export</span></div>
+
+      <!-- CATALOG IMPORT -->
       <div class="card">
+        <div style="font-size:15px;font-weight:bold;margin-bottom:8px;">Catalog import</div>
         <p style="margin-bottom:10px;color:var(--text2);font-size:13px;">Paste CSV or tab-separated data. First row = header.<br>
-        Expected: <span class="text-mono" style="font-size:11px;">active, sku, category, subcategory, name, unit, vendor, vendor_sku, notes</span></p>
+        Expected columns: <span class="text-mono" style="font-size:11px;">active, sku, category, subcategory, name, unit, vendor, vendor_sku, notes</span><br>
+        <span style="font-size:11px;color:var(--text3);">The "active" column = Stocked flag (TRUE = stocked/pull from shelf, blank or FALSE = order-as-needed)</span></p>
         <div class="import-area">
-          <div style="color:var(--text2);font-size:13px;">Paste your data below</div>
           <textarea id="import-csv" placeholder="active,sku,category,subcategory,name,..."></textarea>
         </div>
         <div id="import-preview" class="import-preview"></div>
@@ -221,10 +240,32 @@
           <button class="btn btn-sm btn-danger no-print" onclick="clearCatalog()" style="margin-left:auto;">⚠ Clear catalog</button>
         </div>
       </div>
+
+      <!-- COLUMN MAPPING -->
       <div class="card" style="margin-top:14px;">
         <div style="font-size:14px;font-weight:bold;margin-bottom:8px;">Column mapping <span style="font-size:12px;font-weight:normal;color:var(--text2);">(0-based index)</span></div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;" id="col-mapping"></div>
         <button class="btn btn-sm" style="margin-top:10px;" onclick="saveColMapping()">Save mapping</button>
+      </div>
+
+      <!-- BATCH EXPORT -->
+      <div class="card" style="margin-top:14px;">
+        <div style="font-size:15px;font-weight:bold;margin-bottom:8px;">Batch data</div>
+        <p style="color:var(--text2);font-size:13px;margin-bottom:10px;">Export all batch data to JSON for backup or editing. Use the EPS Batch Converter tool to convert to CSV for spreadsheet editing, then back to JSON for re-import.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn" onclick="exportBatchesJSON()">Export batches ↓</button>
+          <button class="btn btn-primary" onclick="showBatchImport()">Import batches ↑</button>
+          <button class="btn btn-sm btn-danger no-print" onclick="clearBatches()" style="margin-left:auto;">⚠ Clear all batches</button>
+        </div>
+        <div id="batch-import-area" style="display:none;margin-top:12px;">
+          <p style="font-size:12px;color:var(--text2);margin-bottom:8px;">Paste the JSON output from the EPS Batch Converter below.</p>
+          <textarea id="import-batches-json" style="width:100%;height:160px;font-family:monospace;font-size:11px;border:1px solid var(--border);border-radius:var(--radius);padding:9px;background:var(--bg);color:var(--text);" placeholder='[{"id":"...","client":"Kengla","batchType":"client",...}]'></textarea>
+          <div id="batch-import-result" class="import-preview"></div>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button class="btn btn-primary" onclick="runBatchImport()">Import batches</button>
+            <button class="btn" onclick="hideBatchImport()">Cancel</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -233,6 +274,10 @@
   <!-- SIDEBAR -->
   <div class="side-panel">
     <div class="side-header">Client Batches</div>
+    <div class="side-section">
+      <div class="side-section-title" style="color:#0a6b5e;">Shop Orders</div>
+      <div id="batch-list-shop"></div>
+    </div>
     <div class="side-section">
       <div class="side-section-title">Open</div>
       <div id="batch-list-open"></div>
@@ -250,8 +295,11 @@
       <div id="vendor-rollup"></div>
     </div>
     <div class="side-section">
-      <div class="side-section-title">Recently Completed</div>
-      <div id="batch-list-complete" style="font-size:12px;color:var(--text3);"></div>
+      <div class="side-section-title" style="display:flex;align-items:center;justify-content:space-between;">
+        Completed
+        <button class="btn btn-sm" id="completed-toggle" onclick="toggleCompletedExpanded()" style="font-size:10px;padding:2px 6px;">Show all</button>
+      </div>
+      <div id="batch-list-complete"></div>
     </div>
   </div>
 </div>
@@ -259,12 +307,16 @@
 <!-- NEW BATCH MODAL -->
 <div id="modal-batch" class="modal-backdrop" style="display:none;">
   <div class="modal">
-    <div class="modal-title">New client batch</div>
-    <div class="form-row"><label class="form-label">Client name</label><input class="form-input" id="new-batch-name" placeholder="e.g. Kengla"></div>
+    <div class="modal-title">New batch</div>
+    <div class="form-row" style="display:flex;gap:8px;margin-bottom:14px;">
+      <button id="batch-type-client" class="btn btn-primary" onclick="setBatchType('client')" style="flex:1;">Client batch</button>
+      <button id="batch-type-shop" class="btn" onclick="setBatchType('shop')" style="flex:1;border-color:#0e9e8a;color:#0a6b5e;">Shop order</button>
+    </div>
+    <div class="form-row"><label class="form-label" id="batch-name-label">Client name</label><input class="form-input" id="new-batch-name" placeholder="e.g. Kengla"></div>
     <div class="form-row"><label class="form-label">Notes (optional)</label><input class="form-input" id="new-batch-notes" placeholder="Job notes..."></div>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal('modal-batch')">Cancel</button>
-      <button class="btn btn-primary" onclick="createBatch()">Create batch</button>
+      <button class="btn btn-primary" onclick="createBatch()">Create</button>
     </div>
   </div>
 </div>
@@ -292,7 +344,7 @@
     </div>
     <div class="form-row"><label class="form-label">Notes</label><input class="form-input" id="item-notes" placeholder="Order qty, specs, etc."></div>
     <div class="form-row">
-      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" id="item-active" checked> Include in sort (active)</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" id="item-active"> Stocked item (pull from shelf)</label>
     </div>
     <input type="hidden" id="item-edit-id">
     <div class="modal-actions">
@@ -318,7 +370,7 @@
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-import { getFirestore, collection, doc, getDocs, addDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, writeBatch } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { getFirestore, collection, doc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, writeBatch } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBiwsuVyEormZua4fUh7rLeIAQp0BZ-y8A",
@@ -338,8 +390,9 @@ window.switchTab = (tab) => {
   currentTab = tab;
   document.querySelectorAll('.tab-view').forEach(el => el.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
-  document.querySelectorAll('.nav-btn').forEach((btn,i) => btn.classList.toggle('active', ['orderpad','vendor','catalog','import'][i]===tab));
+  document.querySelectorAll('.nav-btn').forEach((btn,i) => btn.classList.toggle('active', ['orderpad','vendor','pulllist','catalog','import'][i]===tab));
   if (tab==='vendor') renderVendorView();
+  if (tab==='pulllist') renderPullList();
   if (tab==='catalog') renderCatalog();
 };
 
@@ -387,14 +440,14 @@ window.renderCatalog = () => {
     <tr>
       <td class="cat-row-sku">${esc(item.sku||'—')}</td>
       <td style="min-width:150px;">${esc(item.name||'')}</td>
-      <td style="color:var(--text2);white-space:nowrap;">${esc(item.category||'')}</td>
+      <td style="color:var(--text2);">${esc(item.category||'')}</td>
       <td style="color:var(--text2);">${esc(item.subcategory||'')}</td>
       <td>${esc(item.unit||'')}</td>
       <td>${esc(item.vendor||'')}</td>
       <td class="vsku-cell" onclick="copyVsku('${esc(item.vendor_sku||'')}')" title="${esc(item.vendor_sku||'')}">${esc(item.vendor_sku||'')}</td>
       <td style="text-align:center;"><input type="checkbox" ${item.active?'checked':''} onchange="toggleActive('${item.id}',this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent);"></td>
-      <td style="color:var(--text2);font-size:12px;max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(item.notes||'')}">${esc(item.notes||'')}</td>
-      <td style="white-space:nowrap;">
+      <td style="color:var(--text2);font-size:12px;" title="${esc(item.notes||'')}">${esc(item.notes||'')}</td>
+      <td style="white-space:nowrap;vertical-align:middle;">
         <button class="btn btn-sm btn-edit" onclick="openEditItemModal('${item.id}')">Edit</button>
         <button class="btn btn-sm btn-danger" onclick="deleteItem('${item.id}')">✕</button>
       </td>
@@ -487,17 +540,49 @@ window.saveItem = async () => {
   renderCatalog();
 };
 
+let _newBatchType = 'client';
+
+window.setBatchType = (type) => {
+  _newBatchType = type;
+  const clientBtn = document.getElementById('batch-type-client');
+  const shopBtn = document.getElementById('batch-type-shop');
+  const nameLabel = document.getElementById('batch-name-label');
+  const nameInput = document.getElementById('new-batch-name');
+  if(type==='client'){
+    clientBtn.className='btn btn-primary'; shopBtn.className='btn';
+    shopBtn.style.cssText='flex:1;border-color:#0e9e8a;color:#0a6b5e;';
+    nameLabel.textContent='Client name'; nameInput.placeholder='e.g. Kengla';
+  } else {
+    shopBtn.className='btn'; shopBtn.style.cssText='flex:1;background:#d4f4ef;border-color:#0e9e8a;color:#0a6b5e;font-weight:bold;';
+    clientBtn.className='btn'; clientBtn.style.cssText='flex:1;';
+    nameLabel.textContent='Order name'; nameInput.placeholder='e.g. Shop restock Apr 2026';
+  }
+};
+
 window.openNewBatchModal = () => {
   document.getElementById('new-batch-name').value='';
   document.getElementById('new-batch-notes').value='';
+  _newBatchType = 'client';
+  setBatchType('client');
+  // Reset button styles
+  document.getElementById('batch-type-client').style.cssText='flex:1;';
+  document.getElementById('batch-type-shop').style.cssText='flex:1;border-color:#0e9e8a;color:#0a6b5e;';
   openModal('modal-batch');
   setTimeout(()=>document.getElementById('new-batch-name').focus(),100);
 };
 
 window.createBatch = async () => {
   const name = document.getElementById('new-batch-name').value.trim();
-  if (!name) { alert('Client name required.'); return; }
-  const data = {client:name, notes:document.getElementById('new-batch-notes').value.trim(), status:'open', created:serverTimestamp(), lineItems:[]};
+  if (!name) { alert('Name required.'); return; }
+  const isShop = _newBatchType === 'shop';
+  const data = {
+    client: name,
+    notes: document.getElementById('new-batch-notes').value.trim(),
+    status: 'open',
+    batchType: isShop ? 'shop' : 'client',
+    created: serverTimestamp(),
+    lineItems: []
+  };
   const ref = await addDoc(collection(db,'inv_batches'), data);
   batches.unshift({id:ref.id,...data,created:new Date()});
   activeBatchId = ref.id;
@@ -515,17 +600,18 @@ window.renderBatchWorkspace = () => {
   const rows = (batch.lineItems||[]).map((li,idx)=>{
     const item = catalog.find(i=>i.id===li.itemId);
     if (!item) return '';
+    const isStock = false; const isStockDone = false;
     const liB = {pending:'badge-gray',submitted:'badge-blue',ordered:'badge-amber',received:'badge-green'}[li.status]||'badge-gray';
     const liL = {pending:'Pending',submitted:'Submitted',ordered:'Ordered',received:'Received'}[li.status]||'—';
-    return `<tr>
+    return `<tr style="${isStock?'background:var(--accent-light)':isStockDone?'opacity:0.5;':''};cursor:pointer;" onclick="jumpToVendorItem('${item.id}',event)" title="Jump to Vendor View">
       <td class="cat-row-sku">${esc(item.sku||'—')}</td>
       <td>${esc(item.name)}</td>
       <td style="color:var(--text2)">${esc(item.vendor||'—')}</td>
       <td>${esc(item.unit||'')}</td>
-      <td><input type="number" min="0" value="${li.qty}" onchange="updateLineQty('${batch.id}',${idx},this.value)"></td>
+      <td onclick="event.stopPropagation()"><input type="number" min="0" value="${li.qty}" onchange="updateLineQty('${batch.id}',${idx},this.value)"></td>
+      <td style="text-align:center;">${item.active?'<span class="badge badge-green" style="font-size:10px;">S</span>':''}</td>
       <td><span class="badge ${liB}">${liL}</span></td>
-      <td style="white-space:nowrap;">
-        ${(li.status==='ordered'||li.status==='submitted')?`<button class="btn btn-sm" onclick="markReceived('${batch.id}',${idx})" style="background:var(--accent-light);color:var(--accent-text);border-color:var(--accent-light);">Received</button> `:''}
+      <td style="white-space:nowrap;vertical-align:middle;" onclick="event.stopPropagation()">
         <button class="btn btn-sm btn-danger" onclick="removeLineItem('${batch.id}',${idx})">✕</button>
       </td>
     </tr>`;
@@ -541,8 +627,9 @@ window.renderBatchWorkspace = () => {
     batch.status = autoStatus;
     updateDoc(doc(db,'inv_batches',batch.id), {status: autoStatus});
   }
-  const sb2 = {open:'badge-green',submitted:'badge-blue',ordered:'badge-amber',complete:'badge-gray'}[batch.status]||'badge-gray';
-  const sl2 = {open:'Open',submitted:'Submitted',ordered:'Ordered',complete:'Complete'}[batch.status]||batch.status;
+  const isShopBatch = batch.batchType === 'shop';
+  const sb2 = isShopBatch ? 'badge-teal' : ({open:'badge-green',submitted:'badge-blue',ordered:'badge-amber',complete:'badge-gray'}[batch.status]||'badge-gray');
+  const sl2 = isShopBatch ? ('Shop — '+({open:'Building',submitted:'Submitted',ordered:'Ordered',complete:'Complete'}[batch.status]||batch.status)) : ({open:'Open',submitted:'Submitted',ordered:'Ordered',complete:'Complete'}[batch.status]||batch.status);
   ws.innerHTML = `<div class="batch-workspace">
     <div class="batch-workspace-header">
       <span style="font-size:15px;font-weight:bold;">${esc(batch.client)}</span>
@@ -550,18 +637,19 @@ window.renderBatchWorkspace = () => {
       ${batch.notes?`<span style="font-size:12px;color:var(--text2);">${esc(batch.notes)}</span>`:''}
       <span style="margin-left:auto;display:flex;gap:6px;">
         <button class="btn btn-sm btn-edit" onclick="openEditBatchModal('${batch.id}')">Edit</button>
+
         ${batch.status!=='complete'&&(batch.lineItems||[]).some(li=>li.status==='pending')?`<button class="btn btn-sm" onclick="openOrderModal()">Submit order →</button>`:''}
-        ${batch.status==='complete'?'':`<button class="btn btn-sm btn-primary" onclick="completeBatch('${batch.id}')">Mark complete</button>`}
+        ${batch.status==='complete'?`<button class="btn btn-sm btn-edit" onclick="reopenBatch('${batch.id}')">Reopen</button>`:`<button class="btn btn-sm btn-primary" onclick="completeBatch('${batch.id}')">Mark complete</button>`}
         <button class="btn btn-sm btn-danger" onclick="deleteBatch('${batch.id}')">Delete</button>
       </span>
     </div>
-    ${batch.status!=='complete'?`<div class="item-search-row"><div class="item-search-wrap">
+    <div class="item-search-row"><div class="item-search-wrap">
       <input class="search-box" id="item-search-input" placeholder="Search catalog to add items…" oninput="searchCatalogItems()" onkeydown="handleSearchKey(event)" autocomplete="off" style="width:100%;max-width:440px;">
       <div id="item-search-results" class="search-results-dropdown" style="display:none;"></div>
-    </div></div>`:''}
+    </div></div>
     <div class="table-scroll" style="max-height:calc(100vh - 290px);">
       <table class="tbl">
-        <thead><tr><th>SKU</th><th>Description</th><th>Vendor</th><th>Unit</th><th>Qty</th><th>Status</th><th></th></tr></thead>
+        <thead><tr><th style="width:80px;">SKU</th><th style="width:26%;">Description</th><th style="width:14%;">Vendor</th><th style="width:46px;">Unit</th><th style="width:60px;">Qty</th><th style="width:60px;text-align:center;">Stocked</th><th style="width:100px;">Status</th><th style="width:80px;"></th></tr></thead>
         <tbody>${rows||'<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px;">No items yet. Search above to add.</td></tr>'}</tbody>
       </table>
     </div>
@@ -584,8 +672,9 @@ window.searchCatalogItems = () => {
   const matches = catalog.filter(i=>!existing.has(i.id)&&((i.name||'').toLowerCase().includes(q)||(i.sku||'').toLowerCase().includes(q)||(i.subcategory||'').toLowerCase().includes(q)||(i.vendor||'').toLowerCase().includes(q)||(i.notes||'').toLowerCase().includes(q))).slice(0,14);
   if (!matches.length) { results.style.display='none'; return; }
   results.style.display='block';
-  results.innerHTML = matches.map((i,idx)=>`<div class="search-result-item" data-idx="${idx}" data-id="${i.id}" onclick="addLineItem('${i.id}')">
-    <div class="sri-name">${esc(i.name)}</div>
+  const isShopSearch = getActiveBatch()?.batchType==='shop';
+  results.innerHTML = matches.map((i,idx)=>`<div class="search-result-item" data-idx="${idx}" data-id="${i.id}" onclick="addLineItem('${i.id}')" style="${!isShopSearch&&i.active?'border-left:3px solid var(--accent);':''}">
+    <div class="sri-name">${esc(i.name)}${!isShopSearch&&i.active?'<span style="font-size:10px;color:var(--accent-text);margin-left:6px;font-weight:normal;">stocked</span>':''}</div>
     <div class="sri-meta">${esc(i.sku||'—')} · ${esc(i.vendor||'?')} · ${esc(i.unit||'')}</div>
   </div>`).join('');
 };
@@ -619,7 +708,10 @@ window.handleSearchKey = (e) => {
 
 window.addLineItem = async (itemId) => {
   const batch = getActiveBatch(); if(!batch) return;
-  const lineItems = [...(batch.lineItems||[]),{itemId,qty:1,status:'pending'}];
+  const catalogItem = catalog.find(i=>i.id===itemId);
+  // All items always land as pending — stocked items identified in Pull List after submission
+  const defaultStatus = 'pending';
+  const lineItems = [...(batch.lineItems||[]),{itemId,qty:1,status:defaultStatus}];
   await updateDoc(doc(db,'inv_batches',batch.id),{lineItems});
   batch.lineItems=lineItems; renderBatchWorkspace(); renderSidebar();
 };
@@ -629,6 +721,13 @@ window.updateLineQty = async (batchId,idx,val) => {
   batch.lineItems[idx].qty=parseInt(val)||0;
   await updateDoc(doc(db,'inv_batches',batchId),{lineItems:batch.lineItems});
   renderSidebar();
+};
+
+window.needsReorder = async (batchId,idx) => {
+  const batch=batches.find(b=>b.id===batchId); if(!batch) return;
+  batch.lineItems[idx].status='pending';
+  await updateDoc(doc(db,'inv_batches',batchId),{lineItems:batch.lineItems});
+  renderBatchWorkspace(); renderSidebar();
 };
 
 window.removeLineItem = async (batchId,idx) => {
@@ -642,15 +741,31 @@ window.markReceived = async (batchId,idx) => {
   const batch=batches.find(b=>b.id===batchId); if(!batch) return;
   batch.lineItems[idx].status='received';
   batch.lineItems[idx].receivedDate=new Date().toISOString().split('T')[0];
-  const allRec=batch.lineItems.every(li=>li.status==='received');
+  const allRec=batch.lineItems.length>0&&batch.lineItems.every(li=>li.status==='received');
   const anyPend2=batch.lineItems.some(li=>li.status==='pending');
   const anySubm2=batch.lineItems.some(li=>li.status==='submitted');
   const anyOrd2=batch.lineItems.some(li=>li.status==='ordered');
-  const newStatus=allRec?'complete':anyPend2?'open':anySubm2?'submitted':anyOrd2?'ordered':'complete';
+  const newStatus=allRec?'complete':anyPend2?'open':anySubm2?'submitted':anyOrd2?'ordered':'ordered';
   batch.status=newStatus;
   const updates={lineItems:batch.lineItems,status:newStatus};
   await updateDoc(doc(db,'inv_batches',batchId),updates);
   renderBatchWorkspace(); renderSidebar();
+};
+
+window.reopenBatch = async (batchId) => {
+  const batch = batches.find(b=>b.id===batchId); if(!batch) return;
+  // Recalc proper status from line items rather than forcing 'open'
+  const lis = batch.lineItems||[];
+  const allNP = lis.length>0&&lis.every(li=>li.status==='received');
+  const hasPending = lis.some(li=>li.status==='pending');
+  const hasSubmitted = lis.some(li=>li.status==='submitted');
+  const hasOrdered = lis.some(li=>li.status==='ordered');
+  const hasStockPull = lis.some(li=>li.status==='stock-pull');
+  // Default to open since we're explicitly reopening
+  const newStatus = hasPending?'open':hasStockPull&&!hasSubmitted&&!hasOrdered?'open':hasSubmitted?'submitted':hasOrdered?'ordered':'open';
+  batch.status = newStatus;
+  await updateDoc(doc(db,'inv_batches',batchId),{status:newStatus});
+  renderSidebar(); renderBatchWorkspace();
 };
 
 window.completeBatch = async (batchId) => {
@@ -673,9 +788,10 @@ window.openOrderModal = () => {
   const open=batches.filter(b=>b.status!=='complete'&&(b.lineItems||[]).some(li=>li.status==='pending'||li.status==='submitted'));
   document.getElementById('order-batch-checklist').innerHTML=open.map(b=>{
     const pendingCount=(b.lineItems||[]).filter(li=>li.status==='pending').length;
+    const shopLabel = b.batchType==='shop'?' <span style="color:#0a6b5e;font-size:10px;">[shop]</span>':'';
     return `<label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:13px;cursor:pointer;">
       <input type="checkbox" value="${b.id}" ${b.id===activeBatchId?'checked':''}>
-      ${esc(b.client)} <span style="color:var(--text3);font-size:11px;">(${pendingCount} pending)</span>
+      ${esc(b.client)}${shopLabel} <span style="color:var(--text3);font-size:11px;">(${pendingCount} pending)</span>
     </label>`;}).join('');
   document.getElementById('order-notes').value='';
   openModal('modal-order');
@@ -688,12 +804,12 @@ window.submitOrder = async () => {
   const dateOrdered=new Date().toISOString().split('T')[0];
   for(const batchId of checked){
     const batch=batches.find(b=>b.id===batchId); if(!batch) continue;
-    batch.lineItems=batch.lineItems.map(li=>li.status==='pending'?{...li,status:'submitted',dateSubmitted:dateOrdered}:li);
-    const allRec=batch.lineItems.every(li=>li.status==='received');
+    batch.lineItems=batch.lineItems.map(li=>li.status==='pending'?{...li,status:'submitted',dateSubmitted:dateOrdered}:li); // stock-pull items untouched
+    const allRec2=batch.lineItems.length>0&&batch.lineItems.every(li=>li.status==='received');
     const anyPend=batch.lineItems.some(li=>li.status==='pending');
     const anySubm=batch.lineItems.some(li=>li.status==='submitted');
     const anyOrd=batch.lineItems.some(li=>li.status==='ordered');
-    batch.status=allRec?'complete':anyPend?'open':anySubm?'submitted':anyOrd?'ordered':'open';
+    batch.status=allRec2?'complete':anyPend?'open':anySubm?'submitted':anyOrd?'ordered':'open';
     await updateDoc(doc(db,'inv_batches',batchId),{lineItems:batch.lineItems,status:batch.status,dateOrdered,orderNotes:notes});
   }
   closeModal('modal-order'); renderSidebar(); renderBatchWorkspace();
@@ -709,14 +825,33 @@ function renderSidebar() {
       <span class="batch-item-count">${n} item${n!==1?'s':''}</span>
     </div>`;
   };
-  const open=batches.filter(b=>b.status==='open');
-  const submitted=batches.filter(b=>b.status==='submitted');
-  const ordered=batches.filter(b=>b.status==='ordered');
+  const shopBatches=batches.filter(b=>b.batchType==='shop'&&b.status!=='complete');
+  const open=batches.filter(b=>b.status==='open'&&b.batchType!=='shop');
+  const submitted=batches.filter(b=>b.status==='submitted'&&b.batchType!=='shop');
+  const ordered=batches.filter(b=>b.status==='ordered'&&b.batchType!=='shop');
   const done=batches.filter(b=>b.status==='complete').slice(0,5);
+  const shopHTML = b => {
+    const dc = {open:'dot-shop',submitted:'dot-shop',ordered:'dot-amber',complete:'dot-complete'}[b.status]||'dot-shop';
+    const sl = {open:'Open',submitted:'Submitted',ordered:'Ordered'}[b.status]||b.status;
+    const n=(b.lineItems||[]).length;
+    return `<div class="batch-item ${activeBatchId===b.id?'active-batch':''}" onclick="selectBatch('${b.id}')" style="border-left:2px solid #0e9e8a;">
+      <div class="batch-status-dot ${dc}"></div>
+      <span class="batch-item-name" style="color:#0a6b5e;">${esc(b.client)}</span>
+      <span class="batch-item-count">${n} item${n!==1?'s':''}</span>
+    </div>`;
+  };
+  document.getElementById('batch-list-shop').innerHTML=shopBatches.length?shopBatches.map(shopHTML).join(''):'<div style="font-size:12px;color:var(--text3);">None</div>';
   document.getElementById('batch-list-open').innerHTML=open.length?open.map(bHTML).join(''):'<div style="font-size:12px;color:var(--text3);">No open batches</div>';
   document.getElementById('batch-list-submitted').innerHTML=submitted.length?submitted.map(bHTML).join(''):'<div style="font-size:12px;color:var(--text3);">None</div>';
   document.getElementById('batch-list-ordered').innerHTML=ordered.length?ordered.map(bHTML).join(''):'<div style="font-size:12px;color:var(--text3);">None</div>';
-  document.getElementById('batch-list-complete').innerHTML=done.length?done.map(b=>`<div style="padding:3px 0;">✓ ${esc(b.client)}</div>`).join(''):'None';
+  const showAllCompleted = window._showAllCompleted||false;
+  const completedToShow = showAllCompleted ? batches.filter(b=>b.status==='complete') : batches.filter(b=>b.status==='complete').slice(0,5);
+  document.getElementById('batch-list-complete').innerHTML=completedToShow.length?completedToShow.map(b=>`
+    <div class="batch-item ${activeBatchId===b.id?'active-batch':''}" onclick="selectBatch('${b.id}')">
+      <div class="batch-status-dot dot-complete"></div>
+      <span class="batch-item-name" style="color:var(--text2);">${esc(b.client)}</span>
+      <span class="batch-item-count">${(b.lineItems||[]).length}</span>
+    </div>`).join(''):'<div style="font-size:12px;color:var(--text3);">None</div>';
   renderVendorRollup();
 }
 
@@ -750,93 +885,333 @@ function updateVendorBatchFilter() {
   sel.innerHTML='<option value="all">All open batches</option>'+batches.filter(b=>b.status!=='complete').map(b=>`<option value="${b.id}"${cur===b.id?' selected':''}>${esc(b.client)}</option>`).join('');
 }
 
-// Track per-vendor line item keys to allow "mark as ordered" with checkboxes
-window._vendorLineKeys = {};
-
 window.renderVendorView = () => {
   updateVendorBatchFilter();
   const fv=document.getElementById('vendor-batch-filter').value;
+  const showReceived=document.getElementById('vendor-show-received')?.checked||false;
   const target=fv==='all'?batches.filter(b=>b.status!=='complete'):batches.filter(b=>b.id===fv);
   const rollup={};
   for(const batch of target) for(let idx=0;idx<(batch.lineItems||[]).length;idx++){
     const li=batch.lineItems[idx];
+    if(li.status==='pending') continue; // pending items not yet submitted to vendor
     const item=catalog.find(i=>i.id===li.itemId); if(!item) continue;
     const v=item.vendor||'Unknown';
     if(!rollup[v]) rollup[v]={};
-    const key=batch.id+'|'+idx;
-    if(!rollup[v][li.itemId]) rollup[v][li.itemId]={item,qty:0,clients:[],keys:[]};
+    if(!rollup[v][li.itemId]) rollup[v][li.itemId]={item,qty:0,clients:[]};
     rollup[v][li.itemId].qty+=parseInt(li.qty)||0;
     rollup[v][li.itemId].clients.push({client:batch.client,qty:li.qty,status:li.status,batchId:batch.id,idx});
-    if(li.status==='submitted') rollup[v][li.itemId].keys.push(key);
   }
   const vendors=Object.keys(rollup).sort();
   const vc=document.getElementById('vendor-content');
-  if(!vendors.length){vc.innerHTML='<div class="empty-state"><div class="empty-icon">📦</div><div>No items in selected batches.</div></div>';return;}
-  window._vendorLineKeys={};
+  if(!vendors.length){vc.innerHTML='<div class="empty-state"><div class="empty-icon">📦</div><div>No vendor items in selected batches.</div></div>';return;}
   vc.innerHTML=vendors.map(v=>{
-    const items=Object.values(rollup[v]);
-    const hasSubmitted=items.some(it=>it.keys.length>0);
-    // Collect all submitted keys for this vendor
-    const allKeys=items.flatMap(it=>it.keys);
-    window._vendorLineKeys[v]=allKeys;
-    const rows=items.map(({item,qty,clients,keys})=>{
-      const allRec=clients.every(c=>c.status==='received');
-      const allOrd=clients.every(c=>c.status==='ordered'||c.status==='received');
-      const allSubm=clients.every(c=>c.status==='submitted'||c.status==='ordered'||c.status==='received');
-      const badge=allRec?'<span class="badge badge-green">Received</span>':allOrd?'<span class="badge badge-amber">Ordered</span>':allSubm?'<span class="badge badge-blue">Submitted</span>':'<span class="badge badge-gray">Pending</span>';
-      const hasSubKeys=keys.length>0;
-      const checkboxes=hasSubKeys?keys.map(k=>`<input type="checkbox" data-key="${k}" checked style="accent-color:var(--amber);cursor:pointer;" title="Include in order">`).join(' '):'';
-      return `<tr>
+    const allEntries=Object.values(rollup[v]);
+    const nonRecEntries=allEntries.filter(e=>!e.clients.every(c=>c.status==='received'));
+    const allRecdForVendor=nonRecEntries.length===0;
+    // Filter rows based on show-received toggle
+    const visibleEntries=showReceived?allEntries:allEntries.filter(e=>!e.clients.every(c=>c.status==='received'));
+    if(!visibleEntries.length&&!showReceived) return `<div class="vendor-card">
+      <div class="vendor-card-header">
+        <div class="vendor-card-name">${esc(v)}</div>
+        <span class="badge badge-green" style="font-size:11px;">All received</span>
+        <button class="btn btn-sm no-print" onclick="toggleVendorReceived('${esc(v)}')" style="margin-left:auto;">Show received</button>
+      </div></div>`;
+    const rows=visibleEntries.map(({item,qty,clients})=>{
+      // Determine aggregate status for this line
+      const statuses=clients.map(c=>c.status);
+      const allRec=statuses.every(s=>s==='received');
+      const allOrd=statuses.every(s=>s==='ordered'||s==='received');
+      const allSubm=statuses.every(s=>s==='submitted'||s==='ordered'||s==='received');
+      // Cycle order: submitted→ordered→received→submitted
+      const cycleNext={'submitted':'ordered','ordered':'received','received':'submitted'};
+      // For mixed, use the dominant non-received status
+      const dominantStatus=allRec?'received':allOrd?'ordered':allSubm?'submitted':'pending';
+      const nextStatus=cycleNext[dominantStatus]||'submitted';
+      const btnColors={'submitted':'background:var(--blue-light);color:var(--blue);border-color:var(--blue-light);','ordered':'background:var(--amber-light);color:var(--amber);border-color:var(--amber-light);','received':'background:var(--accent-light);color:var(--accent-text);border-color:var(--accent-light);'};
+      const btnLabel=allRec?'Received ↺':allOrd?'Ordered ↺':allSubm?'Submitted ↺':'Pending';
+      const btnStyle=btnColors[dominantStatus]||'';
+      const statusBtn=dominantStatus!=='pending'?`<button class="btn btn-sm" onclick="cycleVendorStatus('${esc(v)}','${item.id}','${nextStatus}')" style="font-size:11px;padding:3px 8px;${btnStyle}">${btnLabel}</button>`:`<span class="badge badge-gray">Pending</span>`;
+      const rowStyle=allRec?'opacity:0.5;':'';
+      return `<tr style="${rowStyle}">
         <td class="cat-row-sku">${esc(item.sku||'—')}</td>
         <td>${esc(item.name)}</td>
-        <td class="vsku-cell" onclick="copyVsku('${esc(item.vendor_sku||'')}')}" title="${esc(item.vendor_sku||'')}">${esc(item.vendor_sku||'')}</td>
+        <td class="vsku-cell" onclick="copyVsku('${esc(item.vendor_sku||'')}')" title="${esc(item.vendor_sku||'')}">${esc(item.vendor_sku||'')}</td>
         <td>${esc(item.unit||'')}</td>
         <td style="font-weight:bold;">${qty}</td>
-        <td style="font-size:12px;color:var(--text2);">${clients.map(c=>`${esc(c.client)}: ${c.qty}`).join(', ')}</td>
-        <td>${badge}</td>
-        <td style="white-space:nowrap;">${checkboxes}</td>
+        <td style="font-size:12px;color:var(--text2);">${clients.map(c=>`<div>${esc(c.client)}: ${c.qty}</div>`).join('')}</td>
+        <td style="text-align:center;">${item.active?'<span class="badge badge-green" style="font-size:10px;">S</span>':''}</td>
+        <td>${statusBtn}</td>
       </tr>`;
     }).join('');
-    const markBtn=hasSubmitted?`<button class="btn btn-sm btn-primary" onclick="markVendorOrdered('${esc(v)}')">Mark as ordered</button>`:'';
+    const showBtn=allRecdForVendor?'':'';
     return `<div class="vendor-card">
       <div class="vendor-card-header">
         <div class="vendor-card-name">${esc(v)}</div>
-        <span style="font-size:12px;color:var(--text2);">${items.length} line item${items.length!==1?'s':''}</span>
-        ${markBtn}
+        <span style="font-size:12px;color:var(--text2);">${visibleEntries.length} of ${allEntries.length} line item${allEntries.length!==1?'s':''}</span>
       </div>
-      <table class="tbl"><thead><tr><th>SKU</th><th>Description</th><th>Vendor SKU</th><th>Unit</th><th>Total Qty</th><th>By client</th><th>Status</th><th style="width:60px;">Include</th></tr></thead>
+      <table class="tbl"><thead><tr><th style="width:80px;">SKU</th><th style="width:24%;">Description</th><th style="width:80px;">Vendor SKU</th><th style="width:46px;">Unit</th><th style="width:70px;">Total Qty</th><th>By client</th><th style="width:60px;text-align:center;">Stocked</th><th style="width:110px;">Status</th></tr></thead>
       <tbody>${rows}</tbody></table>
     </div>`;
   }).join('');
 };
 
-window.markVendorOrdered = async (vendor) => {
-  const dateOrdered=new Date().toISOString().split('T')[0];
-  // Find checked boxes for this vendor
-  const cards=document.getElementById('vendor-content').querySelectorAll('.vendor-card');
-  let checkedKeys=[];
-  cards.forEach(card=>{
-    const name=card.querySelector('.vendor-card-name')?.textContent?.trim();
-    if(name===vendor){
-      card.querySelectorAll('input[type=checkbox][data-key]:checked').forEach(cb=>checkedKeys.push(cb.dataset.key));
+window.cycleVendorStatus = async (vendor, itemId, nextStatus) => {
+  // Find all line items for this vendor+item across batches and advance their status
+  const target = batches.filter(b=>b.status!=='complete');
+  for(const batch of target){
+    let changed=false;
+    (batch.lineItems||[]).forEach(li=>{
+      if(li.itemId===itemId&&li.status!=='pending'){
+        const cur=li.status;
+        // Only advance if the next step is logical
+        const order=['submitted','ordered','received'];
+        const curIdx=order.indexOf(cur);
+        const nxtIdx=order.indexOf(nextStatus);
+        if(curIdx>=0){ li.status=nextStatus; changed=true; }
+      }
+    });
+    if(changed){
+      const allRec=batch.lineItems.length>0&&batch.lineItems.every(li=>li.status==='received');
+      const anyPend=batch.lineItems.some(li=>li.status==='pending');
+      const anySubm=batch.lineItems.some(li=>li.status==='submitted');
+      const anyOrd=batch.lineItems.some(li=>li.status==='ordered');
+      batch.status=allRec?'complete':anyPend?'open':anySubm?'submitted':anyOrd?'ordered':'open';
+      await updateDoc(doc(db,'inv_batches',batch.id),{lineItems:batch.lineItems,status:batch.status});
     }
-  });
-  if(!checkedKeys.length){alert('No submitted items checked for this vendor.');return;}
-  // Group by batchId
-  const byBatch={};
-  checkedKeys.forEach(k=>{const[bId,idx]=k.split('|');if(!byBatch[bId])byBatch[bId]=[];byBatch[bId].push(parseInt(idx));});
-  for(const[batchId,idxs] of Object.entries(byBatch)){
-    const batch=batches.find(b=>b.id===batchId); if(!batch) continue;
-    idxs.forEach(i=>{if(batch.lineItems[i]?.status==='submitted'){batch.lineItems[i].status='ordered';batch.lineItems[i].dateOrdered=dateOrdered;}});
-    // Recalc status
-    const allRec=batch.lineItems.every(li=>li.status==='received');
-    const anyPend=batch.lineItems.some(li=>li.status==='pending');
-    const anySubm=batch.lineItems.some(li=>li.status==='submitted');
-    const anyOrd=batch.lineItems.some(li=>li.status==='ordered');
-    batch.status=allRec?'complete':anyPend?'open':anySubm?'submitted':anyOrd?'ordered':'open';
-    await updateDoc(doc(db,'inv_batches',batchId),{lineItems:batch.lineItems,status:batch.status});
   }
   renderSidebar(); renderVendorView();
+};
+
+let _vendorShowReceived = {};
+window.toggleVendorReceived = (vendor) => {
+  _vendorShowReceived[vendor]=!_vendorShowReceived[vendor];
+  renderVendorView();
+};
+
+// markVendorOrdered removed — replaced by cycleVendorStatus
+
+window.renderPullList = () => {
+  const activeBatches = batches.filter(b=>b.status!=='complete'&&b.batchType!=='shop');
+  // Show submitted stocked items — stocked = catalog active flag
+  const stockedIds = new Set(catalog.filter(i=>i.active).map(i=>i.id));
+  const pullMap = {};
+  for(const batch of activeBatches){
+    for(let idx=0;idx<(batch.lineItems||[]).length;idx++){
+      const li=batch.lineItems[idx];
+      // Show submitted or ordered stocked items (submitted = ready to pull, ordered = already actioned from vendor side)
+      if(!['submitted','ordered','received'].includes(li.status)) continue;
+      if(!stockedIds.has(li.itemId)) continue;
+      const item = catalog.find(i=>i.id===li.itemId); if(!item) continue;
+      if(!pullMap[li.itemId]) pullMap[li.itemId]={item, clientLines:[]};
+      pullMap[li.itemId].clientLines.push({client:batch.client, qty:li.qty, batchId:batch.id, idx, status:li.status});
+    }
+  }
+  const entries = Object.values(pullMap);
+  const pc = document.getElementById('pulllist-content');
+  const statusEl = document.getElementById('pulllist-status');
+  if(!entries.length){
+    pc.innerHTML='<div class="empty-state"><div class="empty-icon">📦</div><div>No stock items to pull across open batches.</div></div>';
+    if(statusEl) statusEl.textContent='';
+    return;
+  }
+  // Group by vendor
+  const byVendor = {};
+  entries.forEach(e=>{
+    const v=e.item.vendor||'Unknown';
+    if(!byVendor[v]) byVendor[v]=[];
+    byVendor[v].push(e);
+  });
+  const totalLines = entries.reduce((s,e)=>s+e.clientLines.length,0);
+  if(statusEl) statusEl.textContent = `${entries.length} item${entries.length!==1?'s':''}, ${totalLines} client line${totalLines!==1?'s':''}`;
+  pc.innerHTML = Object.keys(byVendor).sort().map(v=>{
+    const items=byVendor[v];
+    const rows=items.map(({item,clientLines})=>{
+      // One row per item header, then sub-rows per client
+      const totalQty=clientLines.reduce((s,c)=>s+(parseInt(c.qty)||0),0);
+      const clientRows=clientLines.map((c,ci)=>{
+        const isPulled=c.status==='received';
+        const isOrdered=c.status==='ordered';
+        const rowStyle=isPulled?'opacity:0.5;':'';
+        const actionLabel=isPulled?'<span style="font-size:11px;color:var(--accent-text);">✓ Pulled</span>':isOrdered?'<span style="font-size:11px;color:var(--amber);">Ordered</span>':'<span style="font-size:11px;color:var(--text3);">In vendor queue</span>';
+        return `<tr style="${rowStyle}">
+          <td class="cat-row-sku">${ci===0?esc(item.sku||'—'):''}</td>
+          <td>${ci===0?`<strong>${esc(item.name)}</strong>`:'<span style="color:var(--text3);font-size:11px;">↳</span>'}</td>
+          <td>${ci===0?esc(item.unit||''):''}</td>
+          <td style="text-align:center;">${ci===0?`<strong>${totalQty}</strong>`:''}</td>
+          <td style="font-size:13px;">${esc(c.client)}: ${c.qty} ${esc(item.unit||'')}</td>
+          <td style="text-align:center;vertical-align:middle;">
+            <input type="checkbox" ${isPulled?'checked':''} onchange="markClientPulled('${c.batchId}',${c.idx},this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent);" title="Mark as pulled from stock">
+          </td>
+          <td style="vertical-align:middle;" class="no-print">${actionLabel}</td>
+        </tr>`;
+      }).join('');
+      return clientRows;
+    }).join('');
+    return `<div class="vendor-card" style="margin-bottom:14px;">
+      <div class="vendor-card-header">
+        <div class="vendor-card-name">${esc(v)}</div>
+        <span style="font-size:12px;color:var(--text2);">${items.length} item${items.length!==1?'s':''}</span>
+      </div>
+      <table class="tbl">
+        <thead><tr><th style="width:80px;">SKU</th><th style="width:26%;">Description</th><th style="width:46px;">Unit</th><th style="width:70px;text-align:center;">Total</th><th>Client / qty</th><th style="width:70px;text-align:center;">Pulled ✓</th><th style="width:120px;" class="no-print">Action</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+};
+
+window.markClientPulled = async (batchId, idx, checked) => {
+  const batch = batches.find(b=>b.id===batchId); if(!batch) return;
+  // Pulled from stock = received; uncheck = revert to submitted
+  batch.lineItems[idx].status = checked ? 'received' : 'submitted';
+  if(checked) batch.lineItems[idx].receivedDate = new Date().toISOString().split('T')[0];
+  const lis = batch.lineItems;
+  const allRec = lis.length>0&&lis.every(li=>li.status==='received');
+  const hasPending = lis.some(li=>li.status==='pending');
+  const hasSubmitted = lis.some(li=>li.status==='submitted');
+  const hasOrdered = lis.some(li=>li.status==='ordered');
+  batch.status = allRec?'complete':hasPending?'open':hasSubmitted?'submitted':hasOrdered?'ordered':'open';
+  await updateDoc(doc(db,'inv_batches',batchId),{lineItems:batch.lineItems,status:batch.status});
+  renderPullList(); renderSidebar(); renderBatchWorkspace();
+};
+
+// sendClientToVendor removed — items are already submitted when they appear in pull list
+
+window.printPullList = () => {
+  const activeBatches = batches.filter(b=>b.status!=='complete');
+  const pullMap = {};
+  const stockedIds2 = new Set(catalog.filter(i=>i.active).map(i=>i.id));
+  for(const batch of activeBatches){
+    for(let idx=0;idx<(batch.lineItems||[]).length;idx++){
+      const li=batch.lineItems[idx];
+      if(!['submitted','ordered','received'].includes(li.status)) continue;
+      if(!stockedIds2.has(li.itemId)) continue;
+      const item = catalog.find(i=>i.id===li.itemId); if(!item) continue;
+      if(!pullMap[li.itemId]) pullMap[li.itemId]={item,clientLines:[]};
+      pullMap[li.itemId].clientLines.push({client:batch.client,qty:li.qty,status:li.status});
+    }
+  }
+  const entries=Object.values(pullMap);
+  if(!entries.length){alert('No stock items to print.');return;}
+  const byVendor={};
+  entries.forEach(e=>{const v=e.item.vendor||'Unknown';if(!byVendor[v])byVendor[v]=[];byVendor[v].push(e);});
+  const vendorSections=Object.keys(byVendor).sort().map(v=>{
+    const rows=byVendor[v].map(({item,clientLines})=>{
+      return clientLines.map((c,ci)=>{
+        const done=c.status==='received';
+        return `<tr style="${done?'opacity:0.5;':''}"><td style="padding:6px 8px;border:1px solid #ccc;">${ci===0?item.sku||'—':''}</td><td style="padding:6px 8px;border:1px solid #ccc;">${ci===0?item.name:''}</td><td style="padding:6px 8px;border:1px solid #ccc;">${esc(c.client)}</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:center;">${c.qty} ${item.unit||''}</td><td style="padding:6px 8px;border:1px solid #ccc;width:60px;">${done?'&#10003;':'&#9744;'}</td></tr>`;
+      }).join('');
+    }).join('');
+    return `<h3 style="margin:16px 0 6px;font-size:14px;">${v}</h3><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr><th style="padding:6px 8px;border:1px solid #ccc;background:#e8f0ea;">SKU</th><th style="padding:6px 8px;border:1px solid #ccc;background:#e8f0ea;">Description</th><th style="padding:6px 8px;border:1px solid #ccc;background:#e8f0ea;">Client</th><th style="padding:6px 8px;border:1px solid #ccc;background:#e8f0ea;text-align:center;">Qty</th><th style="padding:6px 8px;border:1px solid #ccc;background:#e8f0ea;">Pulled</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }).join('');
+  const totalLines=entries.reduce((s,e)=>s+e.clientLines.length,0);
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>EPS Pull List — ${new Date().toLocaleDateString()}</title><style>body{font-family:Georgia,serif;padding:24px;color:#111;}h1{font-size:20px;margin-bottom:4px;}p{font-size:13px;color:#555;margin-bottom:12px;}</style></head><body><h1>EPS Stock Pull List</h1><p>${new Date().toLocaleDateString()} &nbsp;|&nbsp; ${entries.length} item${entries.length!==1?'s':''}, ${totalLines} client line${totalLines!==1?'s':''}</p>${vendorSections}<p style="margin-top:20px;font-size:11px;color:#888;">If an item can't be pulled, use Need to order in EPS Order Manager.</p></body></html>`);
+  win.document.close();
+  win.print();
+};
+
+window.showBatchImport = () => {
+  document.getElementById('batch-import-area').style.display='block';
+  document.getElementById('import-batches-json').value='';
+  document.getElementById('batch-import-result').style.display='none';
+};
+
+window.hideBatchImport = () => {
+  document.getElementById('batch-import-area').style.display='none';
+};
+
+window.runBatchImport = async () => {
+  const raw = document.getElementById('import-batches-json').value.trim();
+  const prev = document.getElementById('batch-import-result');
+  prev.style.display='block';
+  if(!raw){prev.className='import-preview err';prev.textContent='No JSON data.';return;}
+  let incoming;
+  try { incoming=JSON.parse(raw); } catch(e){prev.className='import-preview err';prev.textContent='Invalid JSON: '+e.message;return;}
+  if(!Array.isArray(incoming)){incoming=[incoming];}
+  let added=0,updated=0,skipped=0;
+  for(const b of incoming){
+    if(!b.id){skipped++;continue;}
+    // Map CSV-converted fields back to app fields
+    const batchData = {
+      client: b.client||b.batch_client||'Unknown',
+      batchType: b.batchType||b.batch_type||'client',
+      status: b.status||b.batch_status||'open',
+      notes: b.notes||b.batch_notes||'',
+      lineItems: (b.lineItems||[]).map(li=>({
+        itemId: li.itemId||li.item_id||'',
+        itemName: li.itemName||li.item_name||'',
+        itemSku: li.itemSku||li.item_sku||'',
+        itemVendor: li.itemVendor||li.item_vendor||'',
+        qty: parseFloat(li.qty)||0,
+        status: li.status||li.line_status||'pending',
+        ...(li.dateSubmitted||li.date_submitted?{dateSubmitted:li.dateSubmitted||li.date_submitted}:{}),
+        ...(li.dateOrdered||li.date_ordered?{dateOrdered:li.dateOrdered||li.date_ordered}:{}),
+        ...(li.receivedDate||li.received_date?{receivedDate:li.receivedDate||li.received_date}:{})
+      }))
+    };
+    // Check if batch already exists in Firebase
+    const existing = batches.find(bt=>bt.id===b.id);
+    if(existing){
+      await updateDoc(doc(db,'inv_batches',b.id),batchData);
+      Object.assign(existing,{id:b.id,...batchData});
+      updated++;
+    } else {
+      // Try to set with same ID
+      try {
+        await setDoc(doc(db,'inv_batches',b.id),{...batchData,created:b.created||new Date().toISOString()});
+        batches.unshift({id:b.id,...batchData,created:new Date()});
+        added++;
+      } catch(e){
+        // Fallback: add with new ID
+        const ref=await addDoc(collection(db,'inv_batches'),{...batchData,created:serverTimestamp()});
+        batches.unshift({id:ref.id,...batchData,created:new Date()});
+        added++;
+      }
+    }
+  }
+  prev.className='import-preview ok';
+  prev.textContent=`Done — ${added} added, ${updated} updated, ${skipped} skipped.`;
+  renderSidebar(); renderBatchWorkspace();
+};
+
+// Migration removed — stock-pull status no longer used
+window.runStockMigration = async () => {
+  const activeBatches = batches.filter(b=>b.status!=='complete');
+  const stockedIds = new Set(catalog.filter(i=>i.active).map(i=>i.id));
+  let updated = 0, batchesChanged = 0;
+  for(const batch of activeBatches){
+    let changed = false;
+    (batch.lineItems||[]).forEach(li=>{
+      if(li.status==='pending' && stockedIds.has(li.itemId)){
+        li.status = 'stock-pull';
+        updated++;
+        changed = true;
+      }
+    });
+    if(changed){
+      batchesChanged++;
+      // Recalc batch status
+      const lis = batch.lineItems;
+      const hasPending = lis.some(li=>li.status==='pending');
+      const hasSubmitted = lis.some(li=>li.status==='submitted');
+      const hasOrdered = lis.some(li=>li.status==='ordered');
+      const allReceived=lis.length>0&&lis.every(li=>li.status==='received');
+      batch.status = allReceived?'complete':hasPending?'open':hasSubmitted?'submitted':hasOrdered?'ordered':'open';
+      await updateDoc(doc(db,'inv_batches',batch.id),{lineItems:batch.lineItems,status:batch.status});
+    }
+  }
+  const el = document.getElementById('migration-result');
+  el.style.display = 'block';
+  if(updated===0){
+    el.style.color = 'var(--text2)';
+    el.textContent = 'Nothing to update — no pending stocked items found. Either the migration has already been run, or no stocked items are in open batches.';
+  } else {
+    el.style.color = 'var(--accent-text)';
+    el.textContent = `Done — ${updated} line item${updated!==1?'s':''} updated to stock-pull across ${batchesChanged} batch${batchesChanged!==1?'es':''}.`;
+    renderSidebar();
+    renderBatchWorkspace();
+  }
 };
 
 window.exportCatalogCSV = () => {
@@ -947,6 +1322,40 @@ window.runImport = async () => {
   renderCatalog(); renderSidebar();
 };
 
+window.exportBatchesJSON = () => {
+  if(!batches.length){alert('No batch data to export.');return;}
+  // Enrich line items with catalog info for readability
+  const enriched = batches.map(b=>({
+    ...b,
+    created: b.created?.toDate?.()?.toISOString() || b.created || null,
+    lineItems: (b.lineItems||[]).map(li=>{
+      const item = catalog.find(i=>i.id===li.itemId);
+      return {...li, itemName:item?.name||'', itemSku:item?.sku||'', itemVendor:item?.vendor||''};
+    })
+  }));
+  const json = JSON.stringify(enriched, null, 2);
+  const a = document.createElement('a');
+  a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(json);
+  a.download = `eps_batches_${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+};
+
+window.clearBatches = async () => {
+  if(!confirm('Delete ALL client batches? Export them first if you want to keep the data.')) return;
+  if(!confirm('Second confirmation — permanently delete all batches?')) return;
+  const snap = await getDocs(collection(db,'inv_batches'));
+  const b = writeBatch(db);
+  snap.docs.forEach(d=>b.delete(d.ref));
+  await b.commit();
+  batches = [];
+  activeBatchId = null;
+  renderSidebar();
+  renderBatchWorkspace();
+  const prev = document.getElementById('import-preview');
+  prev.style.display='block'; prev.className='import-preview ok';
+  prev.textContent='All batches cleared.';
+};
+
 window.clearCatalog = async () => {
   if(!confirm('Delete ALL catalog items? Cannot be undone.')) return;
   if(!confirm('Second confirmation — permanently delete everything?')) return;
@@ -957,6 +1366,21 @@ window.clearCatalog = async () => {
   prev.style.display='block'; prev.className='import-preview ok';
   prev.textContent='Catalog cleared. Ready for fresh import.';
   renderCatalog();
+};
+
+window.printPullSheet = (batchId) => {
+  const batch = batches.find(b=>b.id===batchId); if(!batch) return;
+  const stockItems = (batch.lineItems||[]).filter(li=>li.status==='stock-pull');
+  if(!stockItems.length){alert('No stock items to pull in this batch.');return;}
+  const rows = stockItems.map(li=>{
+    const item=catalog.find(i=>i.id===li.itemId);
+    if(!item) return '';
+    return `<tr><td style="padding:8px;border:1px solid #ccc;">${item.sku||'—'}</td><td style="padding:8px;border:1px solid #ccc;">${item.name}</td><td style="padding:8px;border:1px solid #ccc;text-align:center;">${li.qty} ${item.unit||''}</td><td style="padding:8px;border:1px solid #ccc;">${item.vendor||''}</td><td style="padding:8px;border:1px solid #ccc;width:120px;">&#9744;</td></tr>`;
+  }).join('');
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>Pull Sheet — ${batch.client}</title><style>body{font-family:Georgia,serif;padding:24px;color:#111;}h1{font-size:20px;margin-bottom:4px;}p{font-size:13px;color:#555;margin-bottom:16px;}table{width:100%;border-collapse:collapse;font-size:13px;}th{background:#e8f0ea;padding:8px;border:1px solid #ccc;text-align:left;}@media print{body{padding:12px;}}</style></head><body><h1>Pull Sheet — ${batch.client}</h1><p>Date: ${new Date().toLocaleDateString()} &nbsp;|&nbsp; ${stockItems.length} item${stockItems.length!==1?'s':''} to pull from stock</p><table><thead><tr><th>SKU</th><th>Description</th><th>Qty</th><th>Vendor (backup ref)</th><th>Pulled &#10003;</th></tr></thead><tbody>${rows}</tbody></table><p style="margin-top:16px;font-size:11px;color:#888;">If an item can't be pulled from stock, flag for reorder in EPS Order Manager.</p></body></html>`);
+  win.document.close();
+  win.print();
 };
 
 window.openEditBatchModal = (id) => {
@@ -1004,6 +1428,48 @@ window.copyVsku = (val) => {
   const t = document.getElementById('copy-toast');
   t.style.opacity = '1';
   setTimeout(() => t.style.opacity = '0', 1400);
+};
+
+window._showAllCompleted = false;
+window.toggleCompletedExpanded = () => {
+  window._showAllCompleted = !window._showAllCompleted;
+  const btn = document.getElementById('completed-toggle');
+  if(btn) btn.textContent = window._showAllCompleted ? 'Show less' : 'Show all';
+  renderSidebar();
+};
+
+window.jumpToVendorItem = (itemId, e) => {
+  if(e) e.stopPropagation();
+  const item = catalog.find(i=>i.id===itemId);
+  if(!item) return;
+  switchTab('vendor');
+  setTimeout(() => {
+    const vc = document.getElementById('vendor-content');
+    if(!vc) return;
+    // Try to find a row matching the item name (most reliable)
+    let targetRow = null;
+    vc.querySelectorAll('tr').forEach(row => {
+      const cells = row.querySelectorAll('td');
+      if(cells.length >= 2 && cells[1].textContent.trim() === item.name) targetRow = row;
+    });
+    if(targetRow) {
+      targetRow.scrollIntoView({behavior:'smooth', block:'center'});
+      targetRow.style.transition = 'background 0.15s';
+      targetRow.style.background = 'var(--amber-light)';
+      setTimeout(()=>{ targetRow.style.background=''; targetRow.style.transition=''; }, 2000);
+    } else {
+      // Item not in vendor view yet — highlight the vendor card
+      vc.querySelectorAll('.vendor-card').forEach(card => {
+        const nameEl = card.querySelector('.vendor-card-name');
+        if(nameEl && nameEl.textContent.trim() === (item.vendor||'Unknown')) {
+          card.scrollIntoView({behavior:'smooth', block:'start'});
+          card.style.transition = 'outline 0.15s';
+          card.style.outline = '2px solid var(--amber)';
+          setTimeout(()=>{ card.style.outline=''; card.style.transition=''; }, 2000);
+        }
+      });
+    }
+  }, 150);
 };
 
 window.openModal=id=>document.getElementById(id).style.display='flex';
