@@ -99,6 +99,7 @@
   .vendor-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 14px; overflow: hidden; }
   .vendor-card-header { padding: 11px 15px; background: var(--surface2); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
   .vendor-card-name { font-size: 15px; font-weight: bold; flex: 1; }
+  .vendor-card-name:hover { color: var(--accent); }
   .import-area { border: 2px dashed var(--border-strong); border-radius: var(--radius-lg); padding: 14px; background: var(--surface); margin-bottom: 10px; }
   .import-area textarea { width: 100%; height: 170px; font-family: monospace; font-size: 12px; border: 1px solid var(--border); border-radius: var(--radius); padding: 9px; resize: vertical; margin-top: 8px; background: var(--bg); color: var(--text); }
   .import-preview { font-size: 12px; margin-top: 8px; padding: 8px 10px; border-radius: var(--radius); display: none; }
@@ -164,10 +165,16 @@
 
     <!-- VENDOR VIEW -->
     <div id="tab-vendor" class="tab-view">
-      <div class="toolbar">
+      <div class="toolbar toolbar-sticky">
         <span class="toolbar-title">Vendor View</span>
         <select class="filter-sel" id="vendor-batch-filter" onchange="renderVendorView()"><option value="all">All open batches</option></select>
+        <select class="filter-sel" id="vendor-stock-filter" onchange="renderVendorView()">
+          <option value="">All items</option>
+          <option value="stocked">Stocked only</option>
+          <option value="nonstocked">Non-stocked only</option>
+        </select>
         <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" id="vendor-show-received" onchange="renderVendorView()"> Show received</label>
+        <button class="btn btn-sm no-print" id="vendor-isolate-btn" onclick="toggleVendorIsolate()">Isolate checked</button>
         <button class="btn btn-sm no-print" onclick="window.print()">Print / PDF</button>
       </div>
       <div id="vendor-content"><div class="loading">Loading...</div></div>
@@ -363,7 +370,7 @@
     <div class="form-row"><label class="form-label">Order notes</label><input class="form-input" id="order-notes" placeholder="PO#, contact, date called, etc."></div>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal('modal-order')">Cancel</button>
-      <button class="btn btn-primary" onclick="submitOrder()">Mark as ordered</button>
+      <button class="btn btn-primary" onclick="submitOrder()">Mark as submitted</button>
     </div>
   </div>
 </div>
@@ -449,6 +456,7 @@ window.renderCatalog = () => {
       <td style="color:var(--text2);font-size:12px;" title="${esc(item.notes||'')}">${esc(item.notes||'')}</td>
       <td style="white-space:nowrap;vertical-align:middle;">
         <button class="btn btn-sm btn-edit" onclick="openEditItemModal('${item.id}')">Edit</button>
+        <button class="btn btn-sm" onclick="duplicateItem('${item.id}')" style="font-size:11px;color:var(--text2);">Dupe</button>
         <button class="btn btn-sm btn-danger" onclick="deleteItem('${item.id}')">✕</button>
       </td>
     </tr>`).join('');
@@ -470,6 +478,32 @@ window.openNewItemModal = () => {
   document.getElementById('sku-dup-warning').style.display='none';
   document.getElementById('item-sku').classList.remove('input-error');
   openModal('modal-item');
+};
+
+window.duplicateItem = (id) => {
+  const item = catalog.find(i=>i.id===id); if(!item) return;
+  // Generate next available suffix
+  const baseSku = (item.sku||'').replace(/-\d+$/, ''); // strip existing suffix
+  let suffix = 2;
+  while(catalog.find(i=>i.sku===(baseSku+'-'+suffix))) suffix++;
+  const newSku = baseSku ? baseSku+'-'+suffix : '';
+  // Pre-fill modal with source item data
+  document.getElementById('item-modal-title').textContent = 'Duplicate item';
+  document.getElementById('item-sku').value = newSku;
+  document.getElementById('item-name').value = item.name||'';
+  document.getElementById('item-cat').value = item.category||'';
+  document.getElementById('item-subcat').value = item.subcategory||'';
+  document.getElementById('item-unit').value = item.unit||'';
+  document.getElementById('item-vendor').value = item.vendor||'';
+  document.getElementById('item-vsku').value = item.vendor_sku||'';
+  document.getElementById('item-notes').value = item.notes||'';
+  document.getElementById('item-active').checked = !!item.active;
+  document.getElementById('item-edit-id').value = ''; // blank = new item
+  document.getElementById('sku-dup-warning').style.display='none';
+  document.getElementById('item-sku').classList.remove('input-error');
+  openModal('modal-item');
+  // Focus vendor field since that's what will differ
+  setTimeout(()=>document.getElementById('item-vendor').focus(),100);
 };
 
 window.openEditItemModal = (id) => {
@@ -873,7 +907,7 @@ function renderVendorRollup() {
     const total=items.reduce((s,i)=>s+(parseInt(i.qty)||0),0);
     const preview=items.slice(0,2).map(i=>`${i.qty} ${i.name}`).join(', ')+(items.length>2?` +${items.length-2} more`:'');
     return `<div class="vendor-row">
-      <div><div class="vendor-name">${esc(v)}</div><div class="vendor-items">${esc(preview)}</div></div>
+      <div><div class="vendor-name" onclick="jumpToVendorFromRollup('${esc(v)}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;" title="Isolate in Vendor View">${esc(v)}</div><div class="vendor-items">${esc(preview)}</div></div>
       <div style="font-size:12px;font-weight:bold;color:var(--text2);white-space:nowrap;">${total}</div>
     </div>`;
   }).join('');
@@ -889,6 +923,7 @@ window.renderVendorView = () => {
   updateVendorBatchFilter();
   const fv=document.getElementById('vendor-batch-filter').value;
   const showReceived=document.getElementById('vendor-show-received')?.checked||false;
+  const stockFilter=document.getElementById('vendor-stock-filter')?.value||'';
   const target=fv==='all'?batches.filter(b=>b.status!=='complete'):batches.filter(b=>b.id===fv);
   const rollup={};
   for(const batch of target) for(let idx=0;idx<(batch.lineItems||[]).length;idx++){
@@ -909,7 +944,8 @@ window.renderVendorView = () => {
     const nonRecEntries=allEntries.filter(e=>!e.clients.every(c=>c.status==='received'));
     const allRecdForVendor=nonRecEntries.length===0;
     // Filter rows based on show-received toggle
-    const visibleEntries=showReceived?allEntries:allEntries.filter(e=>!e.clients.every(c=>c.status==='received'));
+    const afterReceived=showReceived?allEntries:allEntries.filter(e=>!e.clients.every(c=>c.status==='received'));
+    const visibleEntries=stockFilter==='stocked'?afterReceived.filter(e=>e.item.active):stockFilter==='nonstocked'?afterReceived.filter(e=>!e.item.active):afterReceived;
     if(!visibleEntries.length&&!showReceived) return `<div class="vendor-card">
       <div class="vendor-card-header">
         <div class="vendor-card-name">${esc(v)}</div>
@@ -934,19 +970,20 @@ window.renderVendorView = () => {
       const rowStyle=allRec?'opacity:0.5;':'';
       return `<tr style="${rowStyle}">
         <td class="cat-row-sku">${esc(item.sku||'—')}</td>
-        <td>${esc(item.name)}</td>
+        <td><span onclick="jumpToCatalogItem('${item.id}')" style="cursor:pointer;" title="View in Catalog">${esc(item.name)}</span></td>
         <td class="vsku-cell" onclick="copyVsku('${esc(item.vendor_sku||'')}')" title="${esc(item.vendor_sku||'')}">${esc(item.vendor_sku||'')}</td>
         <td>${esc(item.unit||'')}</td>
         <td style="font-weight:bold;">${qty}</td>
-        <td style="font-size:12px;color:var(--text2);">${clients.map(c=>`<div>${esc(c.client)}: ${c.qty}</div>`).join('')}</td>
+        <td style="font-size:12px;color:var(--text2);">${clients.map(c=>`<div><span onclick="jumpToBatch('${c.batchId}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;" title="Open in Order Pad">${esc(c.client)}</span>: ${c.qty}</div>`).join('')}</td>
         <td style="text-align:center;">${item.active?'<span class="badge badge-green" style="font-size:10px;">S</span>':''}</td>
         <td>${statusBtn}</td>
       </tr>`;
     }).join('');
     const showBtn=allRecdForVendor?'':'';
-    return `<div class="vendor-card">
+    return `<div class="vendor-card" data-vendor="${esc(v)}">
       <div class="vendor-card-header">
-        <div class="vendor-card-name">${esc(v)}</div>
+        <input type="checkbox" class="vendor-isolate-cb" data-vendor="${esc(v)}" style="width:15px;height:15px;cursor:pointer;accent-color:var(--accent);flex-shrink:0;" title="Select for isolation">
+        <div class="vendor-card-name" onclick="isolateSingleVendor('${esc(v)}')" style="cursor:pointer;" title="Click to isolate this vendor">${esc(v)}</div>
         <span style="font-size:12px;color:var(--text2);">${visibleEntries.length} of ${allEntries.length} line item${allEntries.length!==1?'s':''}</span>
       </div>
       <table class="tbl"><thead><tr><th style="width:80px;">SKU</th><th style="width:24%;">Description</th><th style="width:80px;">Vendor SKU</th><th style="width:46px;">Unit</th><th style="width:70px;">Total Qty</th><th>By client</th><th style="width:60px;text-align:center;">Stocked</th><th style="width:110px;">Status</th></tr></thead>
@@ -986,6 +1023,95 @@ let _vendorShowReceived = {};
 window.toggleVendorReceived = (vendor) => {
   _vendorShowReceived[vendor]=!_vendorShowReceived[vendor];
   renderVendorView();
+};
+
+// Vendor isolation
+let _vendorIsolated = false;
+
+window.toggleVendorIsolate = () => {
+  const btn = document.getElementById('vendor-isolate-btn');
+  if(_vendorIsolated){
+    // Restore all
+    _vendorIsolated = false;
+    btn.textContent = 'Isolate checked';
+    btn.classList.remove('btn-primary');
+    document.querySelectorAll('#vendor-content .vendor-card').forEach(card=>{
+      card.style.display='';
+    });
+    // Uncheck all
+    document.querySelectorAll('.vendor-isolate-cb').forEach(cb=>cb.checked=false);
+  } else {
+    // Isolate checked
+    const checked = new Set();
+    document.querySelectorAll('.vendor-isolate-cb:checked').forEach(cb=>checked.add(cb.dataset.vendor));
+    if(!checked.size){ alert('Check at least one vendor first.'); return; }
+    _vendorIsolated = true;
+    btn.textContent = 'Show all';
+    btn.classList.add('btn-primary');
+    document.querySelectorAll('#vendor-content .vendor-card').forEach(card=>{
+      card.style.display = checked.has(card.dataset.vendor) ? '' : 'none';
+    });
+  }
+};
+
+window.isolateSingleVendor = (vendor) => {
+  // Check just this vendor's box and isolate
+  document.querySelectorAll('.vendor-isolate-cb').forEach(cb=>{
+    cb.checked = cb.dataset.vendor === vendor;
+  });
+  const btn = document.getElementById('vendor-isolate-btn');
+  _vendorIsolated = true;
+  btn.textContent = 'Show all';
+  btn.classList.add('btn-primary');
+  document.querySelectorAll('#vendor-content .vendor-card').forEach(card=>{
+    card.style.display = card.dataset.vendor === vendor ? '' : 'none';
+  });
+};
+
+window.jumpToCatalogItem = (itemId) => {
+  switchTab('catalog');
+  // Clear filters so the item is visible
+  document.getElementById('cat-search').value='';
+  document.getElementById('cat-cat-filter').value='';
+  document.getElementById('cat-vendor-filter').value='';
+  document.getElementById('cat-active-filter').value='';
+  renderCatalog();
+  setTimeout(()=>{
+    const rows = document.querySelectorAll('#catalog-tbody tr');
+    const item = catalog.find(i=>i.id===itemId);
+    if(!item) return;
+    let target = null;
+    rows.forEach(row=>{
+      const skuCell = row.querySelector('.cat-row-sku');
+      if(skuCell&&skuCell.textContent.trim()===(item.sku||'—')) target=row;
+    });
+    if(target){
+      target.scrollIntoView({behavior:'smooth',block:'center'});
+      target.style.transition='background 0.15s';
+      target.style.background='var(--amber-light)';
+      setTimeout(()=>{target.style.background='';target.style.transition='';},2000);
+    }
+  },150);
+};
+
+window.jumpToBatch = (batchId) => {
+  activeBatchId = batchId;
+  switchTab('orderpad');
+  renderSidebar();
+  renderBatchWorkspace();
+  // Scroll batch into view in sidebar
+  setTimeout(()=>{
+    const el = document.querySelector(`.batch-item.active-batch`);
+    if(el) el.scrollIntoView({behavior:'smooth',block:'nearest'});
+  },150);
+};
+
+window.jumpToVendorFromRollup = (vendor) => {
+  switchTab('vendor');
+  setTimeout(()=>{
+    // Render first, then isolate
+    isolateSingleVendor(vendor);
+  },150);
 };
 
 // markVendorOrdered removed — replaced by cycleVendorStatus
