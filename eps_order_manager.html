@@ -185,6 +185,10 @@
       <div class="toolbar toolbar-sticky">
         <span class="toolbar-title">Pull List</span>
         <span class="status-bar" id="pulllist-status"></span>
+        <div class="stock-toggle no-print" style="display:flex;gap:4px;">
+          <button id="pull-view-vendor" class="btn btn-sm active" onclick="setPullView('vendor')" style="background:var(--accent);color:white;border-color:var(--accent);">By vendor</button>
+          <button id="pull-view-job" class="btn btn-sm" onclick="setPullView('job')">By job</button>
+        </div>
         <button class="btn btn-sm no-print" onclick="printPullList()">Print pull list ↗</button>
       </div>
       <div id="pulllist-content"><div class="loading">Loading...</div></div>
@@ -631,7 +635,10 @@ window.renderBatchWorkspace = () => {
   const batch = getActiveBatch();
   const ws = document.getElementById('batch-workspace');
   if (!batch) { ws.innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><div>Select a client batch from the sidebar, or create a new one.</div></div>'; return; }
-  const rows = (batch.lineItems||[]).map((li,idx)=>{
+  const allLineItems = (batch.lineItems||[]).map((li,idx)=>({...li,_origIdx:idx}));
+  const displayLineItems = _orderPadStockFilter ? allLineItems.filter(li=>{ const item=catalog.find(i=>i.id===li.itemId); return item?.active; }) : allLineItems;
+  const rows = displayLineItems.map((li)=>{
+    const idx = li._origIdx;
     const item = catalog.find(i=>i.id===li.itemId);
     if (!item) return '';
     const isStock = false; const isStockDone = false;
@@ -671,6 +678,7 @@ window.renderBatchWorkspace = () => {
       ${batch.notes?`<span style="font-size:12px;color:var(--text2);">${esc(batch.notes)}</span>`:''}
       <span style="margin-left:auto;display:flex;gap:6px;">
         <button class="btn btn-sm btn-edit" onclick="openEditBatchModal('${batch.id}')">Edit</button>
+        <button class="btn btn-sm no-print" id="stock-filter-btn" onclick="toggleOrderPadStockFilter()" style="${_orderPadStockFilter?'background:var(--accent);color:white;border-color:var(--accent);':''}" title="Filter to stocked items only">${_orderPadStockFilter?'Stocked only ✕':'Stock filter'}</button>
 
         ${batch.status!=='complete'&&(batch.lineItems||[]).some(li=>li.status==='pending')?`<button class="btn btn-sm" onclick="openOrderModal()">Submit order →</button>`:''}
         ${batch.status==='complete'?`<button class="btn btn-sm btn-edit" onclick="reopenBatch('${batch.id}')">Reopen</button>`:`<button class="btn btn-sm btn-primary" onclick="completeBatch('${batch.id}')">Mark complete</button>`}
@@ -684,7 +692,7 @@ window.renderBatchWorkspace = () => {
     <div class="table-scroll" style="max-height:calc(100vh - 290px);">
       <table class="tbl">
         <thead><tr><th style="width:80px;">SKU</th><th style="width:26%;">Description</th><th style="width:14%;">Vendor</th><th style="width:46px;">Unit</th><th style="width:60px;">Qty</th><th style="width:60px;text-align:center;">Stocked</th><th style="width:100px;">Status</th><th style="width:80px;"></th></tr></thead>
-        <tbody>${rows||'<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px;">No items yet. Search above to add.</td></tr>'}</tbody>
+        <tbody>${rows||(_orderPadStockFilter?'<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:16px;">No stocked items in this batch.</td></tr>':'<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:24px;">No items yet. Search above to add.</td></tr>')}</tbody>
       </table>
     </div>
   </div>`;
@@ -695,6 +703,12 @@ window.renderBatchWorkspace = () => {
 };
 
 let searchHighlightIdx = -1;
+let _orderPadStockFilter = false; // false = all, true = stocked only
+
+window.toggleOrderPadStockFilter = () => {
+  _orderPadStockFilter = !_orderPadStockFilter;
+  renderBatchWorkspace();
+};
 
 window.searchCatalogItems = () => {
   searchHighlightIdx = -1;
@@ -1116,74 +1130,122 @@ window.jumpToVendorFromRollup = (vendor) => {
 
 // markVendorOrdered removed — replaced by cycleVendorStatus
 
-window.renderPullList = () => {
-  const activeBatches = batches.filter(b=>b.status!=='complete'&&b.batchType!=='shop');
-  // Show submitted stocked items — stocked = catalog active flag
-  const stockedIds = new Set(catalog.filter(i=>i.active).map(i=>i.id));
-  const pullMap = {};
-  for(const batch of activeBatches){
-    for(let idx=0;idx<(batch.lineItems||[]).length;idx++){
-      const li=batch.lineItems[idx];
-      // Show submitted or ordered stocked items (submitted = ready to pull, ordered = already actioned from vendor side)
-      if(!['submitted','ordered','received'].includes(li.status)) continue;
-      if(!stockedIds.has(li.itemId)) continue;
-      const item = catalog.find(i=>i.id===li.itemId); if(!item) continue;
-      if(!pullMap[li.itemId]) pullMap[li.itemId]={item, clientLines:[]};
-      pullMap[li.itemId].clientLines.push({client:batch.client, qty:li.qty, batchId:batch.id, idx, status:li.status});
+let _pullView = 'vendor'; // 'vendor' or 'job'
+
+window.setPullView = (view) => {
+  _pullView = view;
+  const vBtn = document.getElementById('pull-view-vendor');
+  const jBtn = document.getElementById('pull-view-job');
+  if(vBtn&&jBtn){
+    if(view==='vendor'){
+      vBtn.style.cssText='background:var(--accent);color:white;border-color:var(--accent);';
+      jBtn.style.cssText='';
+    } else {
+      jBtn.style.cssText='background:var(--accent);color:white;border-color:var(--accent);';
+      vBtn.style.cssText='';
     }
   }
-  const entries = Object.values(pullMap);
+  renderPullList();
+};
+
+window.renderPullList = () => {
+  const activeBatches = batches.filter(b=>b.status!=='complete'&&b.batchType!=='shop');
+  const stockedIds = new Set(catalog.filter(i=>i.active).map(i=>i.id));
   const pc = document.getElementById('pulllist-content');
   const statusEl = document.getElementById('pulllist-status');
-  if(!entries.length){
-    pc.innerHTML='<div class="empty-state"><div class="empty-icon">📦</div><div>No stock items to pull across open batches.</div></div>';
-    if(statusEl) statusEl.textContent='';
-    return;
-  }
-  // Group by vendor
-  const byVendor = {};
-  entries.forEach(e=>{
-    const v=e.item.vendor||'Unknown';
-    if(!byVendor[v]) byVendor[v]=[];
-    byVendor[v].push(e);
-  });
-  const totalLines = entries.reduce((s,e)=>s+e.clientLines.length,0);
-  if(statusEl) statusEl.textContent = `${entries.length} item${entries.length!==1?'s':''}, ${totalLines} client line${totalLines!==1?'s':''}`;
-  pc.innerHTML = Object.keys(byVendor).sort().map(v=>{
-    const items=byVendor[v];
-    const rows=items.map(({item,clientLines})=>{
-      // One row per item header, then sub-rows per client
-      const totalQty=clientLines.reduce((s,c)=>s+(parseInt(c.qty)||0),0);
-      const clientRows=clientLines.map((c,ci)=>{
-        const isPulled=c.status==='received';
-        const isOrdered=c.status==='ordered';
-        const rowStyle=isPulled?'opacity:0.5;':'';
-        const actionLabel=isPulled?'<span style="font-size:11px;color:var(--accent-text);">✓ Pulled</span>':isOrdered?'<span style="font-size:11px;color:var(--amber);">Ordered</span>':'<span style="font-size:11px;color:var(--text3);">In vendor queue</span>';
-        return `<tr style="${rowStyle}">
-          <td class="cat-row-sku">${ci===0?esc(item.sku||'—'):''}</td>
-          <td>${ci===0?`<strong>${esc(item.name)}</strong>`:'<span style="color:var(--text3);font-size:11px;">↳</span>'}</td>
-          <td>${ci===0?esc(item.unit||''):''}</td>
-          <td style="text-align:center;">${ci===0?`<strong>${totalQty}</strong>`:''}</td>
-          <td style="font-size:13px;">${esc(c.client)}: ${c.qty} ${esc(item.unit||'')}</td>
-          <td style="text-align:center;vertical-align:middle;">
-            <input type="checkbox" ${isPulled?'checked':''} onchange="markClientPulled('${c.batchId}',${c.idx},this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent);" title="Mark as pulled from stock">
-          </td>
+
+  if(_pullView === 'vendor') {
+    // ── BY VENDOR VIEW ──
+    const pullMap = {};
+    for(const batch of activeBatches){
+      for(let idx=0;idx<(batch.lineItems||[]).length;idx++){
+        const li=batch.lineItems[idx];
+        if(!['submitted','ordered','received'].includes(li.status)) continue;
+        if(!stockedIds.has(li.itemId)) continue;
+        const item = catalog.find(i=>i.id===li.itemId); if(!item) continue;
+        if(!pullMap[li.itemId]) pullMap[li.itemId]={item, clientLines:[]};
+        pullMap[li.itemId].clientLines.push({client:batch.client, qty:li.qty, batchId:batch.id, idx, status:li.status});
+      }
+    }
+    const entries = Object.values(pullMap);
+    if(!entries.length){
+      pc.innerHTML='<div class="empty-state"><div class="empty-icon">📦</div><div>No stock items to pull across open batches.</div></div>';
+      if(statusEl) statusEl.textContent=''; return;
+    }
+    const byVendor = {};
+    entries.forEach(e=>{ const v=e.item.vendor||'Unknown'; if(!byVendor[v])byVendor[v]=[]; byVendor[v].push(e); });
+    const totalLines = entries.reduce((s,e)=>s+e.clientLines.length,0);
+    if(statusEl) statusEl.textContent = `${entries.length} item${entries.length!==1?'s':''}, ${totalLines} client line${totalLines!==1?'s':''}`;
+    pc.innerHTML = Object.keys(byVendor).sort().map(v=>{
+      const items=byVendor[v];
+      const rows=items.map(({item,clientLines})=>{
+        const totalQty=clientLines.reduce((s,c)=>s+(parseInt(c.qty)||0),0);
+        return clientLines.map((c,ci)=>{
+          const isPulled=c.status==='received'; const isOrdered=c.status==='ordered';
+          const actionLabel=isPulled?'<span style="font-size:11px;color:var(--accent-text);">✓ Pulled</span>':isOrdered?'<span style="font-size:11px;color:var(--amber);">Ordered</span>':'<span style="font-size:11px;color:var(--text3);">In queue</span>';
+          return `<tr style="${isPulled?'opacity:0.5;':''}">
+            <td class="cat-row-sku">${ci===0?esc(item.sku||'—'):''}</td>
+            <td>${ci===0?`<strong>${esc(item.name)}</strong>`:'<span style="color:var(--text3);font-size:11px;">↳</span>'}</td>
+            <td>${ci===0?esc(item.unit||''):''}</td>
+            <td style="text-align:center;">${ci===0?`<strong>${totalQty}</strong>`:''}</td>
+            <td style="font-size:13px;">${esc(c.client)}: ${c.qty} ${esc(item.unit||'')}</td>
+            <td style="text-align:center;vertical-align:middle;"><input type="checkbox" ${isPulled?'checked':''} onchange="markClientPulled('${c.batchId}',${c.idx},this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent);"></td>
+            <td style="vertical-align:middle;" class="no-print">${actionLabel}</td>
+          </tr>`;
+        }).join('');
+      }).join('');
+      return `<div class="vendor-card" style="margin-bottom:14px;">
+        <div class="vendor-card-header"><div class="vendor-card-name">${esc(v)}</div><span style="font-size:12px;color:var(--text2);">${items.length} item${items.length!==1?'s':''}</span></div>
+        <table class="tbl"><thead><tr><th style="width:80px;">SKU</th><th style="width:26%;">Description</th><th style="width:46px;">Unit</th><th style="width:70px;text-align:center;">Total</th><th>Client / qty</th><th style="width:70px;text-align:center;">Pulled ✓</th><th style="width:120px;" class="no-print">Action</th></tr></thead>
+        <tbody>${rows}</tbody></table>
+      </div>`;
+    }).join('');
+
+  } else {
+    // ── BY JOB VIEW ──
+    const byJob = {};
+    const jobOrder = [];
+    for(const batch of activeBatches){
+      let hasStock = false;
+      const jobLines = [];
+      for(let idx=0;idx<(batch.lineItems||[]).length;idx++){
+        const li=batch.lineItems[idx];
+        if(!['submitted','ordered','received'].includes(li.status)) continue;
+        if(!stockedIds.has(li.itemId)) continue;
+        const item = catalog.find(i=>i.id===li.itemId); if(!item) continue;
+        jobLines.push({item, li, idx, batchId:batch.id});
+        hasStock = true;
+      }
+      if(hasStock){ byJob[batch.id]={client:batch.client, lines:jobLines}; jobOrder.push(batch.id); }
+    }
+    if(!jobOrder.length){
+      pc.innerHTML='<div class="empty-state"><div class="empty-icon">📦</div><div>No stock items to pull across open batches.</div></div>';
+      if(statusEl) statusEl.textContent=''; return;
+    }
+    const totalLines2 = jobOrder.reduce((s,id)=>s+byJob[id].lines.length,0);
+    if(statusEl) statusEl.textContent = `${jobOrder.length} job${jobOrder.length!==1?'s':''}, ${totalLines2} item${totalLines2!==1?'s':''}`;
+    pc.innerHTML = jobOrder.map(batchId=>{
+      const {client,lines} = byJob[batchId];
+      const rows = lines.map(({item,li,idx,batchId:bid})=>{
+        const isPulled=li.status==='received'; const isOrdered=li.status==='ordered';
+        const actionLabel=isPulled?'<span style="font-size:11px;color:var(--accent-text);">✓ Pulled</span>':isOrdered?'<span style="font-size:11px;color:var(--amber);">Ordered</span>':'<span style="font-size:11px;color:var(--text3);">In queue</span>';
+        return `<tr style="${isPulled?'opacity:0.5;':''}">
+          <td class="cat-row-sku">${esc(item.sku||'—')}</td>
+          <td>${esc(item.name)}</td>
+          <td>${esc(item.unit||'')}</td>
+          <td style="font-size:12px;color:var(--text2);">${esc(item.vendor||'—')}</td>
+          <td style="text-align:center;font-weight:bold;">${li.qty}</td>
+          <td style="text-align:center;vertical-align:middle;"><input type="checkbox" ${isPulled?'checked':''} onchange="markClientPulled('${bid}',${idx},this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent);"></td>
           <td style="vertical-align:middle;" class="no-print">${actionLabel}</td>
         </tr>`;
       }).join('');
-      return clientRows;
+      return `<div class="vendor-card" style="margin-bottom:14px;">
+        <div class="vendor-card-header"><div class="vendor-card-name">${esc(client)}</div><span style="font-size:12px;color:var(--text2);">${lines.length} stock item${lines.length!==1?'s':''}</span></div>
+        <table class="tbl"><thead><tr><th style="width:80px;">SKU</th><th style="width:26%;">Description</th><th style="width:46px;">Unit</th><th style="width:14%;">Vendor</th><th style="width:60px;text-align:center;">Qty</th><th style="width:70px;text-align:center;">Pulled ✓</th><th style="width:120px;" class="no-print">Action</th></tr></thead>
+        <tbody>${rows}</tbody></table>
+      </div>`;
     }).join('');
-    return `<div class="vendor-card" style="margin-bottom:14px;">
-      <div class="vendor-card-header">
-        <div class="vendor-card-name">${esc(v)}</div>
-        <span style="font-size:12px;color:var(--text2);">${items.length} item${items.length!==1?'s':''}</span>
-      </div>
-      <table class="tbl">
-        <thead><tr><th style="width:80px;">SKU</th><th style="width:26%;">Description</th><th style="width:46px;">Unit</th><th style="width:70px;text-align:center;">Total</th><th>Client / qty</th><th style="width:70px;text-align:center;">Pulled ✓</th><th style="width:120px;" class="no-print">Action</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>`;
-  }).join('');
+  }
 };
 
 window.markClientPulled = async (batchId, idx, checked) => {
