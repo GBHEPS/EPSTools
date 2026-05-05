@@ -1912,7 +1912,7 @@ function renderJobList() {
         <span class="group-meta">${count} item${count!==1?'s':''}</span>
         ${group.collapsed ? '<span class="group-collapsed-badge">HEADING ONLY</span>' : ''}
         <div class="group-actions" onclick="event.stopPropagation()">
-          <button class="btn btn-sm" title="Toggle heading-only mode" onclick="toggleGroupCollapsed(${gi})">${group.collapsed?'Collapse to heading':'Show items'}</button>
+          <button class="btn btn-sm" title="Toggle heading-only mode" onclick="toggleGroupCollapsed(${gi})">${group.collapsed?'Show items':'Collapse to heading'}</button>
           <button class="btn btn-sm btn-danger" onclick="removeGroup(${gi})">✕</button>
         </div>
       </div>
