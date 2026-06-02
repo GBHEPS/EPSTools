@@ -231,68 +231,77 @@
     .detail-container {
       max-width: 960px;
       margin: 0 auto;
-      padding: 24px 20px 60px;
+      padding: 20px 20px 60px;
     }
 
     .detail-header-card {
       background: var(--text);
       color: #fff;
-      border-radius: 6px;
-      padding: 20px 24px;
+      border-radius: 6px 6px 0 0;
+      padding: 18px 24px 16px;
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 16px;
+      margin-bottom: 0;
+      border-bottom: 3px solid #4a8a4a;
     }
     .detail-client-name {
       font-family: var(--mono);
-      font-size: 32px;
+      font-size: 34px;
       font-weight: 600;
-      letter-spacing: 0.02em;
+      letter-spacing: 0.04em;
       line-height: 1;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
     }
     .detail-subtitle {
-      font-size: 13px;
-      color: #a0b0c0;
-      line-height: 1.5;
+      font-size: 12px;
+      color: #8aaabb;
+      line-height: 1.6;
     }
     .detail-right {
       text-align: right;
+      padding-top: 2px;
     }
     .detail-est {
       font-family: var(--mono);
       font-size: 11px;
-      color: #6080a0;
-      margin-bottom: 4px;
+      color: #5a7a9a;
+      margin-bottom: 6px;
+      letter-spacing: 0.06em;
     }
     .detail-amount {
       font-family: var(--mono);
-      font-size: 24px;
+      font-size: 26px;
       font-weight: 600;
-      color: #fff;
+      color: #c8d8a0;
     }
 
+    /* Info strip below header — connected look */
     .info-grid {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 16px;
+      gap: 0;
+      margin-bottom: 14px;
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 6px 6px;
+      overflow: hidden;
     }
     .info-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 5px;
-      padding: 12px 14px;
+      background: #f0ede6;
+      border-right: 1px solid var(--border);
+      padding: 10px 14px;
     }
+    .info-card:last-child { border-right: none; }
     .info-label {
       font-family: var(--mono);
-      font-size: 9px;
+      font-size: 8px;
       font-weight: 600;
-      letter-spacing: 0.12em;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
       color: var(--text-light);
-      margin-bottom: 4px;
+      margin-bottom: 3px;
     }
     .info-value {
       font-size: 13px;
@@ -311,9 +320,7 @@
       padding: 0;
       cursor: text;
     }
-    .info-input:focus {
-      border-bottom: 1px solid var(--accent);
-    }
+    .info-input:focus { border-bottom: 1px solid var(--accent); }
 
     /* Status selector */
     .status-select {
@@ -332,16 +339,18 @@
     .detail-section {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 6px;
-      margin-bottom: 12px;
+      border-radius: 5px;
+      margin-bottom: 10px;
       overflow: hidden;
     }
+
+    /* Checklist sections — neutral header */
     .section-head {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 10px 16px;
-      background: var(--surface2);
+      padding: 7px 14px;
+      background: #2a2724;
       border-bottom: 1px solid var(--border);
     }
     .section-label {
@@ -350,27 +359,52 @@
       font-weight: 600;
       letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: var(--text-muted);
+      color: #d0c8b8;
     }
     .section-progress {
       font-family: var(--mono);
       font-size: 10px;
-      color: var(--text-light);
+      color: #8a9a7a;
+      font-weight: 600;
     }
+
+    /* Zonal section heads */
+    .section-head.green  { background: #1e3d1e; border-bottom-color: #4a7c4a; }
+    .section-head.green .section-label { color: #a0d0a0; }
+    .section-head.amber  { background: #3d2e0a; border-bottom-color: #8a6800; }
+    .section-head.amber .section-label { color: #e0c060; }
+    .section-head.blue   { background: #0e2236; border-bottom-color: #2a6090; }
+    .section-head.blue .section-label  { color: #80b8e0; }
+
+    /* Zonal section bodies */
+    .detail-section.zone-green { border-color: #7ab07a; }
+    .detail-section.zone-green .section-head { background: #1e3d1e; border-bottom-color: #4a7c4a; }
+    .detail-section.zone-green .section-label { color: #a0d0a0; }
+    .detail-section.zone-amber { border-color: #c8a840; }
+    .detail-section.zone-amber .section-head { background: #3d2e0a; border-bottom-color: #8a6800; }
+    .detail-section.zone-amber .section-label { color: #e0c060; }
+    .detail-section.zone-blue  { border-color: #5a9aca; }
+    .detail-section.zone-blue  .section-head { background: #0e2236; border-bottom-color: #2a6090; }
+    .detail-section.zone-blue  .section-label { color: #80b8e0; }
+
+    /* Zone body tints */
+    .detail-section.zone-green > :not(.section-head) { background: #f2faf2; }
+    .detail-section.zone-amber > :not(.section-head) { background: #fef9ec; }
+    .detail-section.zone-blue  > :not(.section-head) { background: #eef6fc; }
 
     /* ── CHECKLIST ── */
     .checklist-body {
-      padding: 12px 16px;
+      padding: 10px 14px;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 2px 20px;
+      gap: 0 20px;
     }
     .check-item {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 6px 0;
-      border-bottom: 1px solid var(--border);
+      gap: 8px;
+      padding: 5px 0;
+      border-bottom: 1px solid #eae6de;
       cursor: pointer;
       user-select: none;
     }
@@ -378,10 +412,10 @@
     .check-item:hover .check-box { border-color: var(--accent); }
 
     .check-box {
-      width: 16px;
-      height: 16px;
+      width: 14px;
+      height: 14px;
       border: 1.5px solid var(--border-strong);
-      border-radius: 3px;
+      border-radius: 2px;
       flex-shrink: 0;
       display: flex;
       align-items: center;
@@ -394,15 +428,15 @@
     }
     .check-box.checked::after {
       content: '';
-      width: 9px;
-      height: 5px;
+      width: 8px;
+      height: 4px;
       border-left: 2px solid #fff;
       border-bottom: 2px solid #fff;
       transform: rotate(-45deg) translate(1px, -1px);
       display: block;
     }
     .check-label {
-      font-size: 12px;
+      font-size: 11.5px;
       line-height: 1.3;
       color: var(--text);
       transition: color 0.15s;
@@ -424,22 +458,24 @@
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--text-muted);
-      padding: 8px 16px;
+      color: #5a8a5a;
+      padding: 7px 14px;
       text-align: left;
-      border-bottom: 1px solid var(--border);
-      background: var(--surface2);
+      border-bottom: 1px solid #c0d8c0;
+      background: #e4f2e4;
     }
     .hours-table td {
-      padding: 8px 16px;
-      border-bottom: 1px solid var(--border);
+      padding: 7px 14px;
+      border-bottom: 1px solid #daeada;
+      font-size: 12px;
     }
     .hours-table tr:last-child td { border-bottom: none; }
     .hours-table .total-row td {
       font-family: var(--mono);
-      font-weight: 600;
-      background: var(--green-light);
-      color: var(--green);
+      font-weight: 700;
+      background: #d0ecd0;
+      color: #1e4a1e;
+      font-size: 12px;
     }
     .hours-num {
       font-family: var(--mono);
@@ -447,9 +483,9 @@
 
     /* ── MATERIALS ── */
     .materials-body {
-      padding: 14px 16px;
-      font-size: 12px;
-      line-height: 1.7;
+      padding: 12px 14px;
+      font-size: 11.5px;
+      line-height: 1.75;
       color: var(--text);
       white-space: pre-wrap;
     }
@@ -457,10 +493,10 @@
     /* ── NOTES & SUPPLIES ── */
     .editable-area {
       width: 100%;
-      min-height: 100px;
-      padding: 14px 16px;
+      min-height: 90px;
+      padding: 12px 14px;
       font-family: var(--sans);
-      font-size: 13px;
+      font-size: 12px;
       line-height: 1.6;
       color: var(--text);
       background: none;
@@ -470,7 +506,7 @@
       display: block;
     }
     .editable-area::placeholder { color: var(--text-light); font-style: italic; }
-    .editable-area:focus { background: #fafaf8; }
+    .editable-area:focus { background: #fffdf8; }
 
     /* ── SAVE BAR ── */
     .save-bar {
@@ -544,6 +580,82 @@
       color: var(--amber);
       border: 1.5px solid var(--amber-border);
     }
+
+    /* ── EDITABLE HEADING/INLINE ── */
+    .editable-heading {
+      outline: none;
+      border-bottom: 2px solid transparent;
+      transition: border-color 0.15s;
+      cursor: text;
+    }
+    .editable-heading:hover { border-bottom-color: #4a7a9a; }
+    .editable-heading:focus { border-bottom-color: #a0c0e0; }
+    .editable-inline {
+      outline: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.15s;
+      cursor: text;
+    }
+    .editable-inline:hover { border-bottom-color: #4a7a9a; }
+    .editable-inline:focus { border-bottom-color: #a0c0e0; }
+
+    /* ── CUSTOM TASK ITEMS ── */
+    .custom-item { background: #fdf8ee; }
+    .custom-label {
+      flex: 1;
+      outline: none;
+      cursor: text;
+    }
+    .custom-label:focus { border-bottom: 1px solid var(--amber-border); }
+    .btn-del-check {
+      background: none;
+      border: none;
+      color: var(--text-light);
+      font-size: 14px;
+      cursor: pointer;
+      padding: 0 2px;
+      line-height: 1;
+      flex-shrink: 0;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .check-item:hover .btn-del-check { opacity: 1; }
+    .btn-del-check:hover { color: var(--red); }
+
+    /* ── ADD TASK ROW ── */
+    .add-task-row {
+      display: flex;
+      gap: 6px;
+      padding: 6px 0 2px;
+      grid-column: span 2;
+    }
+    .add-task-input {
+      flex: 1;
+      font-family: var(--sans);
+      font-size: 12px;
+      color: var(--text);
+      background: var(--surface2);
+      border: 1px dashed var(--border-strong);
+      border-radius: 3px;
+      padding: 5px 8px;
+      outline: none;
+    }
+    .add-task-input:focus { border-color: var(--accent); background: #fff; }
+    .btn-add-task {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      background: var(--blue-light);
+      border: 1px solid var(--blue-border);
+      border-radius: 3px;
+      padding: 5px 10px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .btn-add-task:hover { background: var(--accent); color: #fff; }
 
     /* ── NEW PROJECT FORM ── */
     .new-container {
@@ -1148,7 +1260,6 @@
       specialRequirementsDocumented: 'Special requirements documented',
       leadTimeMaterialsOrdered: 'Lead time materials ordered',
       screenMeasureScheduled: 'Screen measure visit scheduled',
-      catManagementConfirmed: 'Cat management plan confirmed',
     },
     production: {
       shopWorkScheduled: 'Shop work scheduled',
@@ -1262,16 +1373,42 @@
     const pre = cl.preProject || {};
     const prod = cl.production || {};
     const close = cl.closeout || {};
+    const custom = cl.custom || {};  // project-specific tasks keyed by section
 
+    // ── Build checklist section HTML ──
+    // Standard items come from CHECKLIST_LABELS
+    // Custom items stored as arrays under checklist.custom.preProject / .production / .closeout
     function checklistSection(section, data, labels) {
-      const keys = Object.keys(labels);
-      const done = keys.filter(k => data[k]).length;
-      const items = keys.map(k => `
+      const stdKeys = Object.keys(labels);
+      const customItems = (custom[section] || []);
+      const stdDone = stdKeys.filter(k => data[k]).length;
+      const custDone = customItems.filter(i => i.done).length;
+      const total = stdKeys.length + customItems.length;
+      const done = stdDone + custDone;
+
+      const stdHtml = stdKeys.map(k => `
         <div class="check-item${data[k] ? ' done' : ''}" onclick="toggleCheck('${section}','${k}',this)">
           <div class="check-box${data[k] ? ' checked' : ''}"></div>
           <span class="check-label">${labels[k]}</span>
         </div>`).join('');
-      return { html: items, done, total: keys.length };
+
+      const custHtml = customItems.map((item, idx) => `
+        <div class="check-item custom-item${item.done ? ' done' : ''}" onclick="toggleCustomCheck('${section}',${idx},this)">
+          <div class="check-box${item.done ? ' checked' : ''}"></div>
+          <span class="check-label custom-label" contenteditable="true"
+            onblur="renameCustomItem('${section}',${idx},this.textContent)"
+            onclick="event.stopPropagation()">${item.label}</span>
+          <button class="btn-del-check" onclick="event.stopPropagation();deleteCustomItem('${section}',${idx})" title="Remove">×</button>
+        </div>`).join('');
+
+      const addHtml = `
+        <div class="add-task-row">
+          <input class="add-task-input" id="add-${section}" type="text" placeholder="+ Add task…"
+            onkeydown="if(event.key==='Enter')addCustomItem('${section}')">
+          <button class="btn-add-task" onclick="addCustomItem('${section}')">Add</button>
+        </div>`;
+
+      return { html: stdHtml + custHtml + addHtml, done, total };
     }
 
     const preSection = checklistSection('preProject', pre, CHECKLIST_LABELS.preProject);
@@ -1292,16 +1429,26 @@
 
     document.getElementById('detailContent').innerHTML = `
       <div class="detail-header-card">
-        <div>
-          <div class="detail-client-name">${p.clientLastName || '—'}</div>
+        <div style="flex:1;min-width:0;">
+          <div class="detail-client-name">
+            <span contenteditable="true" class="editable-heading"
+              onblur="updateField('clientLastName',this.textContent.trim())">${p.clientLastName || '—'}</span>
+          </div>
           <div class="detail-subtitle">
-            ${p.clientFullName || ''}<br>
-            ${p.address || ''}${p.phone ? ' · ' + p.phone : ''}
+            <span contenteditable="true" class="editable-inline"
+              onblur="updateField('clientFullName',this.textContent.trim())">${p.clientFullName || ''}</span><br>
+            <span contenteditable="true" class="editable-inline"
+              onblur="updateField('address',this.textContent.trim())">${p.address || ''}</span>
+            <span style="color:#6080a0;"> · </span>
+            <span contenteditable="true" class="editable-inline"
+              onblur="updateField('phone',this.textContent.trim())">${p.phone || ''}</span>
           </div>
         </div>
         <div class="detail-right">
-          <div class="detail-est">Est #${p.estimateNumber}</div>
-          <div class="detail-amount">$${(p.totalAmount || 0).toLocaleString()}</div>
+          <div class="detail-est">Est #<span contenteditable="true" class="editable-inline"
+            onblur="updateField('estimateNumber',this.textContent.trim())">${p.estimateNumber}</span></div>
+          <div class="detail-amount">$<span contenteditable="true" class="editable-inline"
+            onblur="updateField('totalAmount',parseFloat(this.textContent.replace(/[^0-9.]/g,''))||0)">${(p.totalAmount||0).toLocaleString()}</span></div>
         </div>
       </div>
 
@@ -1325,36 +1472,34 @@
       <div class="detail-section">
         <div class="section-head">
           <div class="section-label">1. Pre-Project Setup</div>
-          <div class="section-progress">${preSection.done}/${preSection.total}</div>
+          <div class="section-progress" id="prog-preProject">${preSection.done}/${preSection.total}</div>
         </div>
-        <div class="checklist-body">${preSection.html}</div>
+        <div class="checklist-body" id="cl-preProject">${preSection.html}</div>
       </div>
 
       <div class="detail-section">
         <div class="section-head">
           <div class="section-label">2. Production</div>
-          <div class="section-progress">${prodSection.done}/${prodSection.total}</div>
+          <div class="section-progress" id="prog-production">${prodSection.done}/${prodSection.total}</div>
         </div>
-        <div class="checklist-body">${prodSection.html}</div>
+        <div class="checklist-body" id="cl-production">${prodSection.html}</div>
       </div>
 
       <div class="detail-section">
         <div class="section-head">
           <div class="section-label">3. Completion & Closeout</div>
-          <div class="section-progress">${closeSection.done}/${closeSection.total}</div>
+          <div class="section-progress" id="prog-closeout">${closeSection.done}/${closeSection.total}</div>
         </div>
-        <div class="checklist-body">${closeSection.html}</div>
+        <div class="checklist-body" id="cl-closeout">${closeSection.html}</div>
       </div>
 
-      <div class="detail-section">
+      <div class="detail-section zone-green">
         <div class="section-head">
           <div class="section-label">Hours Budget</div>
           <div class="section-progress">${p.hoursTotal || 0} hrs total</div>
         </div>
         <table class="hours-table">
-          <thead>
-            <tr><th>Scope</th><th>Units</th><th>Benchmark</th><th>Total</th></tr>
-          </thead>
+          <thead><tr><th>Scope</th><th>Units</th><th>Benchmark</th><th>Total</th></tr></thead>
           <tbody>
             ${hoursRows}
             <tr class="total-row">
@@ -1365,14 +1510,14 @@
         </table>
       </div>
 
-      <div class="detail-section">
+      <div class="detail-section zone-amber">
         <div class="section-head">
           <div class="section-label">Materials Scope Summary</div>
         </div>
         <div class="materials-body">${p.materialsSummary || '—'}</div>
       </div>
 
-      <div class="detail-section">
+      <div class="detail-section zone-blue">
         <div class="section-head">
           <div class="section-label">Project-Specific Supplies</div>
         </div>
@@ -1390,31 +1535,78 @@
     `;
   }
 
-  // ── TOGGLE CHECKLIST ITEM ──
+  // ── PROGRESS COUNTER HELPER ──
+  function updateProgress(section) {
+    const cl = window._currentProject.checklist || {};
+    const stdKeys = Object.keys(CHECKLIST_LABELS[section] || {});
+    const customItems = (cl.custom || {})[section] || [];
+    const stdDone = stdKeys.filter(k => (cl[section] || {})[k]).length;
+    const custDone = customItems.filter(i => i.done).length;
+    const total = stdKeys.length + customItems.length;
+    const done = stdDone + custDone;
+    const el = document.getElementById(`prog-${section}`);
+    if (el) el.textContent = `${done}/${total}`;
+  }
+
+  // ── TOGGLE STANDARD CHECKLIST ITEM ──
   window.toggleCheck = function(section, key, el) {
     const p = window._currentProject;
     if (!p.checklist) p.checklist = {};
     if (!p.checklist[section]) p.checklist[section] = {};
     const newVal = !p.checklist[section][key];
     p.checklist[section][key] = newVal;
-
-    // Update UI
     const box = el.querySelector('.check-box');
-    if (newVal) {
-      box.classList.add('checked');
-      el.classList.add('done');
-    } else {
-      box.classList.remove('checked');
-      el.classList.remove('done');
-    }
-
-    // Update progress counter
-    const sectionEl = el.closest('.detail-section');
-    const items = sectionEl.querySelectorAll('.check-item');
-    const done = sectionEl.querySelectorAll('.check-item.done').length;
-    sectionEl.querySelector('.section-progress').textContent = `${done}/${items.length}`;
-
+    if (newVal) { box.classList.add('checked'); el.classList.add('done'); }
+    else { box.classList.remove('checked'); el.classList.remove('done'); }
+    updateProgress(section);
     markDirty();
+  };
+
+  // ── CUSTOM TASK: TOGGLE ──
+  window.toggleCustomCheck = function(section, idx, el) {
+    const p = window._currentProject;
+    if (!p.checklist.custom) p.checklist.custom = {};
+    if (!p.checklist.custom[section]) p.checklist.custom[section] = [];
+    const item = p.checklist.custom[section][idx];
+    if (!item) return;
+    item.done = !item.done;
+    const box = el.querySelector('.check-box');
+    if (item.done) { box.classList.add('checked'); el.classList.add('done'); }
+    else { box.classList.remove('checked'); el.classList.remove('done'); }
+    updateProgress(section);
+    markDirty();
+  };
+
+  // ── CUSTOM TASK: ADD ──
+  window.addCustomItem = function(section) {
+    const input = document.getElementById(`add-${section}`);
+    const label = (input.value || '').trim();
+    if (!label) return;
+    const p = window._currentProject;
+    if (!p.checklist.custom) p.checklist.custom = {};
+    if (!p.checklist.custom[section]) p.checklist.custom[section] = [];
+    p.checklist.custom[section].push({ label, done: false });
+    input.value = '';
+    markDirty();
+    renderDetail(p);
+  };
+
+  // ── CUSTOM TASK: RENAME ──
+  window.renameCustomItem = function(section, idx, newLabel) {
+    const p = window._currentProject;
+    const item = (p.checklist.custom || {})[section]?.[idx];
+    if (!item || item.label === newLabel) return;
+    item.label = newLabel.trim();
+    markDirty();
+  };
+
+  // ── CUSTOM TASK: DELETE ──
+  window.deleteCustomItem = function(section, idx) {
+    const p = window._currentProject;
+    if (!p.checklist.custom?.[section]) return;
+    p.checklist.custom[section].splice(idx, 1);
+    markDirty();
+    renderDetail(p);
   };
 
   // ── FIELD UPDATES ──
