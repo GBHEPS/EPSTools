@@ -1,397 +1,1659 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EPS Tools -- East Portland Sash</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap');
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EPS Project Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f2efe8;
+      --surface: #ffffff;
+      --surface2: #f7f5f0;
+      --border: #d8d3c8;
+      --border-strong: #b0a898;
+      --text: #1a1714;
+      --text-muted: #7a7060;
+      --text-light: #a09880;
+      --green: #2d6a2d;
+      --green-light: #eaf3ea;
+      --green-border: #7ab07a;
+      --amber: #8a6000;
+      --amber-light: #fdf5e0;
+      --amber-border: #d4a820;
+      --blue: #1a4a6e;
+      --blue-light: #e8f2fa;
+      --blue-border: #5a9aca;
+      --red: #8a2020;
+      --red-light: #fdeaea;
+      --accent: #1a4a6e;
+      --mono: 'IBM Plex Mono', monospace;
+      --sans: 'IBM Plex Sans', sans-serif;
+    }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-body {
-  font-family: 'Comic Neue', 'Comic Sans MS', cursive;
-  background-color: #000080;
-  background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='2' cy='2' r='1' fill='%23003399' /%3E%3C/svg%3E");
-  color: #ffff00;
-  min-height: 100vh;
-}
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 14px;
+    }
 
-.marquee-bar {
-  background: #000000;
-  border-top: 3px solid #ff0000;
-  border-bottom: 3px solid #ff0000;
-  padding: 6px 0;
-  overflow: hidden;
-  white-space: nowrap;
-}
+    /* ── HEADER ── */
+    .app-header {
+      background: var(--text);
+      color: #fff;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .app-header .wordmark {
+      font-family: var(--mono);
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+      color: #fff;
+    }
+    .app-header .wordmark span { color: #a0c0e0; }
+    .header-nav {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .btn-back {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: #a0c0e0;
+      background: none;
+      border: 1px solid #3a5a7a;
+      padding: 5px 12px;
+      border-radius: 3px;
+      cursor: pointer;
+      letter-spacing: 0.05em;
+      transition: all 0.15s;
+      display: none;
+    }
+    .btn-back:hover { background: #3a5a7a; color: #fff; }
+    .btn-back.visible { display: block; }
 
-marquee {
-  color: #00ff00;
-  font-size: 14px;
-  font-weight: bold;
-  letter-spacing: 2px;
-}
+    /* ── VIEWS ── */
+    .view { display: none; }
+    .view.active { display: block; }
 
-.header {
-  background: linear-gradient(180deg, #cc0000, #880000);
-  border: 4px outset #ff6666;
-  margin: 12px;
-  padding: 16px;
-  text-align: center;
-  position: relative;
-}
+    /* ── PROJECT LIST ── */
+    .list-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 28px 20px;
+    }
+    .list-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .list-title {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .project-count {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-light);
+    }
 
-.header h1 {
-  font-size: 32px;
-  color: #ffff00;
-  text-shadow: 3px 3px 0 #000000, -1px -1px 0 #ff6600;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-}
+    .filter-bar {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .filter-btn {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      padding: 5px 12px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .filter-btn.active, .filter-btn:hover {
+      background: var(--text);
+      color: #fff;
+      border-color: var(--text);
+    }
 
-.header .subtitle {
-  color: #ffffff;
-  font-size: 13px;
-  margin-top: 6px;
-  letter-spacing: 1px;
-}
+    .project-table {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .table-head {
+      display: grid;
+      grid-template-columns: 60px 1fr 140px 80px 90px 90px;
+      padding: 8px 16px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .project-row {
+      display: grid;
+      grid-template-columns: 60px 1fr 140px 80px 90px 90px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.1s;
+      align-items: center;
+    }
+    .project-row:last-child { border-bottom: none; }
+    .project-row:hover { background: var(--surface2); }
 
-.under-construction {
-  display: inline-block;
-  background: #ffff00;
-  color: #000000;
-  font-size: 11px;
-  font-weight: bold;
-  padding: 2px 8px;
-  border: 2px solid #ff6600;
-  margin-top: 8px;
-  animation: blink 1s step-end infinite;
-}
+    .est-num {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .client-cell .last-name {
+      font-weight: 600;
+      font-size: 15px;
+      line-height: 1.1;
+    }
+    .client-cell .full-name {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .scope-cell {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+    .amount-cell {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .hours-cell {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .status-badge {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 3px;
+    }
+    .status-active { background: var(--blue-light); color: var(--blue); border: 1px solid var(--blue-border); }
+    .status-production { background: var(--amber-light); color: var(--amber); border: 1px solid var(--amber-border); }
+    .status-complete { background: var(--green-light); color: var(--green); border: 1px solid var(--green-border); }
+    .status-hold { background: #f5f0f0; color: #8a5050; border: 1px solid #d4a0a0; }
 
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
-}
+    .empty-state {
+      padding: 60px 20px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    .empty-state .icon { font-size: 32px; margin-bottom: 12px; }
+    .empty-state p { font-family: var(--mono); font-size: 12px; }
 
-.main {
-  display: flex;
-  gap: 12px;
-  margin: 12px;
-  align-items: flex-start;
-}
+    .loading-state {
+      padding: 40px 20px;
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
 
-.sidebar {
-  width: 180px;
-  flex-shrink: 0;
-}
+    /* ── DETAIL VIEW ── */
+    .detail-container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+    }
 
-.sidebar-box {
-  background: #000080;
-  border: 3px inset #aaaaaa;
-  padding: 10px;
-  margin-bottom: 10px;
-  text-align: center;
-}
+    .detail-header-card {
+      background: var(--text);
+      color: #fff;
+      border-radius: 6px;
+      padding: 20px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+    .detail-client-name {
+      font-family: var(--mono);
+      font-size: 32px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    .detail-subtitle {
+      font-size: 13px;
+      color: #a0b0c0;
+      line-height: 1.5;
+    }
+    .detail-right {
+      text-align: right;
+    }
+    .detail-est {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: #6080a0;
+      margin-bottom: 4px;
+    }
+    .detail-amount {
+      font-family: var(--mono);
+      font-size: 24px;
+      font-weight: 600;
+      color: #fff;
+    }
 
-.sidebar-box h3 {
-  font-size: 12px;
-  color: #00ffff;
-  border-bottom: 1px solid #ffff00;
-  padding-bottom: 4px;
-  margin-bottom: 8px;
-  text-transform: uppercase;
-}
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .info-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 12px 14px;
+    }
+    .info-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-light);
+      margin-bottom: 4px;
+    }
+    .info-value {
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.3;
+    }
+    .info-input {
+      width: 100%;
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      background: none;
+      border: none;
+      outline: none;
+      padding: 0;
+      cursor: text;
+    }
+    .info-input:focus {
+      border-bottom: 1px solid var(--accent);
+    }
 
-.sidebar-box p {
-  font-size: 11px;
-  color: #ffffff;
-  line-height: 1.5;
-}
+    /* Status selector */
+    .status-select {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      border: none;
+      background: none;
+      cursor: pointer;
+      padding: 0;
+      color: var(--text);
+    }
 
-.hit-counter {
-  font-family: 'Courier New', monospace;
-  font-size: 20px;
-  color: #00ff00;
-  background: #000000;
-  border: 2px inset #555;
-  padding: 4px 10px;
-  letter-spacing: 4px;
-  display: block;
-  margin: 6px auto;
-}
+    /* ── SECTIONS ── */
+    .detail-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+    }
+    .section-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .section-progress {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-light);
+    }
 
-.ie-badge {
-  font-size: 10px;
-  color: #ffff00;
-  border: 2px outset #999;
-  background: #003399;
-  padding: 4px 6px;
-  display: inline-block;
-  margin-top: 6px;
-}
+    /* ── CHECKLIST ── */
+    .checklist-body {
+      padding: 12px 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px 20px;
+    }
+    .check-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      user-select: none;
+    }
+    .check-item:last-child { border-bottom: none; }
+    .check-item:hover .check-box { border-color: var(--accent); }
 
-.webring {
-  font-size: 10px;
-  color: #aaffaa;
-  margin-top: 8px;
-}
+    .check-box {
+      width: 16px;
+      height: 16px;
+      border: 1.5px solid var(--border-strong);
+      border-radius: 3px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .check-box.checked {
+      background: var(--green);
+      border-color: var(--green);
+    }
+    .check-box.checked::after {
+      content: '';
+      width: 9px;
+      height: 5px;
+      border-left: 2px solid #fff;
+      border-bottom: 2px solid #fff;
+      transform: rotate(-45deg) translate(1px, -1px);
+      display: block;
+    }
+    .check-label {
+      font-size: 12px;
+      line-height: 1.3;
+      color: var(--text);
+      transition: color 0.15s;
+    }
+    .check-item.done .check-label {
+      color: var(--text-light);
+      text-decoration: line-through;
+    }
 
-.content { flex: 1; }
+    /* ── HOURS BUDGET TABLE ── */
+    .hours-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .hours-table th {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 8px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+    .hours-table td {
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hours-table tr:last-child td { border-bottom: none; }
+    .hours-table .total-row td {
+      font-family: var(--mono);
+      font-weight: 600;
+      background: var(--green-light);
+      color: var(--green);
+    }
+    .hours-num {
+      font-family: var(--mono);
+    }
 
-.tools-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: #000066;
-  border: 4px outset #aaaaaa;
-  margin-bottom: 14px;
-}
+    /* ── MATERIALS ── */
+    .materials-body {
+      padding: 14px 16px;
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--text);
+      white-space: pre-wrap;
+    }
 
-.tools-table caption {
-  background: #003399;
-  color: #ffff00;
-  font-size: 16px;
-  font-weight: bold;
-  padding: 8px;
-  border: 2px outset #aaaaaa;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-}
+    /* ── NOTES & SUPPLIES ── */
+    .editable-area {
+      width: 100%;
+      min-height: 100px;
+      padding: 14px 16px;
+      font-family: var(--sans);
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text);
+      background: none;
+      border: none;
+      outline: none;
+      resize: vertical;
+      display: block;
+    }
+    .editable-area::placeholder { color: var(--text-light); font-style: italic; }
+    .editable-area:focus { background: #fafaf8; }
 
-.tools-table th {
-  background: #003399;
-  color: #ffffff;
-  padding: 6px 8px;
-  font-size: 12px;
-  border: 2px outset #aaaaaa;
-  text-align: left;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
+    /* ── SAVE BAR ── */
+    .save-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--text);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 200;
+      transform: translateY(100%);
+      transition: transform 0.2s ease;
+    }
+    .save-bar.visible { transform: translateY(0); }
+    .save-status {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: #a0b0c0;
+    }
+    .btn-save {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      background: var(--green);
+      color: #fff;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-save:hover { background: #1f4f1f; }
+    .btn-save:disabled { background: #4a6a4a; cursor: default; }
 
-.tools-table td {
-  padding: 8px 10px;
-  border: 1px solid #336699;
-  vertical-align: top;
-  font-size: 12px;
-}
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      bottom: 70px;
+      right: 24px;
+      background: var(--green);
+      color: #fff;
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 10px 16px;
+      border-radius: 4px;
+      z-index: 300;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.2s ease;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.error { background: var(--red); }
 
-.tools-table tr:nth-child(odd) td { background: #000055; }
-.tools-table tr:nth-child(even) td { background: #000077; }
-.tools-table tr:hover td { background: #003399; }
+    /* ── PRIORITY BADGE ── */
+    .priority-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      background: var(--amber-light);
+      color: var(--amber);
+      border: 1.5px solid var(--amber-border);
+    }
 
-.tool-name { color: #00ffff; font-weight: bold; font-size: 14px; }
-.tool-desc { color: #cccccc; font-size: 11px; margin-top: 3px; line-height: 1.4; }
-.tool-status { color: #00ff00; font-size: 10px; font-weight: bold; }
+    /* ── NEW PROJECT FORM ── */
+    .new-container {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 28px 20px 80px;
+    }
+    .new-page-title {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+    .form-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+    .form-section-head {
+      padding: 10px 16px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .form-body {
+      padding: 16px;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .form-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+    .form-grid.full { grid-template-columns: 1fr; }
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .field-group.span2 { grid-column: span 2; }
+    .field-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-light);
+    }
+    .field-input {
+      font-family: var(--sans);
+      font-size: 13px;
+      color: var(--text);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 7px 10px;
+      outline: none;
+      transition: border-color 0.15s;
+      width: 100%;
+    }
+    .field-input:focus { border-color: var(--accent); background: #fff; }
+    .field-input.required:invalid { border-color: #d4a0a0; }
+    select.field-input { cursor: pointer; }
+    textarea.field-input {
+      resize: vertical;
+      min-height: 80px;
+      line-height: 1.5;
+    }
+    .field-hint {
+      font-size: 10px;
+      color: var(--text-light);
+      font-style: italic;
+    }
 
-.bevel-btn {
-  display: inline-block;
-  background: #c0c0c0;
-  color: #000000;
-  font-family: 'Comic Neue', 'Comic Sans MS', cursive;
-  font-size: 12px;
-  font-weight: bold;
-  padding: 5px 14px;
-  border: 3px outset #ffffff;
-  text-decoration: none;
-  cursor: pointer;
-  text-align: center;
-  letter-spacing: 1px;
-}
+    /* Hours table in form */
+    .hours-form-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+    .hours-form-table th {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 7px 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+    .hours-form-table th.th-del { width: 36px; }
+    .hours-form-table td {
+      padding: 5px 6px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .hours-form-table tr:last-child td { border-bottom: none; }
+    .hours-form-table .cell-input {
+      font-family: var(--sans);
+      font-size: 12px;
+      color: var(--text);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 5px 7px;
+      width: 100%;
+      outline: none;
+    }
+    .hours-form-table .cell-input:focus { border-color: var(--accent); background: #fff; }
+    .hours-form-table .cell-input.num { text-align: right; }
+    .hours-total-display {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--green);
+      padding: 0 6px;
+    }
+    .btn-del-row {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--text-muted);
+      width: 26px;
+      height: 26px;
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .btn-del-row:hover { background: var(--red-light); border-color: #d4a0a0; color: var(--red); }
+    .btn-add-row {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      background: var(--blue-light);
+      border: 1px solid var(--blue-border);
+      border-radius: 3px;
+      padding: 5px 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-add-row:hover { background: var(--accent); color: #fff; }
 
-.bevel-btn:hover { background: #dddddd; border: 3px inset #ffffff; }
-.bevel-btn:active { border: 3px inset #888888; }
-.bevel-btn.green { background: #009900; color: #ffffff; border-color: #00ff00; }
-.bevel-btn.green:hover { background: #00bb00; }
+    .hours-project-total {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 8px 0 0;
+      border-top: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .hours-project-total strong {
+      font-size: 14px;
+      color: var(--green);
+    }
 
-.info-box {
-  background: #000066;
-  border: 4px outset #aaaaaa;
-  padding: 12px;
-  margin-bottom: 14px;
-}
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      padding: 16px;
+      border-top: 1px solid var(--border);
+    }
+    .btn-cancel {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      background: none;
+      border: 1px solid var(--border);
+      padding: 8px 18px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-cancel:hover { background: var(--surface2); }
+    .btn-create {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      background: var(--green);
+      color: #fff;
+      border: none;
+      padding: 8px 22px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-create:hover { background: #1f4f1f; }
+    .btn-create:disabled { background: #4a6a4a; cursor: default; }
 
-.info-box h2 {
-  color: #ffff00;
-  font-size: 15px;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  border-bottom: 2px solid #ff6600;
-  padding-bottom: 4px;
-  margin-bottom: 10px;
-}
+    /* ── NEW PROJECT button on list ── */
+    .btn-new-project {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      background: var(--green);
+      color: #fff;
+      border: none;
+      padding: 7px 16px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-new-project:hover { background: #1f4f1f; }
 
-.info-box p { color: #cccccc; font-size: 12px; line-height: 1.6; margin-bottom: 6px; }
-.info-box ul { list-style: none; padding: 0; }
-.info-box ul li { color: #aaffaa; font-size: 11px; padding: 2px 0; }
-.info-box ul li::before { content: ">> "; color: #ffff00; }
+    @media (max-width: 680px) {
+      .table-head, .project-row { grid-template-columns: 55px 1fr 80px 80px; }
+      .table-head > *:nth-child(3),
+      .project-row > *:nth-child(3) { display: none; }
+      .info-grid { grid-template-columns: 1fr 1fr; }
+      .checklist-body { grid-template-columns: 1fr; }
+      .detail-header-card { flex-direction: column; gap: 12px; }
+    }
 
-footer {
-  background: #000000;
-  border-top: 3px solid #ff6600;
-  border-bottom: 3px solid #ff6600;
-  text-align: center;
-  padding: 10px;
-  margin-top: 12px;
-  font-size: 11px;
-  color: #888888;
-}
+    /* ── PRINT ── */
+    @media print {
+      /* Hide all UI chrome */
+      .app-header,
+      .save-bar,
+      .toast,
+      .btn-back,
+      #viewList,
+      #viewNew { display: none !important; }
 
-footer a { color: #ffff00; }
+      /* Reset page */
+      body {
+        background: #fff;
+        font-size: 9pt;
+        color: #000;
+        padding: 0;
+        margin: 0;
+      }
 
-.star-divider { color: #ffff00; font-size: 14px; text-align: center; margin: 6px 0; letter-spacing: 6px; }
+      /* Detail container: full width, tight margins */
+      .detail-container {
+        max-width: 100%;
+        padding: 0;
+        margin: 0;
+      }
 
-@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-.spinning-star { display: inline-block; animation: spin 3s linear infinite; font-size: 20px; color: #ffff00; }
+      /* Header card: dark bg prints as dark, keep it */
+      .detail-header-card {
+        background: #1a1714 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        color: #fff !important;
+        padding: 10pt 12pt;
+        margin-bottom: 6pt;
+        border-radius: 3pt;
+      }
+      .detail-client-name { font-size: 20pt; margin-bottom: 3pt; }
+      .detail-subtitle { font-size: 8pt; color: #a0b0c0 !important; }
+      .detail-est { font-size: 8pt; color: #6080a0 !important; }
+      .detail-amount { font-size: 16pt; }
 
-.rainbow {
-  background: linear-gradient(90deg, #ff0000, #ff7700, #ffff00, #00ff00, #0000ff, #8b00ff);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  font-weight: bold;
-}
-</style>
+      /* Info cards row */
+      .info-grid {
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 5pt;
+        margin-bottom: 6pt;
+      }
+      .info-card {
+        padding: 5pt 7pt;
+        border: 0.5pt solid #ccc;
+        border-radius: 2pt;
+        background: #f9f9f9 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .info-label { font-size: 7pt; }
+      .info-value, .info-input, .status-select { font-size: 9pt; }
+
+      /* Sections */
+      .detail-section {
+        border: 0.5pt solid #ccc;
+        border-radius: 2pt;
+        margin-bottom: 5pt;
+        page-break-inside: avoid;
+      }
+      .section-head {
+        background: #333 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        color: #fff !important;
+        padding: 4pt 8pt;
+      }
+      .section-label { font-size: 8pt; color: #fff !important; }
+      .section-progress { font-size: 8pt; color: #ccc !important; }
+
+      /* Checklist: two columns, tight */
+      .checklist-body {
+        grid-template-columns: 1fr 1fr;
+        padding: 5pt 8pt;
+        gap: 0 12pt;
+      }
+      .check-item {
+        padding: 2pt 0;
+        border-bottom: 0.3pt solid #eee;
+        gap: 5pt;
+      }
+      .check-box {
+        width: 9pt;
+        height: 9pt;
+        border: 1pt solid #555;
+        border-radius: 1pt;
+        flex-shrink: 0;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .check-box.checked {
+        background: #2d6a2d !important;
+        border-color: #2d6a2d !important;
+      }
+      .check-box.checked::after {
+        width: 5pt;
+        height: 3pt;
+        border-left: 1.5pt solid #fff;
+        border-bottom: 1.5pt solid #fff;
+      }
+      .check-label { font-size: 8pt; }
+      .check-item.done .check-label { color: #999 !important; }
+
+      /* Hours table */
+      .hours-table { font-size: 8pt; }
+      .hours-table th {
+        font-size: 7pt;
+        padding: 4pt 8pt;
+        background: #f5f5f5 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .hours-table td { padding: 4pt 8pt; }
+      .hours-table .total-row td {
+        background: #eaf3ea !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        color: #2d6a2d !important;
+      }
+
+      /* Materials */
+      .materials-body {
+        padding: 6pt 8pt;
+        font-size: 8pt;
+        line-height: 1.5;
+      }
+
+      /* Editable areas: show as plain text blocks */
+      .editable-area {
+        padding: 6pt 8pt;
+        font-size: 8pt;
+        min-height: 30pt;
+        border: none;
+        resize: none;
+        background: #fff;
+        line-height: 1.5;
+      }
+      /* Hide placeholder styling on empty textareas */
+      .editable-area:placeholder-shown {
+        color: #ccc;
+      }
+
+      /* Page setup */
+      @page {
+        size: letter portrait;
+        margin: 0.5in 0.5in 0.5in 0.5in;
+      }
+    }
+  </style>
 </head>
 <body>
 
-<div class="marquee-bar">
-  <marquee scrollamount="4">
-    *** WELCOME TO EAST PORTLAND SASH INTERNAL TOOLS *** BEST VIEWED IN 800x600 *** NETSCAPE NAVIGATOR 4.0 RECOMMENDED *** THIS SITE IS UNDER CONSTRUCTION *** KERFWORKS CONCERN LLC CCB #180257 *** NO UNAUTHORIZED ACCESS *** YOU ARE VISITOR #000420 ***
-  </marquee>
+<div class="app-header">
+  <div class="wordmark">EPS<span>/</span>PM</div>
+  <div class="header-nav">
+    <button class="btn-back" id="btnBack" onclick="showList()">← All Projects</button>
+  </div>
 </div>
 
-<div class="header">
-  <div class="spinning-star">&#9733;</div>
-  <h1>East Portland Sash</h1>
-  <div class="subtitle">Kerfworks Concern LLC &mdash; CCB #180257 &mdash; Internal Tools Suite v2.0</div>
-  <div class="under-construction">&#9888; SITE UNDER CONSTRUCTION &#9888;</div>
-</div>
-
-<div class="main">
-
-  <div class="sidebar">
-    <div class="sidebar-box">
-      <h3>Visitors</h3>
-      <span class="hit-counter">000420</span>
-      <div style="font-size:10px;color:#aaaaaa;">since Apr 2026</div>
-    </div>
-
-    <div class="sidebar-box">
-      <h3>System Status</h3>
-      <p style="color:#00ff00;font-size:11px;">&#9679; All systems GO</p>
-      <p style="color:#00ff00;font-size:11px;">&#9679; Firebase ONLINE</p>
-      <p style="color:#00ff00;font-size:11px;">&#9679; GitHub Pages UP</p>
-    </div>
-
-    <div class="sidebar-box">
-      <h3>Compatible With</h3>
-      <div class="ie-badge">&#127760; Internet Explorer 6</div>
-      <div class="ie-badge" style="margin-top:4px;">&#127760; Netscape 4.0</div>
-      <div class="ie-badge" style="margin-top:4px;">&#127760; AOL Browser</div>
-    </div>
-
-    <div class="sidebar-box">
-      <h3>Links</h3>
-      <div class="webring">
-        <a href="#" style="color:#ffff00;">&#8592; Prev</a>
-        &nbsp;WebRing&nbsp;
-        <a href="#" style="color:#ffff00;">Next &#8594;</a>
+<!-- LIST VIEW -->
+<div class="view active" id="viewList">
+  <div class="list-container">
+    <div class="list-header">
+      <div class="list-title">Active Projects</div>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div class="project-count" id="projectCount">—</div>
+        <button class="btn-new-project" onclick="showNewProject()">+ New Project</button>
       </div>
-      <p style="margin-top:8px;">
-        <a href="mailto:geoffrey@eastportlandsash.com" style="color:#aaffaa;font-size:10px;">&#9993; Email Webmaster</a>
-      </p>
+    </div>
+    <div class="filter-bar">
+      <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+      <button class="filter-btn" onclick="setFilter('active', this)">Active</button>
+      <button class="filter-btn" onclick="setFilter('production', this)">Production</button>
+      <button class="filter-btn" onclick="setFilter('complete', this)">Complete</button>
+      <button class="filter-btn" onclick="setFilter('hold', this)">Hold</button>
+    </div>
+    <div class="project-table">
+      <div class="table-head">
+        <div>Est #</div>
+        <div>Client</div>
+        <div>Scope</div>
+        <div>Amount</div>
+        <div>Hours</div>
+        <div>Status</div>
+      </div>
+      <div id="projectList">
+        <div class="loading-state">Loading projects…</div>
+      </div>
     </div>
   </div>
+</div>
 
-  <div class="content">
+<!-- DETAIL VIEW -->
+<div class="view" id="viewDetail">
+  <div class="detail-container" id="detailContent"></div>
+</div>
 
-    <div class="star-divider">&#10022; &#10022; &#10022; TOOL SUITE &#10022; &#10022; &#10022;</div>
+<!-- NEW PROJECT VIEW -->
+<div class="view" id="viewNew">
+  <div class="new-container">
+    <div class="new-page-title">New Project</div>
 
-    <table class="tools-table">
-      <caption>&#9733; Shop Tools &#9733;</caption>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Tool Name</th>
-          <th>Description</th>
-          <th>Status</th>
-          <th>Launch</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td style="color:#ffff00;font-weight:bold;text-align:center;">01</td>
-          <td><div class="tool-name">Production Board</div></td>
-          <td><div class="tool-desc">Track active jobs through the shop workflow. Drag cards between stages, log notes, monitor status across shop and site lanes.</div></td>
-          <td><div class="tool-status">&#9679; LIVE</div></td>
-          <td><a href="https://gbheps.github.io/EPSTools/production_board_v1.html" target="_blank" class="bevel-btn green">OPEN &gt;&gt;</a></td>
-        </tr>
-        <tr>
-          <td style="color:#ffff00;font-weight:bold;text-align:center;">02</td>
-          <td><div class="tool-name">Schedule Board</div></td>
-          <td><div class="tool-desc">Two-week crew scheduling at a glance. Assign techs to jobs by day, manage capacity, plan upcoming site and shop work.</div></td>
-          <td><div class="tool-status">&#9679; LIVE</div></td>
-          <td><a href="https://gbheps.github.io/EPSTools/schedule_board_v1.html" target="_blank" class="bevel-btn green">OPEN &gt;&gt;</a></td>
-        </tr>
-        <tr>
-          <td style="color:#ffff00;font-weight:bold;text-align:center;">03</td>
-          <td><div class="tool-name">Storm Calculator</div></td>
-          <td><div class="tool-desc">Storm window and screen dimension calculator. Enter field measurements, generate cut lists, material takeoffs, and shop packets.</div></td>
-          <td><div class="tool-status">&#9679; LIVE</div></td>
-          <td><a href="https://gbheps.github.io/EPSTools/storm_window_calculator_v17.html" target="_blank" class="bevel-btn green">OPEN &gt;&gt;</a></td>
-        </tr>
-        <tr>
-          <td style="color:#ffff00;font-weight:bold;text-align:center;">04</td>
-          <td><div class="tool-name">Job Prep</div></td>
-          <td><div class="tool-desc">Prepare job packets for field crews. Generate checklists, material lists, and site instructions for upcoming installations.</div></td>
-          <td><div class="tool-status">&#9679; LIVE</div></td>
-          <td><a href="https://gbheps.github.io/EPSTools/eps-job-prep.html" target="_blank" class="bevel-btn green">OPEN &gt;&gt;</a></td>
-        </tr>
-        <tr>
-          <td style="color:#ffff00;font-weight:bold;text-align:center;">05</td>
-          <td><div class="tool-name">Order Manager</div></td>
-          <td><div class="tool-desc">Build and track vendor orders across client batches. Search the parts catalog, group jobs for efficient ordering, and manage the full pending &rarr; submitted &rarr; ordered &rarr; received pipeline.</div></td>
-          <td><div class="tool-status">&#9679; LIVE</div></td>
-          <td><a href="https://gbheps.github.io/EPSTools/eps_order_manager.html" target="_blank" class="bevel-btn green">OPEN &gt;&gt;</a></td>
-        </tr>
-      </tbody>
-    </table>
-
-    <div class="star-divider">&#10022; &#10022; &#10022;</div>
-
-    <div class="info-box">
-      <h2>&#128196; About This Suite</h2>
-      <p>These tools are built for internal use by East Portland Sash field and shop staff. No app install required — just open in any browser and go. Data syncs across machines via Firebase where applicable.</p>
-      <p>For best results use Chrome or Safari. If something looks off, try a hard refresh (Cmd+Shift+R on Mac).</p>
+    <!-- Est # + Core Info -->
+    <div class="form-section">
+      <div class="form-section-head">Project Identity</div>
+      <div class="form-body">
+        <div class="form-grid three">
+          <div class="field-group">
+            <label class="field-label">Estimate #</label>
+            <input class="field-input" id="f-est" type="text" placeholder="Auto (editable)" />
+            <span class="field-hint">Leave blank to auto-assign, or enter your est #</span>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Status</label>
+            <select class="field-input" id="f-status">
+              <option value="active">Active</option>
+              <option value="production">Production</option>
+              <option value="complete">Complete</option>
+              <option value="hold">Hold</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Priority #</label>
+            <input class="field-input" id="f-priority" type="number" min="1" placeholder="—" />
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div class="info-box">
-      <h2>&#128274; Access &amp; Tips</h2>
-      <ul>
-        <li>Bookmark this page for quick access on any machine</li>
-        <li>Production and Schedule boards auto-sync via Firebase</li>
-        <li>Storm Calculator saves projects to the cloud — use Project Library to reload past jobs</li>
-        <li>All tools print — use Cmd+P for shop packets and schedule printouts</li>
-        <li>Tools open in a new tab so you can keep this page open</li>
-        <li>Order Manager catalog and batches sync via Firebase — accessible from any machine</li>
-      </ul>
+    <!-- Client Info -->
+    <div class="form-section">
+      <div class="form-section-head">Client Information</div>
+      <div class="form-body">
+        <div class="form-grid">
+          <div class="field-group">
+            <label class="field-label">Last Name *</label>
+            <input class="field-input required" id="f-lastname" type="text" placeholder="Shinn" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Full Name *</label>
+            <input class="field-input required" id="f-fullname" type="text" placeholder="Michael Shinn" />
+          </div>
+          <div class="field-group span2">
+            <label class="field-label">Address</label>
+            <input class="field-input" id="f-address" type="text" placeholder="2944 NE 29th, Portland, OR 97212" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Phone</label>
+            <input class="field-input" id="f-phone" type="text" placeholder="555-0100" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Start Date</label>
+            <input class="field-input" id="f-startdate" type="date" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Project Details -->
+    <div class="form-section">
+      <div class="form-section-head">Project Details</div>
+      <div class="form-body">
+        <div class="form-grid">
+          <div class="field-group">
+            <label class="field-label">Total Amount ($) *</label>
+            <input class="field-input required" id="f-amount" type="number" min="0" placeholder="21908" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Scope Summary *</label>
+            <input class="field-input required" id="f-scope" type="text" placeholder="Triage ×7, Rail Prep ×7, Screens ×7" />
+          </div>
+          <div class="field-group span2">
+            <label class="field-label">Materials Scope Summary</label>
+            <textarea class="field-input" id="f-materials" placeholder="Triage (7 openings): Sash cord, weatherstrip…"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hours Budget -->
+    <div class="form-section">
+      <div class="form-section-head">Hours Budget</div>
+      <div class="form-body">
+        <table class="hours-form-table" id="hoursTable">
+          <thead>
+            <tr>
+              <th>Scope Type</th>
+              <th style="width:70px">Units</th>
+              <th style="width:100px">Rate (hrs/unit)</th>
+              <th style="width:80px">Total</th>
+              <th class="th-del"></th>
+            </tr>
+          </thead>
+          <tbody id="hoursTableBody"></tbody>
+        </table>
+        <button class="btn-add-row" onclick="addHoursRow()">+ Add Scope Row</button>
+        <div class="hours-project-total">
+          Project Total: <strong id="hoursTotalDisplay">0 hrs</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="form-section">
+      <div class="form-section-head">Notes</div>
+      <div class="form-body form-grid full">
+        <div class="field-group">
+          <textarea class="field-input" id="f-notes" placeholder="Initial project notes…" style="min-height:70px"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-actions">
+        <button class="btn-cancel" onclick="showList()">Cancel</button>
+        <button class="btn-create" id="btnCreate" onclick="createProject()">Create Project</button>
+      </div>
     </div>
 
   </div>
 </div>
 
-<footer>
-  <div style="color:#ffff00;font-size:13px;margin-bottom:6px;">
-    &copy; 2026 East Portland Sash / Kerfworks Concern LLC &mdash; CCB #180257 &mdash; All Rights Reserved
-  </div>
-  <div>
-    <span class="rainbow">Made with Claude AI &bull; Hosted on GitHub Pages &bull; Powered by Firebase</span>
-  </div>
-  <div style="margin-top:6px;font-size:10px;">
-    Portland, OR &bull; Internal use only &bull; Unauthorized access prohibited
-  </div>
-</footer>
 
+  <div class="save-status" id="saveStatus">Unsaved changes</div>
+  <button class="btn-save" id="btnSave" onclick="saveProject()">Save Changes</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, serverTimestamp }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBiwsuVyEormZua4fUh7rLeIAQp0BZ-y8A",
+    authDomain: "epstools-2913e.firebaseapp.com",
+    projectId: "epstools-2913e",
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // ── STATE ──
+  window._db = db;
+  window._projects = [];
+  window._currentProject = null;
+  window._dirty = false;
+  window._activeFilter = 'all';
+
+  // ── CHECKLIST LABELS ──
+  const CHECKLIST_LABELS = {
+    preProject: {
+      contractSigned: 'Contract signed and deposit received',
+      siteAccessConfirmed: 'Site access confirmed with client',
+      addedToHarvest: 'Project added to Harvest',
+      hoursBudgetEntered: 'Hours budget entered in Harvest',
+      addedToStreak: 'Project added to Streak pipeline',
+      specialRequirementsDocumented: 'Special requirements documented',
+      leadTimeMaterialsOrdered: 'Lead time materials ordered',
+      screenMeasureScheduled: 'Screen measure visit scheduled',
+      catManagementConfirmed: 'Cat management plan confirmed',
+    },
+    production: {
+      shopWorkScheduled: 'Shop work scheduled',
+      siteWorkScheduled: 'Site work scheduled with client',
+      materialsReceivedAndStaged: 'Materials received and staged',
+      crewAssignedAndBriefed: 'Crew assigned and briefed',
+      workInProgress: 'Work in progress',
+    },
+    closeout: {
+      finalWalkthrough: 'Final walkthrough with client',
+      photosDocumented: 'Photos documented',
+      punchListCompleted: 'Punch list completed',
+      postProjectAnalysis: 'Post-project analysis completed',
+      finalInvoiceSent: 'Final invoice sent',
+      followUpScheduled: 'Follow-up scheduled',
+      paymentReceived: 'Payment received',
+    }
+  };
+
+  // ── LOAD PROJECTS ──
+  async function loadProjects() {
+    try {
+      const snap = await getDocs(collection(db, 'pm_projects'));
+      window._projects = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderList();
+    } catch(e) {
+      document.getElementById('projectList').innerHTML =
+        `<div class="empty-state"><div class="icon">⚠</div><p>Error loading projects: ${e.message}</p></div>`;
+    }
+  }
+
+  function renderList() {
+    const filter = window._activeFilter;
+    const projects = filter === 'all'
+      ? window._projects
+      : window._projects.filter(p => p.status === filter);
+
+    // Sort by priority (nulls last), then by estimateNumber desc
+    projects.sort((a, b) => {
+      const pa = a.priority ?? 999, pb = b.priority ?? 999;
+      if (pa !== pb) return pa - pb;
+      return parseInt(b.estimateNumber) - parseInt(a.estimateNumber);
+    });
+
+    document.getElementById('projectCount').textContent =
+      `${projects.length} project${projects.length !== 1 ? 's' : ''}`;
+
+    if (!projects.length) {
+      document.getElementById('projectList').innerHTML =
+        `<div class="empty-state"><div class="icon">📋</div><p>No projects found.</p></div>`;
+      return;
+    }
+
+    document.getElementById('projectList').innerHTML = projects.map(p => {
+      const statusClass = `status-${p.status || 'active'}`;
+      const statusLabel = p.status || 'active';
+      const priorityHtml = p.priority
+        ? `<span class="priority-badge">${p.priority}</span> `
+        : '';
+      return `
+        <div class="project-row" onclick="openProject('${p.id}')">
+          <div class="est-num">#${p.estimateNumber}</div>
+          <div class="client-cell">
+            <div class="last-name">${priorityHtml}${p.clientLastName || '—'}</div>
+            <div class="full-name">${p.clientFullName || ''}</div>
+          </div>
+          <div class="scope-cell">${p.scopeSummary || '—'}</div>
+          <div class="amount-cell">$${(p.totalAmount || 0).toLocaleString()}</div>
+          <div class="hours-cell">${p.hoursTotal || '—'} hrs</div>
+          <div><span class="status-badge ${statusClass}">${statusLabel}</span></div>
+        </div>`;
+    }).join('');
+  }
+
+  window.setFilter = function(filter, btn) {
+    window._activeFilter = filter;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderList();
+  };
+
+  // ── OPEN PROJECT ──
+  window.openProject = async function(id) {
+    try {
+      const snap = await getDoc(doc(db, 'pm_projects', id));
+      if (!snap.exists()) { showToast('Project not found', true); return; }
+      window._currentProject = { id, ...snap.data() };
+      renderDetail(window._currentProject);
+      document.getElementById('viewList').classList.remove('active');
+      document.getElementById('viewDetail').classList.add('active');
+      document.getElementById('btnBack').classList.add('visible');
+      window.scrollTo(0, 0);
+    } catch(e) {
+      showToast('Error loading project', true);
+    }
+  };
+
+  window.showList = function() {
+    document.getElementById('viewDetail').classList.remove('active');
+    document.getElementById('viewNew').classList.remove('active');
+    document.getElementById('viewList').classList.add('active');
+    document.getElementById('btnBack').classList.remove('visible');
+    hideSaveBar();
+    window._dirty = false;
+    loadProjects();
+  };
+
+  // ── RENDER DETAIL ──
+  function renderDetail(p) {
+    const cl = p.checklist || {};
+    const pre = cl.preProject || {};
+    const prod = cl.production || {};
+    const close = cl.closeout || {};
+
+    function checklistSection(section, data, labels) {
+      const keys = Object.keys(labels);
+      const done = keys.filter(k => data[k]).length;
+      const items = keys.map(k => `
+        <div class="check-item${data[k] ? ' done' : ''}" onclick="toggleCheck('${section}','${k}',this)">
+          <div class="check-box${data[k] ? ' checked' : ''}"></div>
+          <span class="check-label">${labels[k]}</span>
+        </div>`).join('');
+      return { html: items, done, total: keys.length };
+    }
+
+    const preSection = checklistSection('preProject', pre, CHECKLIST_LABELS.preProject);
+    const prodSection = checklistSection('production', prod, CHECKLIST_LABELS.production);
+    const closeSection = checklistSection('closeout', close, CHECKLIST_LABELS.closeout);
+
+    const hoursRows = (p.hoursBudget || []).map(h => `
+      <tr>
+        <td>${h.scope}</td>
+        <td class="hours-num">${h.units}</td>
+        <td class="hours-num">${h.benchmark}</td>
+        <td class="hours-num">${h.total} hrs</td>
+      </tr>`).join('');
+
+    const statusOptions = ['active','production','complete','hold']
+      .map(s => `<option value="${s}"${(p.status||'active')===s?' selected':''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`)
+      .join('');
+
+    document.getElementById('detailContent').innerHTML = `
+      <div class="detail-header-card">
+        <div>
+          <div class="detail-client-name">${p.clientLastName || '—'}</div>
+          <div class="detail-subtitle">
+            ${p.clientFullName || ''}<br>
+            ${p.address || ''}${p.phone ? ' · ' + p.phone : ''}
+          </div>
+        </div>
+        <div class="detail-right">
+          <div class="detail-est">Est #${p.estimateNumber}</div>
+          <div class="detail-amount">$${(p.totalAmount || 0).toLocaleString()}</div>
+        </div>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-card">
+          <div class="info-label">Status</div>
+          <select class="status-select" onchange="updateField('status', this.value)">${statusOptions}</select>
+        </div>
+        <div class="info-card">
+          <div class="info-label">Priority</div>
+          <input class="info-input" type="number" min="1" placeholder="—"
+            value="${p.priority || ''}" onchange="updateField('priority', this.value ? parseInt(this.value) : null)">
+        </div>
+        <div class="info-card">
+          <div class="info-label">Start Date</div>
+          <input class="info-input" type="date"
+            value="${p.startDate || ''}" onchange="updateField('startDate', this.value)">
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <div class="section-head">
+          <div class="section-label">1. Pre-Project Setup</div>
+          <div class="section-progress">${preSection.done}/${preSection.total}</div>
+        </div>
+        <div class="checklist-body">${preSection.html}</div>
+      </div>
+
+      <div class="detail-section">
+        <div class="section-head">
+          <div class="section-label">2. Production</div>
+          <div class="section-progress">${prodSection.done}/${prodSection.total}</div>
+        </div>
+        <div class="checklist-body">${prodSection.html}</div>
+      </div>
+
+      <div class="detail-section">
+        <div class="section-head">
+          <div class="section-label">3. Completion & Closeout</div>
+          <div class="section-progress">${closeSection.done}/${closeSection.total}</div>
+        </div>
+        <div class="checklist-body">${closeSection.html}</div>
+      </div>
+
+      <div class="detail-section">
+        <div class="section-head">
+          <div class="section-label">Hours Budget</div>
+          <div class="section-progress">${p.hoursTotal || 0} hrs total</div>
+        </div>
+        <table class="hours-table">
+          <thead>
+            <tr><th>Scope</th><th>Units</th><th>Benchmark</th><th>Total</th></tr>
+          </thead>
+          <tbody>
+            ${hoursRows}
+            <tr class="total-row">
+              <td>Project Total</td><td></td><td></td>
+              <td class="hours-num">${p.hoursTotal || 0} hrs</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="detail-section">
+        <div class="section-head">
+          <div class="section-label">Materials Scope Summary</div>
+        </div>
+        <div class="materials-body">${p.materialsSummary || '—'}</div>
+      </div>
+
+      <div class="detail-section">
+        <div class="section-head">
+          <div class="section-label">Project-Specific Supplies</div>
+        </div>
+        <textarea class="editable-area" id="suppliesField" placeholder="Add supply notes…"
+          oninput="updateField('projectSpecificSupplies', this.value)">${p.projectSpecificSupplies || ''}</textarea>
+      </div>
+
+      <div class="detail-section">
+        <div class="section-head">
+          <div class="section-label">Notes</div>
+        </div>
+        <textarea class="editable-area" id="notesField" placeholder="Add project notes…"
+          oninput="updateField('notes', this.value)">${p.notes || ''}</textarea>
+      </div>
+    `;
+  }
+
+  // ── TOGGLE CHECKLIST ITEM ──
+  window.toggleCheck = function(section, key, el) {
+    const p = window._currentProject;
+    if (!p.checklist) p.checklist = {};
+    if (!p.checklist[section]) p.checklist[section] = {};
+    const newVal = !p.checklist[section][key];
+    p.checklist[section][key] = newVal;
+
+    // Update UI
+    const box = el.querySelector('.check-box');
+    if (newVal) {
+      box.classList.add('checked');
+      el.classList.add('done');
+    } else {
+      box.classList.remove('checked');
+      el.classList.remove('done');
+    }
+
+    // Update progress counter
+    const sectionEl = el.closest('.detail-section');
+    const items = sectionEl.querySelectorAll('.check-item');
+    const done = sectionEl.querySelectorAll('.check-item.done').length;
+    sectionEl.querySelector('.section-progress').textContent = `${done}/${items.length}`;
+
+    markDirty();
+  };
+
+  // ── FIELD UPDATES ──
+  window.updateField = function(field, value) {
+    window._currentProject[field] = value;
+    markDirty();
+  };
+
+  function markDirty() {
+    window._dirty = true;
+    document.getElementById('saveBar').classList.add('visible');
+    document.getElementById('saveStatus').textContent = 'Unsaved changes';
+  }
+
+  function hideSaveBar() {
+    const bar = document.getElementById('saveBar');
+    if (bar) bar.classList.remove('visible');
+  }
+
+  // ── SAVE ──
+  window.saveProject = async function() {
+    const p = window._currentProject;
+    const btn = document.getElementById('btnSave');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    document.getElementById('saveStatus').textContent = 'Saving…';
+    try {
+      await setDoc(doc(db, 'pm_projects', p.id), {
+        ...p,
+        updatedAt: serverTimestamp()
+      });
+      hideSaveBar();
+      window._dirty = false;
+      showToast('Saved ✓');
+    } catch(e) {
+      showToast('Save failed: ' + e.message, true);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save Changes';
+    }
+  };
+
+  // ── TOAST ──
+  window.showToast = function(msg, isError = false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast' + (isError ? ' error' : '') + ' show';
+    setTimeout(() => { t.classList.remove('show'); }, 2800);
+  };
+
+  // ── WARN ON NAVIGATE AWAY ──
+  window.addEventListener('beforeunload', e => {
+    if (window._dirty) { e.preventDefault(); e.returnValue = ''; }
+  });
+
+  // ── NEW PROJECT VIEW ──
+  let _hoursRows = [];
+  let _manualCounter = 0;
+
+  window.showNewProject = function() {
+    // Reset form
+    ['f-est','f-lastname','f-fullname','f-address','f-phone',
+     'f-amount','f-scope','f-materials','f-notes'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('f-startdate').value = '';
+    document.getElementById('f-status').value = 'active';
+    document.getElementById('f-priority').value = '';
+    _hoursRows = [];
+    renderHoursTable();
+    addHoursRow(); // start with one blank row
+
+    document.getElementById('viewList').classList.remove('active');
+    document.getElementById('viewNew').classList.add('active');
+    document.getElementById('btnBack').classList.add('visible');
+    window.scrollTo(0, 0);
+  };
+
+  window.addHoursRow = function() {
+    _hoursRows.push({ id: Date.now(), scope: '', units: '', rate: '' });
+    renderHoursTable();
+  };
+
+  window.removeHoursRow = function(id) {
+    _hoursRows = _hoursRows.filter(r => r.id !== id);
+    renderHoursTable();
+  };
+
+  window.updateHoursRow = function(id, field, value) {
+    const row = _hoursRows.find(r => r.id === id);
+    if (row) row[field] = value;
+    recalcHours();
+  };
+
+  function recalcHours() {
+    let total = 0;
+    _hoursRows.forEach(row => {
+      const u = parseFloat(row.units) || 0;
+      const r = parseFloat(row.rate) || 0;
+      const t = Math.round(u * r * 10) / 10;
+      row._total = t;
+      total += t;
+      const el = document.getElementById(`row-total-${row.id}`);
+      if (el) el.textContent = t > 0 ? `${t} hrs` : '—';
+    });
+    const totalEl = document.getElementById('hoursTotalDisplay');
+    if (totalEl) totalEl.textContent = `${Math.round(total * 10) / 10} hrs`;
+  }
+
+  function renderHoursTable() {
+    document.getElementById('hoursTableBody').innerHTML = _hoursRows.map(row => `
+      <tr>
+        <td>
+          <input class="cell-input" type="text" placeholder="Site - Triage"
+            value="${row.scope}"
+            oninput="updateHoursRow(${row.id},'scope',this.value)" />
+        </td>
+        <td>
+          <input class="cell-input num" type="number" min="0" placeholder="0"
+            value="${row.units}"
+            oninput="updateHoursRow(${row.id},'units',this.value)" />
+        </td>
+        <td>
+          <input class="cell-input num" type="number" min="0" step="0.5" placeholder="0.0"
+            value="${row.rate}"
+            oninput="updateHoursRow(${row.id},'rate',this.value)" />
+        </td>
+        <td>
+          <span class="hours-total-display" id="row-total-${row.id}">
+            ${row._total > 0 ? row._total + ' hrs' : '—'}
+          </span>
+        </td>
+        <td>
+          <button class="btn-del-row" onclick="removeHoursRow(${row.id})" title="Remove row">×</button>
+        </td>
+      </tr>`).join('');
+    recalcHours();
+  }
+
+  window.createProject = async function() {
+    // Validate required fields
+    const lastName = document.getElementById('f-lastname').value.trim();
+    const fullName = document.getElementById('f-fullname').value.trim();
+    const amount = document.getElementById('f-amount').value.trim();
+    const scope = document.getElementById('f-scope').value.trim();
+
+    if (!lastName || !fullName || !amount || !scope) {
+      showToast('Please fill in required fields (*)', true);
+      return;
+    }
+
+    // Determine estimate number / doc ID
+    let estNum = document.getElementById('f-est').value.trim();
+    if (!estNum) {
+      _manualCounter++;
+      estNum = `MANUAL-${String(_manualCounter).padStart(3, '0')}`;
+    }
+
+    // Check for duplicate
+    const existing = await getDoc(doc(db, 'pm_projects', estNum));
+    if (existing.exists()) {
+      showToast(`Est # ${estNum} already exists — choose a different number`, true);
+      return;
+    }
+
+    // Build hours budget
+    recalcHours();
+    const hoursBudget = _hoursRows
+      .filter(r => r.scope)
+      .map(r => ({
+        scope: r.scope,
+        units: parseFloat(r.units) || 0,
+        benchmark: `${r.rate} hrs/unit`,
+        total: r._total || 0,
+      }));
+    const hoursTotal = hoursBudget.reduce((sum, r) => sum + r.total, 0);
+
+    const newProject = {
+      estimateNumber: estNum,
+      clientLastName: lastName,
+      clientFullName: fullName,
+      address: document.getElementById('f-address').value.trim(),
+      phone: document.getElementById('f-phone').value.trim(),
+      totalAmount: parseFloat(amount) || 0,
+      scopeSummary: scope,
+      materialsSummary: document.getElementById('f-materials').value.trim(),
+      notes: document.getElementById('f-notes').value.trim(),
+      projectSpecificSupplies: '',
+      priority: document.getElementById('f-priority').value
+        ? parseInt(document.getElementById('f-priority').value) : null,
+      status: document.getElementById('f-status').value,
+      startDate: document.getElementById('f-startdate').value || null,
+      hoursBudget,
+      hoursTotal: Math.round(hoursTotal * 10) / 10,
+      checklist: {
+        preProject: {
+          contractSigned: false, siteAccessConfirmed: false,
+          addedToHarvest: false, hoursBudgetEntered: false,
+          addedToStreak: false, specialRequirementsDocumented: false,
+          leadTimeMaterialsOrdered: false, screenMeasureScheduled: false,
+          catManagementConfirmed: false,
+        },
+        production: {
+          shopWorkScheduled: false, siteWorkScheduled: false,
+          materialsReceivedAndStaged: false, crewAssignedAndBriefed: false,
+          workInProgress: false,
+        },
+        closeout: {
+          finalWalkthrough: false, photosDocumented: false,
+          punchListCompleted: false, postProjectAnalysis: false,
+          finalInvoiceSent: false, followUpScheduled: false,
+          paymentReceived: false,
+        }
+      },
+      createdAt: serverTimestamp(),
+    };
+
+    const btn = document.getElementById('btnCreate');
+    btn.disabled = true;
+    btn.textContent = 'Creating…';
+
+    try {
+      await setDoc(doc(db, 'pm_projects', estNum), newProject);
+      showToast('Project created ✓');
+      // Navigate directly to the new project detail
+      window._currentProject = { id: estNum, ...newProject };
+      renderDetail(window._currentProject);
+      document.getElementById('viewNew').classList.remove('active');
+      document.getElementById('viewDetail').classList.add('active');
+      window.scrollTo(0, 0);
+    } catch(e) {
+      showToast('Error creating project: ' + e.message, true);
+      btn.disabled = false;
+      btn.textContent = 'Create Project';
+    }
+  };
+
+  // ── INIT ──
+  loadProjects();
+</script>
 </body>
 </html>
