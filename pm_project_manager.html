@@ -780,6 +780,160 @@
       .checklist-body { grid-template-columns: 1fr; }
       .detail-header-card { flex-direction: column; gap: 12px; }
     }
+
+    /* ── PRINT ── */
+    @media print {
+      /* Hide all UI chrome */
+      .app-header,
+      .save-bar,
+      .toast,
+      .btn-back,
+      #viewList,
+      #viewNew { display: none !important; }
+
+      /* Reset page */
+      body {
+        background: #fff;
+        font-size: 9pt;
+        color: #000;
+        padding: 0;
+        margin: 0;
+      }
+
+      /* Detail container: full width, tight margins */
+      .detail-container {
+        max-width: 100%;
+        padding: 0;
+        margin: 0;
+      }
+
+      /* Header card: dark bg prints as dark, keep it */
+      .detail-header-card {
+        background: #1a1714 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        color: #fff !important;
+        padding: 10pt 12pt;
+        margin-bottom: 6pt;
+        border-radius: 3pt;
+      }
+      .detail-client-name { font-size: 20pt; margin-bottom: 3pt; }
+      .detail-subtitle { font-size: 8pt; color: #a0b0c0 !important; }
+      .detail-est { font-size: 8pt; color: #6080a0 !important; }
+      .detail-amount { font-size: 16pt; }
+
+      /* Info cards row */
+      .info-grid {
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 5pt;
+        margin-bottom: 6pt;
+      }
+      .info-card {
+        padding: 5pt 7pt;
+        border: 0.5pt solid #ccc;
+        border-radius: 2pt;
+        background: #f9f9f9 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .info-label { font-size: 7pt; }
+      .info-value, .info-input, .status-select { font-size: 9pt; }
+
+      /* Sections */
+      .detail-section {
+        border: 0.5pt solid #ccc;
+        border-radius: 2pt;
+        margin-bottom: 5pt;
+        page-break-inside: avoid;
+      }
+      .section-head {
+        background: #333 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        color: #fff !important;
+        padding: 4pt 8pt;
+      }
+      .section-label { font-size: 8pt; color: #fff !important; }
+      .section-progress { font-size: 8pt; color: #ccc !important; }
+
+      /* Checklist: two columns, tight */
+      .checklist-body {
+        grid-template-columns: 1fr 1fr;
+        padding: 5pt 8pt;
+        gap: 0 12pt;
+      }
+      .check-item {
+        padding: 2pt 0;
+        border-bottom: 0.3pt solid #eee;
+        gap: 5pt;
+      }
+      .check-box {
+        width: 9pt;
+        height: 9pt;
+        border: 1pt solid #555;
+        border-radius: 1pt;
+        flex-shrink: 0;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .check-box.checked {
+        background: #2d6a2d !important;
+        border-color: #2d6a2d !important;
+      }
+      .check-box.checked::after {
+        width: 5pt;
+        height: 3pt;
+        border-left: 1.5pt solid #fff;
+        border-bottom: 1.5pt solid #fff;
+      }
+      .check-label { font-size: 8pt; }
+      .check-item.done .check-label { color: #999 !important; }
+
+      /* Hours table */
+      .hours-table { font-size: 8pt; }
+      .hours-table th {
+        font-size: 7pt;
+        padding: 4pt 8pt;
+        background: #f5f5f5 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .hours-table td { padding: 4pt 8pt; }
+      .hours-table .total-row td {
+        background: #eaf3ea !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        color: #2d6a2d !important;
+      }
+
+      /* Materials */
+      .materials-body {
+        padding: 6pt 8pt;
+        font-size: 8pt;
+        line-height: 1.5;
+      }
+
+      /* Editable areas: show as plain text blocks */
+      .editable-area {
+        padding: 6pt 8pt;
+        font-size: 8pt;
+        min-height: 30pt;
+        border: none;
+        resize: none;
+        background: #fff;
+        line-height: 1.5;
+      }
+      /* Hide placeholder styling on empty textareas */
+      .editable-area:placeholder-shown {
+        color: #ccc;
+      }
+
+      /* Page setup */
+      @page {
+        size: letter portrait;
+        margin: 0.5in 0.5in 0.5in 0.5in;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1276,7 +1430,8 @@
   }
 
   function hideSaveBar() {
-    document.getElementById('saveBar').classList.remove('visible');
+    const bar = document.getElementById('saveBar');
+    if (bar) bar.classList.remove('visible');
   }
 
   // ── SAVE ──
