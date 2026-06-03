@@ -30,55 +30,15 @@
       --mono: 'IBM Plex Mono', monospace;
       --sans: 'IBM Plex Sans', sans-serif;
     }
-
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
 
-    body {
-      font-family: var(--sans);
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      font-size: 14px;
-    }
-
-    /* ── HEADER ── */
-    .app-header {
-      background: var(--text);
-      color: #fff;
-      padding: 14px 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-    .app-header .wordmark {
-      font-family: var(--mono);
-      font-size: 13px;
-      letter-spacing: 0.08em;
-      font-weight: 600;
-      color: #fff;
-    }
+    /* ── APP HEADER ── */
+    .app-header { background: var(--text); color: #fff; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    .app-header .wordmark { font-family: var(--mono); font-size: 13px; letter-spacing: 0.08em; font-weight: 600; color: #fff; }
     .app-header .wordmark span { color: #a0c0e0; }
-    .header-nav {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .btn-back {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: #a0c0e0;
-      background: none;
-      border: 1px solid #3a5a7a;
-      padding: 5px 12px;
-      border-radius: 3px;
-      cursor: pointer;
-      letter-spacing: 0.05em;
-      transition: all 0.15s;
-      display: none;
-    }
+    .header-nav { display: flex; align-items: center; gap: 12px; }
+    .btn-back { font-family: var(--mono); font-size: 11px; color: #a0c0e0; background: none; border: 1px solid #3a5a7a; padding: 5px 12px; border-radius: 3px; cursor: pointer; letter-spacing: 0.05em; transition: all 0.15s; display: none; }
     .btn-back:hover { background: #3a5a7a; color: #fff; }
     .btn-back.visible { display: block; }
 
@@ -86,965 +46,228 @@
     .view { display: none; }
     .view.active { display: block; }
 
-    /* ── PROJECT LIST ── */
-    .list-container {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 28px 20px;
-    }
-    .list-header {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      margin-bottom: 20px;
-    }
-    .list-title {
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-    }
-    .project-count {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--text-light);
-    }
-
-    .filter-bar {
-      display: flex;
-      gap: 6px;
-      margin-bottom: 16px;
-    }
-    .filter-btn {
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: 0.08em;
-      padding: 5px 12px;
-      border-radius: 3px;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      color: var(--text-muted);
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .filter-btn.active, .filter-btn:hover {
-      background: var(--text);
-      color: #fff;
-      border-color: var(--text);
-    }
-
-    .project-table {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      overflow: hidden;
-    }
-    .table-head {
-      display: grid;
-      grid-template-columns: 60px 1fr 140px 80px 90px 90px;
-      padding: 8px 16px;
-      background: var(--surface2);
-      border-bottom: 1px solid var(--border);
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-    }
-    .project-row {
-      display: grid;
-      grid-template-columns: 60px 1fr 140px 80px 90px 90px;
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--border);
-      cursor: pointer;
-      transition: background 0.1s;
-      align-items: center;
-    }
+    /* ── LIST VIEW ── */
+    .list-container { max-width: 1000px; margin: 0 auto; padding: 28px 20px; }
+    .list-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 20px; }
+    .list-title { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); }
+    .project-count { font-family: var(--mono); font-size: 11px; color: var(--text-light); }
+    .filter-bar { display: flex; gap: 6px; margin-bottom: 16px; }
+    .filter-btn { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; padding: 5px 12px; border-radius: 3px; border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
+    .filter-btn.active, .filter-btn:hover { background: var(--text); color: #fff; border-color: var(--text); }
+    .project-table { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+    .table-head { display: grid; grid-template-columns: 55px 1fr 120px 75px 80px 60px 85px; padding: 8px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+    .project-row { display: grid; grid-template-columns: 55px 1fr 120px 75px 80px 60px 85px; padding: 11px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; align-items: center; }
     .project-row:last-child { border-bottom: none; }
     .project-row:hover { background: var(--surface2); }
-
-    .est-num {
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--text-muted);
-      font-weight: 500;
-    }
-    .client-cell .last-name {
-      font-weight: 600;
-      font-size: 15px;
-      line-height: 1.1;
-    }
-    .client-cell .full-name {
-      font-size: 11px;
-      color: var(--text-muted);
-    }
-    .scope-cell {
-      font-size: 11px;
-      color: var(--text-muted);
-      line-height: 1.4;
-    }
-    .amount-cell {
-      font-family: var(--mono);
-      font-size: 13px;
-      font-weight: 500;
-    }
-    .hours-cell {
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-    .status-badge {
-      display: inline-block;
-      font-family: var(--mono);
-      font-size: 9px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      padding: 3px 8px;
-      border-radius: 3px;
-    }
+    .est-num { font-family: var(--mono); font-size: 11px; color: var(--text-muted); font-weight: 500; }
+    .client-cell .last-name { font-weight: 600; font-size: 14px; line-height: 1.1; }
+    .client-cell .full-name { font-size: 11px; color: var(--text-muted); }
+    .scope-cell { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+    .amount-cell { font-family: var(--mono); font-size: 12px; font-weight: 500; }
+    .hours-cell { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
+    .lead-cell { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--text-muted); }
+    .status-badge { display: inline-block; font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 7px; border-radius: 3px; }
     .status-active { background: var(--blue-light); color: var(--blue); border: 1px solid var(--blue-border); }
     .status-production { background: var(--amber-light); color: var(--amber); border: 1px solid var(--amber-border); }
     .status-complete { background: var(--green-light); color: var(--green); border: 1px solid var(--green-border); }
     .status-hold { background: #f5f0f0; color: #8a5050; border: 1px solid #d4a0a0; }
-
-    .empty-state {
-      padding: 60px 20px;
-      text-align: center;
-      color: var(--text-muted);
-    }
+    .empty-state { padding: 60px 20px; text-align: center; color: var(--text-muted); }
     .empty-state .icon { font-size: 32px; margin-bottom: 12px; }
     .empty-state p { font-family: var(--mono); font-size: 12px; }
-
-    .loading-state {
-      padding: 40px 20px;
-      text-align: center;
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--text-muted);
-    }
+    .loading-state { padding: 40px 20px; text-align: center; font-family: var(--mono); font-size: 12px; color: var(--text-muted); }
+    .priority-badge { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; font-family: var(--mono); font-size: 11px; font-weight: 600; background: var(--amber-light); color: var(--amber); border: 1.5px solid var(--amber-border); margin-right: 4px; }
+    .btn-new-project { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.08em; background: var(--green); color: #fff; border: none; padding: 7px 16px; border-radius: 3px; cursor: pointer; transition: background 0.15s; }
+    .btn-new-project:hover { background: #1f4f1f; }
 
     /* ── DETAIL VIEW ── */
-    .detail-container {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 20px 20px 60px;
-    }
+    .detail-container { max-width: 960px; margin: 0 auto; padding: 20px 20px 60px; }
 
-    .detail-header-card {
-      background: var(--text);
-      color: #fff;
-      border-radius: 6px 6px 0 0;
-      padding: 18px 24px 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 0;
-      border-bottom: 3px solid #4a8a4a;
-    }
-    .detail-client-name {
-      font-family: var(--mono);
-      font-size: 34px;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      line-height: 1;
-      margin-bottom: 8px;
-      text-transform: uppercase;
-    }
-    .detail-subtitle {
-      font-size: 12px;
-      color: #8aaabb;
-      line-height: 1.6;
-    }
-    .detail-right {
-      text-align: right;
-      padding-top: 2px;
-    }
-    .detail-est {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: #5a7a9a;
-      margin-bottom: 6px;
-      letter-spacing: 0.06em;
-    }
-    .detail-amount {
-      font-family: var(--mono);
-      font-size: 26px;
-      font-weight: 600;
-      color: #c8d8a0;
-    }
+    .detail-header-card { background: var(--text); color: #fff; border-radius: 6px 6px 0 0; padding: 18px 24px 16px; display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #4a8a4a; }
+    .detail-client-name { font-family: var(--mono); font-size: 34px; font-weight: 600; letter-spacing: 0.04em; line-height: 1; margin-bottom: 8px; text-transform: uppercase; }
+    .detail-subtitle { font-size: 12px; color: #8aaabb; line-height: 1.6; }
+    .detail-right { text-align: right; padding-top: 2px; }
+    .detail-est { font-family: var(--mono); font-size: 11px; color: #5a7a9a; margin-bottom: 6px; letter-spacing: 0.06em; }
+    .detail-amount { font-family: var(--mono); font-size: 26px; font-weight: 600; color: #c8d8a0; }
 
-    /* Info strip below header — connected look */
-    .info-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 0;
-      margin-bottom: 14px;
-      border: 1px solid var(--border);
-      border-top: none;
-      border-radius: 0 0 6px 6px;
-      overflow: hidden;
-    }
-    .info-card {
-      background: #f0ede6;
-      border-right: 1px solid var(--border);
-      padding: 10px 14px;
-    }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0; margin-bottom: 14px; border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; overflow: hidden; }
+    .info-card { background: #f0ede6; border-right: 1px solid var(--border); padding: 10px 14px; }
     .info-card:last-child { border-right: none; }
-    .info-label {
-      font-family: var(--mono);
-      font-size: 8px;
-      font-weight: 600;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--text-light);
-      margin-bottom: 3px;
-    }
-    .info-value {
-      font-size: 13px;
-      font-weight: 500;
-      line-height: 1.3;
-    }
-    .info-input {
-      width: 100%;
-      font-family: var(--sans);
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text);
-      background: none;
-      border: none;
-      outline: none;
-      padding: 0;
-      cursor: text;
-    }
+    .info-label { font-family: var(--mono); font-size: 8px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-light); margin-bottom: 3px; }
+    .info-input { width: 100%; font-family: var(--sans); font-size: 13px; font-weight: 500; color: var(--text); background: none; border: none; outline: none; padding: 0; cursor: text; }
     .info-input:focus { border-bottom: 1px solid var(--accent); }
-
-    /* Status selector */
-    .status-select {
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      border: none;
-      background: none;
-      cursor: pointer;
-      padding: 0;
-      color: var(--text);
-    }
+    .status-select { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; border: none; background: none; cursor: pointer; padding: 0; color: var(--text); }
 
     /* ── SECTIONS ── */
-    .detail-section {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 5px;
-      margin-bottom: 10px;
-      overflow: hidden;
-    }
+    .detail-section { background: var(--surface); border: 1px solid var(--border); border-radius: 5px; margin-bottom: 10px; overflow: hidden; }
+    .section-head { display: flex; align-items: center; justify-content: space-between; padding: 7px 14px; background: #2a2724; border-bottom: 1px solid var(--border); }
+    .section-label { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #d0c8b8; }
+    .section-progress { font-family: var(--mono); font-size: 10px; color: #8a9a7a; font-weight: 600; }
 
-    /* Checklist sections — neutral header */
-    .section-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 7px 14px;
-      background: #2a2724;
-      border-bottom: 1px solid var(--border);
-    }
-    .section-label {
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: #d0c8b8;
-    }
-    .section-progress {
-      font-family: var(--mono);
-      font-size: 10px;
-      color: #8a9a7a;
-      font-weight: 600;
-    }
-
-    /* Zonal section heads */
-    .section-head.green  { background: #1e3d1e; border-bottom-color: #4a7c4a; }
-    .section-head.green .section-label { color: #a0d0a0; }
-    .section-head.amber  { background: #3d2e0a; border-bottom-color: #8a6800; }
-    .section-head.amber .section-label { color: #e0c060; }
-    .section-head.blue   { background: #0e2236; border-bottom-color: #2a6090; }
-    .section-head.blue .section-label  { color: #80b8e0; }
-
-    /* Zonal section bodies */
     .detail-section.zone-green { border-color: #7ab07a; }
     .detail-section.zone-green .section-head { background: #1e3d1e; border-bottom-color: #4a7c4a; }
     .detail-section.zone-green .section-label { color: #a0d0a0; }
+    .detail-section.zone-green > :not(.section-head) { background: #f2faf2; }
     .detail-section.zone-amber { border-color: #c8a840; }
     .detail-section.zone-amber .section-head { background: #3d2e0a; border-bottom-color: #8a6800; }
     .detail-section.zone-amber .section-label { color: #e0c060; }
-    .detail-section.zone-blue  { border-color: #5a9aca; }
-    .detail-section.zone-blue  .section-head { background: #0e2236; border-bottom-color: #2a6090; }
-    .detail-section.zone-blue  .section-label { color: #80b8e0; }
-
-    /* Zone body tints */
-    .detail-section.zone-green > :not(.section-head) { background: #f2faf2; }
     .detail-section.zone-amber > :not(.section-head) { background: #fef9ec; }
-    .detail-section.zone-blue  > :not(.section-head) { background: #eef6fc; }
+    .detail-section.zone-blue { border-color: #5a9aca; }
+    .detail-section.zone-blue .section-head { background: #0e2236; border-bottom-color: #2a6090; }
+    .detail-section.zone-blue .section-label { color: #80b8e0; }
+    .detail-section.zone-blue > :not(.section-head) { background: #eef6fc; }
 
     /* ── CHECKLIST ── */
-    .checklist-body {
-      padding: 10px 14px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0 20px;
-    }
-    .check-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 5px 0;
-      border-bottom: 1px solid #eae6de;
-      cursor: pointer;
-      user-select: none;
-    }
-    .check-item:last-child { border-bottom: none; }
+    .checklist-body { padding: 8px 14px 4px; display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; }
+    .check-item { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid #eae6de; cursor: pointer; user-select: none; position: relative; }
     .check-item:hover .check-box { border-color: var(--accent); }
+    .check-box { width: 14px; height: 14px; border: 1.5px solid var(--border-strong); border-radius: 2px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+    .check-box.checked { background: var(--green); border-color: var(--green); }
+    .check-box.checked::after { content: ''; width: 8px; height: 4px; border-left: 2px solid #fff; border-bottom: 2px solid #fff; transform: rotate(-45deg) translate(1px, -1px); display: block; }
+    .check-label { font-size: 11.5px; line-height: 1.3; color: var(--text); transition: color 0.15s; flex: 1; }
+    .check-item.done .check-label { color: var(--text-light); text-decoration: line-through; }
+    .custom-item { background: #fdf8ee; }
+    .custom-label { outline: none; }
+    .custom-label:focus { border-bottom: 1px solid var(--amber-border); }
 
-    .check-box {
-      width: 14px;
-      height: 14px;
-      border: 1.5px solid var(--border-strong);
-      border-radius: 2px;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.15s;
-    }
-    .check-box.checked {
-      background: var(--green);
-      border-color: var(--green);
-    }
-    .check-box.checked::after {
-      content: '';
-      width: 8px;
-      height: 4px;
-      border-left: 2px solid #fff;
-      border-bottom: 2px solid #fff;
-      transform: rotate(-45deg) translate(1px, -1px);
-      display: block;
-    }
-    .check-label {
-      font-size: 11.5px;
-      line-height: 1.3;
-      color: var(--text);
-      transition: color 0.15s;
-    }
-    .check-item.done .check-label {
-      color: var(--text-light);
-      text-decoration: line-through;
-    }
+    /* Item action buttons (edit/delete) */
+    .item-actions { display: flex; gap: 3px; opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
+    .check-item:hover .item-actions { opacity: 1; }
+    .btn-item-action { background: none; border: 1px solid var(--border); border-radius: 2px; color: var(--text-light); width: 20px; height: 20px; cursor: pointer; font-size: 11px; line-height: 1; display: flex; align-items: center; justify-content: center; transition: all 0.12s; }
+    .btn-item-action:hover { background: var(--red-light); border-color: #d4a0a0; color: var(--red); }
+    .btn-item-edit:hover { background: var(--blue-light); border-color: var(--blue-border); color: var(--blue); }
 
-    /* ── HOURS BUDGET TABLE ── */
-    .hours-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-    }
-    .hours-table th {
-      font-family: var(--mono);
-      font-size: 9px;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: #5a8a5a;
-      padding: 7px 14px;
-      text-align: left;
-      border-bottom: 1px solid #c0d8c0;
-      background: #e4f2e4;
-    }
-    .hours-table td {
-      padding: 7px 14px;
-      border-bottom: 1px solid #daeada;
-      font-size: 12px;
-    }
+    /* Add task row */
+    .add-task-row { display: flex; gap: 6px; padding: 6px 0 4px; grid-column: span 2; }
+    .add-task-input { flex: 1; font-family: var(--sans); font-size: 12px; color: var(--text); background: var(--surface2); border: 1px dashed var(--border-strong); border-radius: 3px; padding: 5px 8px; outline: none; }
+    .add-task-input:focus { border-color: var(--accent); background: #fff; }
+    .btn-add-task { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: var(--accent); background: var(--blue-light); border: 1px solid var(--blue-border); border-radius: 3px; padding: 5px 10px; cursor: pointer; white-space: nowrap; transition: all 0.15s; }
+    .btn-add-task:hover { background: var(--accent); color: #fff; }
+
+    /* ── HOURS TABLE (detail) ── */
+    .hours-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .hours-table th { font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #5a8a5a; padding: 7px 10px; text-align: left; border-bottom: 1px solid #c0d8c0; background: #e4f2e4; }
+    .hours-table td { padding: 6px 10px; border-bottom: 1px solid #daeada; font-size: 12px; }
     .hours-table tr:last-child td { border-bottom: none; }
-    .hours-table .total-row td {
-      font-family: var(--mono);
-      font-weight: 700;
-      background: #d0ecd0;
-      color: #1e4a1e;
-      font-size: 12px;
-    }
-    .hours-num {
-      font-family: var(--mono);
-    }
+    .hours-table .total-row td { font-family: var(--mono); font-weight: 700; background: #d0ecd0; color: #1e4a1e; }
+    .hours-num { font-family: var(--mono); }
+    .cell-edit { font-family: var(--sans); font-size: 12px; color: var(--text); background: #fff8; border: 1px solid transparent; border-radius: 2px; padding: 2px 4px; width: 100%; outline: none; }
+    .cell-edit:focus { border-color: var(--accent); background: #fff; }
+    .cell-edit.num { text-align: right; width: 70px; }
+    .total-display { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--green); }
+    .btn-del-row { background: none; border: 1px solid var(--border); border-radius: 3px; color: var(--text-muted); width: 22px; height: 22px; cursor: pointer; font-size: 13px; line-height: 1; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+    .btn-del-row:hover { background: var(--red-light); border-color: #d4a0a0; color: var(--red); }
+    .btn-add-row { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: var(--accent); background: var(--blue-light); border: 1px solid var(--blue-border); border-radius: 3px; padding: 5px 12px; cursor: pointer; margin: 8px 10px; transition: all 0.15s; }
+    .btn-add-row:hover { background: var(--accent); color: #fff; }
+
+    /* ── SUPPLIES TABLE ── */
+    .supplies-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .supplies-table th { font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #2a6090; padding: 7px 10px; text-align: left; border-bottom: 1px solid #a0c8e0; background: #d8eef8; }
+    .supplies-table td { padding: 4px 6px; border-bottom: 1px solid #d0e8f4; vertical-align: middle; }
+    .supplies-table tr:last-child td { border-bottom: none; }
+    .sup-input { font-family: var(--sans); font-size: 12px; color: var(--text); background: #fff8; border: 1px solid transparent; border-radius: 2px; padding: 3px 5px; width: 100%; outline: none; }
+    .sup-input:focus { border-color: var(--blue); background: #fff; }
+    .sup-input.num { text-align: right; width: 60px; }
 
     /* ── MATERIALS ── */
-    .materials-body {
-      padding: 12px 14px;
-      font-size: 11.5px;
-      line-height: 1.75;
-      color: var(--text);
-      white-space: pre-wrap;
-    }
+    .materials-body { padding: 10px 14px; font-size: 11.5px; line-height: 1.75; color: var(--text); }
+    .materials-edit { width: 100%; min-height: 80px; padding: 10px 14px; font-family: var(--sans); font-size: 12px; line-height: 1.6; color: var(--text); background: none; border: none; outline: none; resize: vertical; display: block; }
+    .materials-edit:focus { background: #fffdf0; }
 
-    /* ── NOTES & SUPPLIES ── */
-    .editable-area {
-      width: 100%;
-      min-height: 90px;
-      padding: 12px 14px;
-      font-family: var(--sans);
-      font-size: 12px;
-      line-height: 1.6;
-      color: var(--text);
-      background: none;
-      border: none;
-      outline: none;
-      resize: vertical;
-      display: block;
-    }
+    /* ── NOTES ── */
+    .editable-area { width: 100%; min-height: 80px; padding: 12px 14px; font-family: var(--sans); font-size: 12px; line-height: 1.6; color: var(--text); background: none; border: none; outline: none; resize: vertical; display: block; }
     .editable-area::placeholder { color: var(--text-light); font-style: italic; }
     .editable-area:focus { background: #fffdf8; }
 
+    /* ── EDITABLE INLINE ── */
+    .editable-heading { outline: none; border-bottom: 2px solid transparent; transition: border-color 0.15s; cursor: text; }
+    .editable-heading:hover { border-bottom-color: #4a7a9a; }
+    .editable-heading:focus { border-bottom-color: #a0c0e0; }
+    .editable-inline { outline: none; border-bottom: 1px solid transparent; transition: border-color 0.15s; cursor: text; }
+    .editable-inline:hover { border-bottom-color: #4a7a9a; }
+    .editable-inline:focus { border-bottom-color: #a0c0e0; }
+
+    /* ── DELETE PROJECT ── */
+    .btn-delete-project { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: #c05050; background: none; border: 1px solid #c05050; padding: 5px 12px; border-radius: 3px; cursor: pointer; transition: all 0.15s; }
+    .btn-delete-project:hover { background: var(--red-light); }
+
     /* ── SAVE BAR ── */
-    .save-bar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: var(--text);
-      padding: 12px 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      z-index: 200;
-      transform: translateY(100%);
-      transition: transform 0.2s ease;
-    }
+    .save-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--text); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; z-index: 200; transform: translateY(100%); transition: transform 0.2s ease; }
     .save-bar.visible { transform: translateY(0); }
-    .save-status {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: #a0b0c0;
-    }
-    .btn-save {
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      background: var(--green);
-      color: #fff;
-      border: none;
-      padding: 8px 20px;
-      border-radius: 3px;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
+    .save-status { font-family: var(--mono); font-size: 11px; color: #a0b0c0; }
+    .btn-save { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; background: var(--green); color: #fff; border: none; padding: 8px 20px; border-radius: 3px; cursor: pointer; transition: background 0.15s; }
     .btn-save:hover { background: #1f4f1f; }
     .btn-save:disabled { background: #4a6a4a; cursor: default; }
 
     /* ── TOAST ── */
-    .toast {
-      position: fixed;
-      bottom: 70px;
-      right: 24px;
-      background: var(--green);
-      color: #fff;
-      font-family: var(--mono);
-      font-size: 11px;
-      padding: 10px 16px;
-      border-radius: 4px;
-      z-index: 300;
-      opacity: 0;
-      transform: translateY(10px);
-      transition: all 0.2s ease;
-      pointer-events: none;
-    }
+    .toast { position: fixed; bottom: 70px; right: 24px; background: var(--green); color: #fff; font-family: var(--mono); font-size: 11px; padding: 10px 16px; border-radius: 4px; z-index: 300; opacity: 0; transform: translateY(10px); transition: all 0.2s ease; pointer-events: none; }
     .toast.show { opacity: 1; transform: translateY(0); }
     .toast.error { background: var(--red); }
 
-    /* ── PRIORITY BADGE ── */
-    .priority-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      font-family: var(--mono);
-      font-size: 13px;
-      font-weight: 600;
-      background: var(--amber-light);
-      color: var(--amber);
-      border: 1.5px solid var(--amber-border);
-    }
-
-    /* ── EDITABLE HEADING/INLINE ── */
-    .editable-heading {
-      outline: none;
-      border-bottom: 2px solid transparent;
-      transition: border-color 0.15s;
-      cursor: text;
-    }
-    .editable-heading:hover { border-bottom-color: #4a7a9a; }
-    .editable-heading:focus { border-bottom-color: #a0c0e0; }
-    .editable-inline {
-      outline: none;
-      border-bottom: 1px solid transparent;
-      transition: border-color 0.15s;
-      cursor: text;
-    }
-    .editable-inline:hover { border-bottom-color: #4a7a9a; }
-    .editable-inline:focus { border-bottom-color: #a0c0e0; }
-
-    /* ── CUSTOM TASK ITEMS ── */
-    .custom-item { background: #fdf8ee; }
-    .custom-label {
-      flex: 1;
-      outline: none;
-      cursor: text;
-    }
-    .custom-label:focus { border-bottom: 1px solid var(--amber-border); }
-    .btn-del-check {
-      background: none;
-      border: none;
-      color: var(--text-light);
-      font-size: 14px;
-      cursor: pointer;
-      padding: 0 2px;
-      line-height: 1;
-      flex-shrink: 0;
-      opacity: 0;
-      transition: opacity 0.15s;
-    }
-    .check-item:hover .btn-del-check { opacity: 1; }
-    .btn-del-check:hover { color: var(--red); }
-
-    /* ── ADD TASK ROW ── */
-    .add-task-row {
-      display: flex;
-      gap: 6px;
-      padding: 6px 0 2px;
-      grid-column: span 2;
-    }
-    .add-task-input {
-      flex: 1;
-      font-family: var(--sans);
-      font-size: 12px;
-      color: var(--text);
-      background: var(--surface2);
-      border: 1px dashed var(--border-strong);
-      border-radius: 3px;
-      padding: 5px 8px;
-      outline: none;
-    }
-    .add-task-input:focus { border-color: var(--accent); background: #fff; }
-    .btn-add-task {
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      color: var(--accent);
-      background: var(--blue-light);
-      border: 1px solid var(--blue-border);
-      border-radius: 3px;
-      padding: 5px 10px;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: all 0.15s;
-    }
-    .btn-add-task:hover { background: var(--accent); color: #fff; }
-
     /* ── NEW PROJECT FORM ── */
-    .new-container {
-      max-width: 820px;
-      margin: 0 auto;
-      padding: 28px 20px 80px;
-    }
-    .new-page-title {
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      margin-bottom: 20px;
-    }
-    .form-section {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      margin-bottom: 12px;
-      overflow: hidden;
-    }
-    .form-section-head {
-      padding: 10px 16px;
-      background: var(--surface2);
-      border-bottom: 1px solid var(--border);
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-    }
-    .form-body {
-      padding: 16px;
-    }
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
+    .new-container { max-width: 820px; margin: 0 auto; padding: 28px 20px 80px; }
+    .new-page-title { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 20px; }
+    .form-section { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 12px; overflow: hidden; }
+    .form-section-head { padding: 10px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); }
+    .form-body { padding: 16px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .form-grid.three { grid-template-columns: 1fr 1fr 1fr; }
     .form-grid.full { grid-template-columns: 1fr; }
-    .field-group {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
+    .field-group { display: flex; flex-direction: column; gap: 4px; }
     .field-group.span2 { grid-column: span 2; }
-    .field-label {
-      font-family: var(--mono);
-      font-size: 9px;
-      font-weight: 600;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--text-light);
-    }
-    .field-input {
-      font-family: var(--sans);
-      font-size: 13px;
-      color: var(--text);
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 7px 10px;
-      outline: none;
-      transition: border-color 0.15s;
-      width: 100%;
-    }
+    .field-label { font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-light); }
+    .field-input { font-family: var(--sans); font-size: 13px; color: var(--text); background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 7px 10px; outline: none; transition: border-color 0.15s; width: 100%; }
     .field-input:focus { border-color: var(--accent); background: #fff; }
-    .field-input.required:invalid { border-color: #d4a0a0; }
     select.field-input { cursor: pointer; }
-    textarea.field-input {
-      resize: vertical;
-      min-height: 80px;
-      line-height: 1.5;
-    }
-    .field-hint {
-      font-size: 10px;
-      color: var(--text-light);
-      font-style: italic;
-    }
-
-    /* Hours table in form */
-    .hours-form-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-      margin-bottom: 10px;
-    }
-    .hours-form-table th {
-      font-family: var(--mono);
-      font-size: 9px;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      padding: 7px 10px;
-      text-align: left;
-      border-bottom: 1px solid var(--border);
-      background: var(--surface2);
-    }
+    textarea.field-input { resize: vertical; min-height: 80px; line-height: 1.5; }
+    .field-hint { font-size: 10px; color: var(--text-light); font-style: italic; }
+    .hours-form-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 10px; }
+    .hours-form-table th { font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--border); background: var(--surface2); }
     .hours-form-table th.th-del { width: 36px; }
-    .hours-form-table td {
-      padding: 5px 6px;
-      border-bottom: 1px solid var(--border);
-      vertical-align: middle;
-    }
-    .hours-form-table tr:last-child td { border-bottom: none; }
-    .hours-form-table .cell-input {
-      font-family: var(--sans);
-      font-size: 12px;
-      color: var(--text);
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 3px;
-      padding: 5px 7px;
-      width: 100%;
-      outline: none;
-    }
-    .hours-form-table .cell-input:focus { border-color: var(--accent); background: #fff; }
-    .hours-form-table .cell-input.num { text-align: right; }
-    .hours-total-display {
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--green);
-      padding: 0 6px;
-    }
-    .btn-del-row {
-      background: none;
-      border: 1px solid var(--border);
-      border-radius: 3px;
-      color: var(--text-muted);
-      width: 26px;
-      height: 26px;
-      cursor: pointer;
-      font-size: 14px;
-      line-height: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.15s;
-    }
-    .btn-del-row:hover { background: var(--red-light); border-color: #d4a0a0; color: var(--red); }
-    .btn-add-row {
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: 0.06em;
-      color: var(--accent);
-      background: var(--blue-light);
-      border: 1px solid var(--blue-border);
-      border-radius: 3px;
-      padding: 5px 12px;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .btn-add-row:hover { background: var(--accent); color: #fff; }
-
-    .hours-project-total {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 8px;
-      padding: 8px 0 0;
-      border-top: 1px solid var(--border);
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-    .hours-project-total strong {
-      font-size: 14px;
-      color: var(--green);
-    }
-
-    .form-actions {
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
-      padding: 16px;
-      border-top: 1px solid var(--border);
-    }
-    .btn-cancel {
-      font-family: var(--mono);
-      font-size: 11px;
-      letter-spacing: 0.06em;
-      color: var(--text-muted);
-      background: none;
-      border: 1px solid var(--border);
-      padding: 8px 18px;
-      border-radius: 3px;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
+    .hours-form-table td { padding: 5px 6px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .cell-input { font-family: var(--sans); font-size: 12px; color: var(--text); background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 5px 7px; width: 100%; outline: none; }
+    .cell-input:focus { border-color: var(--accent); background: #fff; }
+    .cell-input.num { text-align: right; }
+    .hours-total-display { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--green); padding: 0 6px; }
+    .hours-project-total { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 8px 0 0; border-top: 1px solid var(--border); font-family: var(--mono); font-size: 12px; color: var(--text-muted); }
+    .hours-project-total strong { font-size: 14px; color: var(--green); }
+    .form-actions { display: flex; gap: 10px; justify-content: flex-end; padding: 16px; border-top: 1px solid var(--border); }
+    .btn-cancel { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; color: var(--text-muted); background: none; border: 1px solid var(--border); padding: 8px 18px; border-radius: 3px; cursor: pointer; transition: all 0.15s; }
     .btn-cancel:hover { background: var(--surface2); }
-    .btn-create {
-      font-family: var(--mono);
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      background: var(--green);
-      color: #fff;
-      border: none;
-      padding: 8px 22px;
-      border-radius: 3px;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
+    .btn-create { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; background: var(--green); color: #fff; border: none; padding: 8px 22px; border-radius: 3px; cursor: pointer; transition: background 0.15s; }
     .btn-create:hover { background: #1f4f1f; }
     .btn-create:disabled { background: #4a6a4a; cursor: default; }
 
-    /* ── NEW PROJECT button on list ── */
-    .btn-new-project {
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      background: var(--green);
-      color: #fff;
-      border: none;
-      padding: 7px 16px;
-      border-radius: 3px;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-    .btn-new-project:hover { background: #1f4f1f; }
-
-    @media (max-width: 680px) {
-      .table-head, .project-row { grid-template-columns: 55px 1fr 80px 80px; }
-      .table-head > *:nth-child(3),
-      .project-row > *:nth-child(3) { display: none; }
-      .info-grid { grid-template-columns: 1fr 1fr; }
-      .checklist-body { grid-template-columns: 1fr; }
-      .detail-header-card { flex-direction: column; gap: 12px; }
-    }
-
     /* ── PRINT ── */
     @media print {
-      /* Hide all UI chrome */
-      .app-header,
-      .save-bar,
-      .toast,
-      .btn-back,
-      #viewList,
-      #viewNew { display: none !important; }
-
-      /* Reset page */
-      body {
-        background: #fff;
-        font-size: 9pt;
-        color: #000;
-        padding: 0;
-        margin: 0;
-      }
-
-      /* Detail container: full width, tight margins */
-      .detail-container {
-        max-width: 100%;
-        padding: 0;
-        margin: 0;
-      }
-
-      /* Header card: dark bg prints as dark, keep it */
-      .detail-header-card {
-        background: #1a1714 !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-        color: #fff !important;
-        padding: 10pt 12pt;
-        margin-bottom: 6pt;
-        border-radius: 3pt;
-      }
+      .app-header, .save-bar, .toast, .btn-back, #viewList, #viewNew, .item-actions, .add-task-row, .btn-add-row, .btn-delete-project { display: none !important; }
+      body { background: #fff; font-size: 9pt; color: #000; padding: 0; margin: 0; }
+      .detail-container { max-width: 100%; padding: 0; margin: 0; }
+      .detail-header-card { background: #1a1714 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; color: #fff !important; padding: 10pt 12pt; margin-bottom: 0; border-radius: 3pt 3pt 0 0; }
       .detail-client-name { font-size: 20pt; margin-bottom: 3pt; }
       .detail-subtitle { font-size: 8pt; color: #a0b0c0 !important; }
-      .detail-est { font-size: 8pt; color: #6080a0 !important; }
-      .detail-amount { font-size: 16pt; }
-
-      /* Info cards row */
-      .info-grid {
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 5pt;
-        margin-bottom: 6pt;
-      }
-      .info-card {
-        padding: 5pt 7pt;
-        border: 0.5pt solid #ccc;
-        border-radius: 2pt;
-        background: #f9f9f9 !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-      }
-      .info-label { font-size: 7pt; }
-      .info-value, .info-input, .status-select { font-size: 9pt; }
-
-      /* Sections */
-      .detail-section {
-        border: 0.5pt solid #ccc;
-        border-radius: 2pt;
-        margin-bottom: 5pt;
-        page-break-inside: avoid;
-      }
-      .section-head {
-        background: #333 !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-        color: #fff !important;
-        padding: 4pt 8pt;
-      }
-      .section-label { font-size: 8pt; color: #fff !important; }
-      .section-progress { font-size: 8pt; color: #ccc !important; }
-
-      /* Checklist: two columns, tight */
-      .checklist-body {
-        grid-template-columns: 1fr 1fr;
-        padding: 5pt 8pt;
-        gap: 0 12pt;
-      }
-      .check-item {
-        padding: 2pt 0;
-        border-bottom: 0.3pt solid #eee;
-        gap: 5pt;
-      }
-      .check-box {
-        width: 9pt;
-        height: 9pt;
-        border: 1pt solid #555;
-        border-radius: 1pt;
-        flex-shrink: 0;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-      }
-      .check-box.checked {
-        background: #2d6a2d !important;
-        border-color: #2d6a2d !important;
-      }
-      .check-box.checked::after {
-        width: 5pt;
-        height: 3pt;
-        border-left: 1.5pt solid #fff;
-        border-bottom: 1.5pt solid #fff;
-      }
-      .check-label { font-size: 8pt; }
-      .check-item.done .check-label { color: #999 !important; }
-
-      /* Hours table */
-      .hours-table { font-size: 8pt; }
-      .hours-table th {
-        font-size: 7pt;
-        padding: 4pt 8pt;
-        background: #f5f5f5 !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-      }
-      .hours-table td { padding: 4pt 8pt; }
-      .hours-table .total-row td {
-        background: #eaf3ea !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-        color: #2d6a2d !important;
-      }
-
-      /* Materials */
-      .materials-body {
-        padding: 6pt 8pt;
-        font-size: 8pt;
-        line-height: 1.5;
-      }
-
-      /* Editable areas: show as plain text blocks */
-      .editable-area {
-        padding: 6pt 8pt;
-        font-size: 8pt;
-        min-height: 30pt;
-        border: none;
-        resize: none;
-        background: #fff;
-        line-height: 1.5;
-      }
-      /* Hide placeholder styling on empty textareas */
-      .editable-area:placeholder-shown {
-        color: #ccc;
-      }
-
-      /* Page setup */
-      @page {
-        size: letter portrait;
-        margin: 0.5in 0.5in 0.5in 0.5in;
-      }
+      .detail-est { font-size: 8pt; } .detail-amount { font-size: 16pt; }
+      .info-grid { grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0; margin-bottom: 6pt; }
+      .info-card { padding: 5pt 7pt; border: 0.5pt solid #ccc; background: #f9f9f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .info-label { font-size: 7pt; } .info-input, .status-select { font-size: 9pt; }
+      .detail-section { border: 0.5pt solid #ccc; border-radius: 2pt; margin-bottom: 5pt; page-break-inside: avoid; }
+      .section-head { background: #333 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 4pt 8pt; }
+      .section-label { font-size: 8pt; color: #fff !important; } .section-progress { font-size: 8pt; color: #ccc !important; }
+      .detail-section.zone-green .section-head { background: #1e3d1e !important; }
+      .detail-section.zone-amber .section-head { background: #3d2e0a !important; }
+      .detail-section.zone-blue .section-head  { background: #0e2236 !important; }
+      .checklist-body { grid-template-columns: 1fr 1fr; padding: 5pt 8pt; gap: 0 12pt; }
+      .check-item { padding: 2pt 0; border-bottom: 0.3pt solid #eee; gap: 5pt; }
+      .check-box { width: 9pt; height: 9pt; border: 1pt solid #555; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .check-box.checked { background: #2d6a2d !important; border-color: #2d6a2d !important; }
+      .check-label { font-size: 8pt; } .check-item.done .check-label { color: #999 !important; }
+      .hours-table th { font-size: 7pt; padding: 4pt 8pt; background: #e4f2e4 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .hours-table td { padding: 4pt 8pt; font-size: 8pt; }
+      .hours-table .total-row td { background: #d0ecd0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; color: #1e4a1e !important; }
+      .supplies-table th { font-size: 7pt; padding: 4pt 8pt; background: #d8eef8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .supplies-table td { padding: 3pt 6pt; font-size: 8pt; }
+      .sup-input, .cell-edit, .materials-edit, .editable-area { border: none !important; background: transparent !important; font-size: 8pt; padding: 0; }
+      .materials-body, .editable-area, .materials-edit { padding: 6pt 8pt; font-size: 8pt; line-height: 1.5; }
+      @page { size: letter portrait; margin: 0.5in; }
     }
   </style>
 </head>
@@ -1068,24 +291,18 @@
       </div>
     </div>
     <div class="filter-bar">
-      <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
-      <button class="filter-btn" onclick="setFilter('active', this)">Active</button>
-      <button class="filter-btn" onclick="setFilter('production', this)">Production</button>
-      <button class="filter-btn" onclick="setFilter('complete', this)">Complete</button>
-      <button class="filter-btn" onclick="setFilter('hold', this)">Hold</button>
+      <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+      <button class="filter-btn" onclick="setFilter('active',this)">Active</button>
+      <button class="filter-btn" onclick="setFilter('production',this)">Production</button>
+      <button class="filter-btn" onclick="setFilter('complete',this)">Complete</button>
+      <button class="filter-btn" onclick="setFilter('hold',this)">Hold</button>
     </div>
     <div class="project-table">
       <div class="table-head">
-        <div>Est #</div>
-        <div>Client</div>
-        <div>Scope</div>
-        <div>Amount</div>
-        <div>Hours</div>
-        <div>Status</div>
+        <div>Est #</div><div>Client</div><div>Scope</div>
+        <div>Amount</div><div>Hours</div><div>Lead</div><div>Status</div>
       </div>
-      <div id="projectList">
-        <div class="loading-state">Loading projects…</div>
-      </div>
+      <div id="projectList"><div class="loading-state">Loading projects…</div></div>
     </div>
   </div>
 </div>
@@ -1099,8 +316,6 @@
 <div class="view" id="viewNew">
   <div class="new-container">
     <div class="new-page-title">New Project</div>
-
-    <!-- Est # + Core Info -->
     <div class="form-section">
       <div class="form-section-head">Project Identity</div>
       <div class="form-body">
@@ -1108,7 +323,7 @@
           <div class="field-group">
             <label class="field-label">Estimate #</label>
             <input class="field-input" id="f-est" type="text" placeholder="Auto (editable)" />
-            <span class="field-hint">Leave blank to auto-assign, or enter your est #</span>
+            <span class="field-hint">Leave blank to auto-assign</span>
           </div>
           <div class="field-group">
             <label class="field-label">Status</label>
@@ -1126,19 +341,17 @@
         </div>
       </div>
     </div>
-
-    <!-- Client Info -->
     <div class="form-section">
       <div class="form-section-head">Client Information</div>
       <div class="form-body">
         <div class="form-grid">
           <div class="field-group">
             <label class="field-label">Last Name *</label>
-            <input class="field-input required" id="f-lastname" type="text" placeholder="Shinn" />
+            <input class="field-input" id="f-lastname" type="text" placeholder="Shinn" />
           </div>
           <div class="field-group">
             <label class="field-label">Full Name *</label>
-            <input class="field-input required" id="f-fullname" type="text" placeholder="Michael Shinn" />
+            <input class="field-input" id="f-fullname" type="text" placeholder="Michael Shinn" />
           </div>
           <div class="field-group span2">
             <label class="field-label">Address</label>
@@ -1149,108 +362,90 @@
             <input class="field-input" id="f-phone" type="text" placeholder="555-0100" />
           </div>
           <div class="field-group">
+            <label class="field-label">Lead Tech (initials)</label>
+            <input class="field-input" id="f-lead" type="text" placeholder="AB" maxlength="4" />
+          </div>
+          <div class="field-group">
             <label class="field-label">Start Date</label>
             <input class="field-input" id="f-startdate" type="date" />
           </div>
         </div>
       </div>
     </div>
-
-    <!-- Project Details -->
     <div class="form-section">
       <div class="form-section-head">Project Details</div>
       <div class="form-body">
         <div class="form-grid">
           <div class="field-group">
             <label class="field-label">Total Amount ($) *</label>
-            <input class="field-input required" id="f-amount" type="number" min="0" placeholder="21908" />
+            <input class="field-input" id="f-amount" type="number" min="0" placeholder="21908" />
           </div>
           <div class="field-group">
             <label class="field-label">Scope Summary *</label>
-            <input class="field-input required" id="f-scope" type="text" placeholder="Triage ×7, Rail Prep ×7, Screens ×7" />
+            <input class="field-input" id="f-scope" type="text" placeholder="Triage ×7, Rail Prep ×7" />
           </div>
           <div class="field-group span2">
             <label class="field-label">Materials Scope Summary</label>
-            <textarea class="field-input" id="f-materials" placeholder="Triage (7 openings): Sash cord, weatherstrip…"></textarea>
+            <textarea class="field-input" id="f-materials" placeholder="Triage (7 openings): Sash cord…"></textarea>
           </div>
         </div>
       </div>
     </div>
-
-    <!-- Hours Budget -->
     <div class="form-section">
       <div class="form-section-head">Hours Budget</div>
       <div class="form-body">
-        <table class="hours-form-table" id="hoursTable">
-          <thead>
-            <tr>
-              <th>Scope Type</th>
-              <th style="width:70px">Units</th>
-              <th style="width:100px">Rate (hrs/unit)</th>
-              <th style="width:80px">Total</th>
-              <th class="th-del"></th>
-            </tr>
-          </thead>
+        <table class="hours-form-table">
+          <thead><tr><th>Scope Type</th><th style="width:70px">Units</th><th style="width:110px">Rate (hrs/unit)</th><th style="width:80px">Total</th><th class="th-del"></th></tr></thead>
           <tbody id="hoursTableBody"></tbody>
         </table>
-        <button class="btn-add-row" onclick="addHoursRow()">+ Add Scope Row</button>
-        <div class="hours-project-total">
-          Project Total: <strong id="hoursTotalDisplay">0 hrs</strong>
-        </div>
+        <button class="btn-add-row" onclick="addHoursRow()">+ Add Row</button>
+        <div class="hours-project-total">Project Total: <strong id="hoursTotalDisplay">0 hrs</strong></div>
       </div>
     </div>
-
-    <!-- Notes -->
     <div class="form-section">
       <div class="form-section-head">Notes</div>
-      <div class="form-body form-grid full">
-        <div class="field-group">
-          <textarea class="field-input" id="f-notes" placeholder="Initial project notes…" style="min-height:70px"></textarea>
-        </div>
+      <div class="form-body">
+        <textarea class="field-input" id="f-notes" placeholder="Initial project notes…" style="min-height:70px"></textarea>
       </div>
     </div>
-
     <div class="form-section">
       <div class="form-actions">
         <button class="btn-cancel" onclick="showList()">Cancel</button>
         <button class="btn-create" id="btnCreate" onclick="createProject()">Create Project</button>
       </div>
     </div>
-
   </div>
 </div>
 
-
+<div class="save-bar" id="saveBar">
   <div class="save-status" id="saveStatus">Unsaved changes</div>
   <button class="btn-save" id="btnSave" onclick="saveProject()">Save Changes</button>
 </div>
-
 <div class="toast" id="toast"></div>
 
-<!-- Firebase -->
-<script type="module">
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, serverTimestamp }
-    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-
-  const firebaseConfig = {
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+  firebase.initializeApp({
     apiKey: "AIzaSyBiwsuVyEormZua4fUh7rLeIAQp0BZ-y8A",
     authDomain: "epstools-2913e.firebaseapp.com",
     projectId: "epstools-2913e",
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+  });
+  var db = firebase.firestore();
 
   // ── STATE ──
-  window._db = db;
-  window._projects = [];
-  window._currentProject = null;
-  window._dirty = false;
-  window._activeFilter = 'all';
+  var _projects = [];
+  var _currentProject = null;
+  var _dirty = false;
+  var _activeFilter = 'all';
+  var _hoursRows = [];
+  var _detailHoursRows = [];
+  var _suppliesRows = [];
+  var _manualCounter = 0;
+  var _removedStdKeys = {};  // { section: [key, ...] }
 
   // ── CHECKLIST LABELS ──
-  const CHECKLIST_LABELS = {
+  var CHECKLIST_LABELS = {
     preProject: {
       contractSigned: 'Contract signed and deposit received',
       siteAccessConfirmed: 'Site access confirmed with client',
@@ -1280,81 +475,63 @@
   };
 
   // ── LOAD PROJECTS ──
-  async function loadProjects() {
-    try {
-      const snap = await getDocs(collection(db, 'pm_projects'));
-      window._projects = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  function loadProjects() {
+    db.collection('pm_projects').get().then(function(snap) {
+      _projects = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
       renderList();
-    } catch(e) {
+    }).catch(function(e) {
       document.getElementById('projectList').innerHTML =
-        `<div class="empty-state"><div class="icon">⚠</div><p>Error loading projects: ${e.message}</p></div>`;
-    }
+        '<div class="empty-state"><div class="icon">⚠</div><p>Error: ' + e.message + '</p></div>';
+    });
   }
 
   function renderList() {
-    const filter = window._activeFilter;
-    const projects = filter === 'all'
-      ? window._projects
-      : window._projects.filter(p => p.status === filter);
-
-    // Sort by priority (nulls last), then by estimateNumber desc
-    projects.sort((a, b) => {
-      const pa = a.priority ?? 999, pb = b.priority ?? 999;
+    var projects = _activeFilter === 'all' ? _projects.slice()
+      : _projects.filter(function(p) { return p.status === _activeFilter; });
+    projects.sort(function(a, b) {
+      var pa = a.priority || 999, pb = b.priority || 999;
       if (pa !== pb) return pa - pb;
       return parseInt(b.estimateNumber) - parseInt(a.estimateNumber);
     });
-
-    document.getElementById('projectCount').textContent =
-      `${projects.length} project${projects.length !== 1 ? 's' : ''}`;
-
+    document.getElementById('projectCount').textContent = projects.length + ' project' + (projects.length !== 1 ? 's' : '');
     if (!projects.length) {
-      document.getElementById('projectList').innerHTML =
-        `<div class="empty-state"><div class="icon">📋</div><p>No projects found.</p></div>`;
+      document.getElementById('projectList').innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>No projects found.</p></div>';
       return;
     }
-
-    document.getElementById('projectList').innerHTML = projects.map(p => {
-      const statusClass = `status-${p.status || 'active'}`;
-      const statusLabel = p.status || 'active';
-      const priorityHtml = p.priority
-        ? `<span class="priority-badge">${p.priority}</span> `
-        : '';
-      return `
-        <div class="project-row" onclick="openProject('${p.id}')">
-          <div class="est-num">#${p.estimateNumber}</div>
-          <div class="client-cell">
-            <div class="last-name">${priorityHtml}${p.clientLastName || '—'}</div>
-            <div class="full-name">${p.clientFullName || ''}</div>
-          </div>
-          <div class="scope-cell">${p.scopeSummary || '—'}</div>
-          <div class="amount-cell">$${(p.totalAmount || 0).toLocaleString()}</div>
-          <div class="hours-cell">${p.hoursTotal || '—'} hrs</div>
-          <div><span class="status-badge ${statusClass}">${statusLabel}</span></div>
-        </div>`;
+    document.getElementById('projectList').innerHTML = projects.map(function(p) {
+      var sc = 'status-' + (p.status || 'active');
+      var sl = p.status || 'active';
+      var ph = p.priority ? '<span class="priority-badge">' + p.priority + '</span>' : '';
+      return '<div class="project-row" onclick="openProject(\'' + p.id + '\')">'
+        + '<div class="est-num">#' + p.estimateNumber + '</div>'
+        + '<div class="client-cell"><div class="last-name">' + ph + (p.clientLastName || '—') + '</div><div class="full-name">' + (p.clientFullName || '') + '</div></div>'
+        + '<div class="scope-cell">' + (p.scopeSummary || '—') + '</div>'
+        + '<div class="amount-cell">$' + (p.totalAmount || 0).toLocaleString() + '</div>'
+        + '<div class="hours-cell">' + (p.hoursTotal || '—') + ' hrs</div>'
+        + '<div class="lead-cell">' + (p.leadTech || '—') + '</div>'
+        + '<div><span class="status-badge ' + sc + '">' + sl + '</span></div>'
+        + '</div>';
     }).join('');
   }
 
   window.setFilter = function(filter, btn) {
-    window._activeFilter = filter;
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    _activeFilter = filter;
+    document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
     btn.classList.add('active');
     renderList();
   };
 
   // ── OPEN PROJECT ──
-  window.openProject = async function(id) {
-    try {
-      const snap = await getDoc(doc(db, 'pm_projects', id));
-      if (!snap.exists()) { showToast('Project not found', true); return; }
-      window._currentProject = { id, ...snap.data() };
-      renderDetail(window._currentProject);
+  window.openProject = function(id) {
+    db.collection('pm_projects').doc(id).get().then(function(snap) {
+      if (!snap.exists) { showToast('Project not found', true); return; }
+      _currentProject = Object.assign({ id: id }, snap.data());
+      renderDetail(_currentProject);
       document.getElementById('viewList').classList.remove('active');
       document.getElementById('viewDetail').classList.add('active');
       document.getElementById('btnBack').classList.add('visible');
       window.scrollTo(0, 0);
-    } catch(e) {
-      showToast('Error loading project', true);
-    }
+    }).catch(function() { showToast('Error loading project', true); });
   };
 
   window.showList = function() {
@@ -1363,485 +540,459 @@
     document.getElementById('viewList').classList.add('active');
     document.getElementById('btnBack').classList.remove('visible');
     hideSaveBar();
-    window._dirty = false;
+    _dirty = false;
     loadProjects();
   };
 
   // ── RENDER DETAIL ──
   function renderDetail(p) {
-    const cl = p.checklist || {};
-    const pre = cl.preProject || {};
-    const prod = cl.production || {};
-    const close = cl.closeout || {};
-    const custom = cl.custom || {};  // project-specific tasks keyed by section
+    var cl = p.checklist || {};
+    var pre = cl.preProject || {};
+    var prod = cl.production || {};
+    var close = cl.closeout || {};
+    var custom = cl.custom || {};
+    var removed = p.removedTasks || {};
 
-    // ── Build checklist section HTML ──
-    // Standard items come from CHECKLIST_LABELS
-    // Custom items stored as arrays under checklist.custom.preProject / .production / .closeout
+    // init detail hours from project
+    _detailHoursRows = (p.hoursBudget || []).map(function(h, i) {
+      var rate = parseFloat((h.benchmark || '').replace(/[^0-9.]/g,'')) || h.total / (h.units || 1) || 0;
+      return { id: Date.now() + i, scope: h.scope, units: h.units, rate: rate, _total: h.total };
+    });
+
+    // init supplies rows
+    _suppliesRows = (p.supplies || []).map(function(s, i) {
+      return Object.assign({ id: Date.now() + 1000 + i }, s);
+    });
+
+    _removedStdKeys = removed;
+
     function checklistSection(section, data, labels) {
-      const stdKeys = Object.keys(labels);
-      const customItems = (custom[section] || []);
-      const stdDone = stdKeys.filter(k => data[k]).length;
-      const custDone = customItems.filter(i => i.done).length;
-      const total = stdKeys.length + customItems.length;
-      const done = stdDone + custDone;
+      var removedKeys = (removed[section] || []);
+      var stdKeys = Object.keys(labels).filter(function(k) { return removedKeys.indexOf(k) === -1; });
+      var customItems = custom[section] || [];
+      var done = stdKeys.filter(function(k) { return data[k]; }).length
+               + customItems.filter(function(i) { return i.done; }).length;
+      var total = stdKeys.length + customItems.length;
 
-      const stdHtml = stdKeys.map(k => `
-        <div class="check-item${data[k] ? ' done' : ''}" onclick="toggleCheck('${section}','${k}',this)">
-          <div class="check-box${data[k] ? ' checked' : ''}"></div>
-          <span class="check-label">${labels[k]}</span>
-        </div>`).join('');
+      var stdHtml = stdKeys.map(function(k) {
+        return '<div class="check-item' + (data[k] ? ' done' : '') + '" onclick="toggleCheck(\'' + section + '\',\'' + k + '\',this)">'
+          + '<div class="check-box' + (data[k] ? ' checked' : '') + '"></div>'
+          + '<span class="check-label">' + labels[k] + '</span>'
+          + '<span class="item-actions">'
+          + '<button class="btn-item-action btn-item-edit" onclick="event.stopPropagation();editStdItem(\'' + section + '\',\'' + k + '\')" title="Edit">✎</button>'
+          + '<button class="btn-item-action" onclick="event.stopPropagation();deleteStdItem(\'' + section + '\',\'' + k + '\')" title="Delete">×</button>'
+          + '</span></div>';
+      }).join('');
 
-      const custHtml = customItems.map((item, idx) => `
-        <div class="check-item custom-item${item.done ? ' done' : ''}" onclick="toggleCustomCheck('${section}',${idx},this)">
-          <div class="check-box${item.done ? ' checked' : ''}"></div>
-          <span class="check-label custom-label" contenteditable="true"
-            onblur="renameCustomItem('${section}',${idx},this.textContent)"
-            onclick="event.stopPropagation()">${item.label}</span>
-          <button class="btn-del-check" onclick="event.stopPropagation();deleteCustomItem('${section}',${idx})" title="Remove">×</button>
-        </div>`).join('');
+      var custHtml = customItems.map(function(item, idx) {
+        return '<div class="check-item custom-item' + (item.done ? ' done' : '') + '" onclick="toggleCustomCheck(\'' + section + '\',' + idx + ',this)">'
+          + '<div class="check-box' + (item.done ? ' checked' : '') + '"></div>'
+          + '<span class="check-label">' + item.label + '</span>'
+          + '<span class="item-actions">'
+          + '<button class="btn-item-action btn-item-edit" onclick="event.stopPropagation();editCustomItem(\'' + section + '\',' + idx + ')" title="Edit">✎</button>'
+          + '<button class="btn-item-action" onclick="event.stopPropagation();deleteCustomItem(\'' + section + '\',' + idx + ')" title="Delete">×</button>'
+          + '</span></div>';
+      }).join('');
 
-      const addHtml = `
-        <div class="add-task-row">
-          <input class="add-task-input" id="add-${section}" type="text" placeholder="+ Add task…"
-            onkeydown="if(event.key==='Enter')addCustomItem('${section}')">
-          <button class="btn-add-task" onclick="addCustomItem('${section}')">Add</button>
-        </div>`;
+      var addHtml = '<div class="add-task-row">'
+        + '<input class="add-task-input" id="add-' + section + '" type="text" placeholder="+ Add task…">'
+        + '<button class="btn-add-task" onclick="addCustomItem(\'' + section + '\')">Add</button>'
+        + '</div>';
 
-      return { html: stdHtml + custHtml + addHtml, done, total };
+      return { html: stdHtml + custHtml + addHtml, done: done, total: total };
     }
 
-    const preSection = checklistSection('preProject', pre, CHECKLIST_LABELS.preProject);
-    const prodSection = checklistSection('production', prod, CHECKLIST_LABELS.production);
-    const closeSection = checklistSection('closeout', close, CHECKLIST_LABELS.closeout);
+    var preS = checklistSection('preProject', pre, CHECKLIST_LABELS.preProject);
+    var proS = checklistSection('production', prod, CHECKLIST_LABELS.production);
+    var clS  = checklistSection('closeout', close, CHECKLIST_LABELS.closeout);
 
-    const hoursRows = (p.hoursBudget || []).map(h => `
-      <tr>
-        <td>${h.scope}</td>
-        <td class="hours-num">${h.units}</td>
-        <td class="hours-num">${h.benchmark}</td>
-        <td class="hours-num">${h.total} hrs</td>
-      </tr>`).join('');
+    var statusOptions = ['active','production','complete','hold'].map(function(s) {
+      return '<option value="' + s + '"' + ((p.status||'active')===s?' selected':'') + '>' + s.charAt(0).toUpperCase()+s.slice(1) + '</option>';
+    }).join('');
 
-    const statusOptions = ['active','production','complete','hold']
-      .map(s => `<option value="${s}"${(p.status||'active')===s?' selected':''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`)
-      .join('');
+    document.getElementById('detailContent').innerHTML =
+      '<div class="detail-header-card">'
+      + '<div style="flex:1;min-width:0;">'
+      + '<div class="detail-client-name"><span contenteditable="true" class="editable-heading" onblur="updateField(\'clientLastName\',this.textContent.trim())">' + (p.clientLastName||'—') + '</span></div>'
+      + '<div class="detail-subtitle">'
+      + '<span contenteditable="true" class="editable-inline" onblur="updateField(\'clientFullName\',this.textContent.trim())">' + (p.clientFullName||'') + '</span><br>'
+      + '<span contenteditable="true" class="editable-inline" onblur="updateField(\'address\',this.textContent.trim())">' + (p.address||'') + '</span>'
+      + ' <span style="color:#6080a0">·</span> '
+      + '<span contenteditable="true" class="editable-inline" onblur="updateField(\'phone\',this.textContent.trim())">' + (p.phone||'') + '</span>'
+      + '</div></div>'
+      + '<div class="detail-right">'
+      + '<div class="detail-est">Est #<span contenteditable="true" class="editable-inline" onblur="updateField(\'estimateNumber\',this.textContent.trim())">' + p.estimateNumber + '</span></div>'
+      + '<div class="detail-amount">$<span contenteditable="true" class="editable-inline" onblur="updateField(\'totalAmount\',parseFloat(this.textContent.replace(/[^0-9.]/g,\'\'))||0)">' + (p.totalAmount||0).toLocaleString() + '</span></div>'
+      + '</div></div>'
 
-    document.getElementById('detailContent').innerHTML = `
-      <div class="detail-header-card">
-        <div style="flex:1;min-width:0;">
-          <div class="detail-client-name">
-            <span contenteditable="true" class="editable-heading"
-              onblur="updateField('clientLastName',this.textContent.trim())">${p.clientLastName || '—'}</span>
-          </div>
-          <div class="detail-subtitle">
-            <span contenteditable="true" class="editable-inline"
-              onblur="updateField('clientFullName',this.textContent.trim())">${p.clientFullName || ''}</span><br>
-            <span contenteditable="true" class="editable-inline"
-              onblur="updateField('address',this.textContent.trim())">${p.address || ''}</span>
-            <span style="color:#6080a0;"> · </span>
-            <span contenteditable="true" class="editable-inline"
-              onblur="updateField('phone',this.textContent.trim())">${p.phone || ''}</span>
-          </div>
-        </div>
-        <div class="detail-right">
-          <div class="detail-est">Est #<span contenteditable="true" class="editable-inline"
-            onblur="updateField('estimateNumber',this.textContent.trim())">${p.estimateNumber}</span></div>
-          <div class="detail-amount">$<span contenteditable="true" class="editable-inline"
-            onblur="updateField('totalAmount',parseFloat(this.textContent.replace(/[^0-9.]/g,''))||0)">${(p.totalAmount||0).toLocaleString()}</span></div>
-        </div>
-      </div>
+      + '<div class="info-grid">'
+      + '<div class="info-card"><div class="info-label">Status</div><select class="status-select" onchange="updateField(\'status\',this.value)">' + statusOptions + '</select></div>'
+      + '<div class="info-card"><div class="info-label">Priority</div><input class="info-input" type="number" min="1" placeholder="—" value="' + (p.priority||'') + '" onchange="updateField(\'priority\',this.value?parseInt(this.value):null)"></div>'
+      + '<div class="info-card"><div class="info-label">Lead Tech</div><input class="info-input" type="text" maxlength="4" placeholder="AB" value="' + (p.leadTech||'') + '" oninput="updateField(\'leadTech\',this.value.trim())"></div>'
+      + '<div class="info-card"><div class="info-label">Start Date</div><input class="info-input" type="date" value="' + (p.startDate||'') + '" onchange="updateField(\'startDate\',this.value)"></div>'
+      + '</div>'
 
-      <div class="info-grid">
-        <div class="info-card">
-          <div class="info-label">Status</div>
-          <select class="status-select" onchange="updateField('status', this.value)">${statusOptions}</select>
-        </div>
-        <div class="info-card">
-          <div class="info-label">Priority</div>
-          <input class="info-input" type="number" min="1" placeholder="—"
-            value="${p.priority || ''}" onchange="updateField('priority', this.value ? parseInt(this.value) : null)">
-        </div>
-        <div class="info-card">
-          <div class="info-label">Start Date</div>
-          <input class="info-input" type="date"
-            value="${p.startDate || ''}" onchange="updateField('startDate', this.value)">
-        </div>
-      </div>
+      + '<div class="detail-section"><div class="section-head"><div class="section-label">1. Pre-Project Setup</div><div class="section-progress" id="prog-preProject">' + preS.done + '/' + preS.total + '</div></div><div class="checklist-body" id="cl-preProject">' + preS.html + '</div></div>'
+      + '<div class="detail-section"><div class="section-head"><div class="section-label">2. Production</div><div class="section-progress" id="prog-production">' + proS.done + '/' + proS.total + '</div></div><div class="checklist-body" id="cl-production">' + proS.html + '</div></div>'
+      + '<div class="detail-section"><div class="section-head"><div class="section-label">3. Completion &amp; Closeout</div><div class="section-progress" id="prog-closeout">' + clS.done + '/' + clS.total + '</div></div><div class="checklist-body" id="cl-closeout">' + clS.html + '</div></div>'
 
-      <div class="detail-section">
-        <div class="section-head">
-          <div class="section-label">1. Pre-Project Setup</div>
-          <div class="section-progress" id="prog-preProject">${preSection.done}/${preSection.total}</div>
-        </div>
-        <div class="checklist-body" id="cl-preProject">${preSection.html}</div>
-      </div>
+      + '<div class="detail-section zone-green"><div class="section-head"><div class="section-label">Hours Budget</div><div class="section-progress" id="detailHoursTotal">' + (p.hoursTotal||0) + ' hrs total</div></div>'
+      + '<div id="detailHoursTableWrap"></div>'
+      + '<button class="btn-add-row" onclick="addDetailHoursRow()">+ Add Row</button></div>'
 
-      <div class="detail-section">
-        <div class="section-head">
-          <div class="section-label">2. Production</div>
-          <div class="section-progress" id="prog-production">${prodSection.done}/${prodSection.total}</div>
-        </div>
-        <div class="checklist-body" id="cl-production">${prodSection.html}</div>
-      </div>
+      + '<div class="detail-section zone-amber"><div class="section-head"><div class="section-label">Materials Scope Summary</div></div>'
+      + '<textarea class="materials-edit" placeholder="Materials notes…" oninput="updateField(\'materialsSummary\',this.value)">' + (p.materialsSummary||'') + '</textarea></div>'
 
-      <div class="detail-section">
-        <div class="section-head">
-          <div class="section-label">3. Completion & Closeout</div>
-          <div class="section-progress" id="prog-closeout">${closeSection.done}/${closeSection.total}</div>
-        </div>
-        <div class="checklist-body" id="cl-closeout">${closeSection.html}</div>
-      </div>
+      + '<div class="detail-section zone-blue"><div class="section-head"><div class="section-label">Project-Specific Supplies</div></div>'
+      + '<div id="suppliesTableWrap"></div>'
+      + '<button class="btn-add-row" onclick="addSupplyRow()" style="margin-top:4px">+ Add Item</button></div>'
 
-      <div class="detail-section zone-green">
-        <div class="section-head">
-          <div class="section-label">Hours Budget</div>
-          <div class="section-progress">${p.hoursTotal || 0} hrs total</div>
-        </div>
-        <table class="hours-table">
-          <thead><tr><th>Scope</th><th>Units</th><th>Benchmark</th><th>Total</th></tr></thead>
-          <tbody>
-            ${hoursRows}
-            <tr class="total-row">
-              <td>Project Total</td><td></td><td></td>
-              <td class="hours-num">${p.hoursTotal || 0} hrs</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      + '<div class="detail-section"><div class="section-head"><div class="section-label">Notes</div></div>'
+      + '<textarea class="editable-area" placeholder="Add project notes…" oninput="updateField(\'notes\',this.value)">' + (p.notes||'') + '</textarea></div>'
 
-      <div class="detail-section zone-amber">
-        <div class="section-head">
-          <div class="section-label">Materials Scope Summary</div>
-        </div>
-        <div class="materials-body">${p.materialsSummary || '—'}</div>
-      </div>
+      + '<div style="display:flex;justify-content:flex-end;padding:4px 0 16px;">'
+      + '<button class="btn-delete-project" onclick="deleteProject()">Delete Project</button></div>';
 
-      <div class="detail-section zone-blue">
-        <div class="section-head">
-          <div class="section-label">Project-Specific Supplies</div>
-        </div>
-        <textarea class="editable-area" id="suppliesField" placeholder="Add supply notes…"
-          oninput="updateField('projectSpecificSupplies', this.value)">${p.projectSpecificSupplies || ''}</textarea>
-      </div>
-
-      <div class="detail-section">
-        <div class="section-head">
-          <div class="section-label">Notes</div>
-        </div>
-        <textarea class="editable-area" id="notesField" placeholder="Add project notes…"
-          oninput="updateField('notes', this.value)">${p.notes || ''}</textarea>
-      </div>
-    `;
+    renderDetailHoursTable();
+    renderSuppliesTable();
   }
 
-  // ── PROGRESS COUNTER HELPER ──
+  // ── DETAIL HOURS TABLE ──
+  function renderDetailHoursTable() {
+    var html = '<table class="hours-table"><thead><tr><th>Scope</th><th style="width:55px">Units</th><th style="width:100px">Rate (hrs/unit)</th><th style="width:70px">Total</th><th style="width:30px"></th></tr></thead><tbody>';
+    _detailHoursRows.forEach(function(row) {
+      html += '<tr>'
+        + '<td><input class="cell-edit" type="text" value="' + row.scope + '" oninput="updateDetailHours(' + row.id + ',\'scope\',this.value)"></td>'
+        + '<td><input class="cell-edit num" type="number" min="0" value="' + row.units + '" oninput="updateDetailHours(' + row.id + ',\'units\',this.value)"></td>'
+        + '<td><input class="cell-edit num" type="number" min="0" step="0.5" value="' + row.rate + '" oninput="updateDetailHours(' + row.id + ',\'rate\',this.value)"></td>'
+        + '<td><span class="total-display" id="drow-' + row.id + '">' + (row._total||0) + ' hrs</span></td>'
+        + '<td><button class="btn-del-row" onclick="deleteDetailHoursRow(' + row.id + ')">×</button></td>'
+        + '</tr>';
+    });
+    html += '<tr class="total-row"><td>Project Total</td><td></td><td></td><td id="detailHoursTotalCell">' + calcDetailHoursTotal() + ' hrs</td><td></td></tr>';
+    html += '</tbody></table>';
+    document.getElementById('detailHoursTableWrap').innerHTML = html;
+  }
+
+  function calcDetailHoursTotal() {
+    return Math.round(_detailHoursRows.reduce(function(s,r){ return s + (r._total||0); }, 0) * 10) / 10;
+  }
+
+  window.addDetailHoursRow = function() {
+    _detailHoursRows.push({ id: Date.now(), scope: '', units: 0, rate: 0, _total: 0 });
+    renderDetailHoursTable();
+    markDirty();
+  };
+
+  window.deleteDetailHoursRow = function(id) {
+    _detailHoursRows = _detailHoursRows.filter(function(r){ return r.id !== id; });
+    renderDetailHoursTable();
+    syncDetailHoursToProject();
+    markDirty();
+  };
+
+  window.updateDetailHours = function(id, field, value) {
+    var row = _detailHoursRows.find(function(r){ return r.id === id; });
+    if (!row) return;
+    row[field] = field === 'scope' ? value : (parseFloat(value)||0);
+    row._total = Math.round(row.units * row.rate * 10) / 10;
+    var el = document.getElementById('drow-' + id);
+    if (el) el.textContent = row._total + ' hrs';
+    var tot = calcDetailHoursTotal();
+    var tc = document.getElementById('detailHoursTotalCell');
+    if (tc) tc.textContent = tot + ' hrs';
+    var th = document.getElementById('detailHoursTotal');
+    if (th) th.textContent = tot + ' hrs total';
+    syncDetailHoursToProject();
+    markDirty();
+  };
+
+  function syncDetailHoursToProject() {
+    _currentProject.hoursBudget = _detailHoursRows.map(function(r) {
+      return { scope: r.scope, units: r.units, benchmark: r.rate + ' hrs/unit', total: r._total };
+    });
+    _currentProject.hoursTotal = calcDetailHoursTotal();
+  }
+
+  // ── SUPPLIES TABLE ──
+  function renderSuppliesTable() {
+    var html = '<table class="supplies-table"><thead><tr><th>Item</th><th style="width:60px">Qty</th><th style="width:80px">Unit</th><th>Notes</th><th style="width:30px"></th></tr></thead><tbody>';
+    _suppliesRows.forEach(function(row) {
+      html += '<tr>'
+        + '<td><input class="sup-input" type="text" value="' + (row.item||'') + '" placeholder="Item description" oninput="updateSupplyRow(' + row.id + ',\'item\',this.value)"></td>'
+        + '<td><input class="sup-input num" type="number" min="0" value="' + (row.qty||'') + '" oninput="updateSupplyRow(' + row.id + ',\'qty\',this.value)"></td>'
+        + '<td><input class="sup-input" type="text" value="' + (row.unit||'') + '" placeholder="ea / ft / pkg" oninput="updateSupplyRow(' + row.id + ',\'unit\',this.value)"></td>'
+        + '<td><input class="sup-input" type="text" value="' + (row.notes||'') + '" placeholder="Notes" oninput="updateSupplyRow(' + row.id + ',\'notes\',this.value)"></td>'
+        + '<td><button class="btn-del-row" onclick="deleteSupplyRow(' + row.id + ')">×</button></td>'
+        + '</tr>';
+    });
+    if (!_suppliesRows.length) html += '<tr><td colspan="5" style="padding:10px;color:#a09880;font-style:italic;font-size:12px;">No supplies added yet.</td></tr>';
+    html += '</tbody></table>';
+    document.getElementById('suppliesTableWrap').innerHTML = html;
+  }
+
+  window.addSupplyRow = function() {
+    _suppliesRows.push({ id: Date.now(), item: '', qty: '', unit: '', notes: '' });
+    renderSuppliesTable();
+    markDirty();
+  };
+
+  window.deleteSupplyRow = function(id) {
+    _suppliesRows = _suppliesRows.filter(function(r){ return r.id !== id; });
+    renderSuppliesTable();
+    syncSupplies();
+    markDirty();
+  };
+
+  window.updateSupplyRow = function(id, field, value) {
+    var row = _suppliesRows.find(function(r){ return r.id === id; });
+    if (row) { row[field] = value; syncSupplies(); markDirty(); }
+  };
+
+  function syncSupplies() {
+    _currentProject.supplies = _suppliesRows.map(function(r) {
+      return { item: r.item, qty: r.qty, unit: r.unit, notes: r.notes };
+    });
+  }
+
+  // ── CHECKLIST INTERACTIONS ──
   function updateProgress(section) {
-    const cl = window._currentProject.checklist || {};
-    const stdKeys = Object.keys(CHECKLIST_LABELS[section] || {});
-    const customItems = (cl.custom || {})[section] || [];
-    const stdDone = stdKeys.filter(k => (cl[section] || {})[k]).length;
-    const custDone = customItems.filter(i => i.done).length;
-    const total = stdKeys.length + customItems.length;
-    const done = stdDone + custDone;
-    const el = document.getElementById(`prog-${section}`);
-    if (el) el.textContent = `${done}/${total}`;
+    var cl = _currentProject.checklist || {};
+    var removed = (_currentProject.removedTasks || {})[section] || [];
+    var stdKeys = Object.keys(CHECKLIST_LABELS[section] || {}).filter(function(k){ return removed.indexOf(k)===-1; });
+    var customItems = (cl.custom || {})[section] || [];
+    var done = stdKeys.filter(function(k){ return (cl[section]||{})[k]; }).length
+             + customItems.filter(function(i){ return i.done; }).length;
+    var el = document.getElementById('prog-' + section);
+    if (el) el.textContent = done + '/' + (stdKeys.length + customItems.length);
   }
 
-  // ── TOGGLE STANDARD CHECKLIST ITEM ──
   window.toggleCheck = function(section, key, el) {
-    const p = window._currentProject;
+    var p = _currentProject;
     if (!p.checklist) p.checklist = {};
     if (!p.checklist[section]) p.checklist[section] = {};
-    const newVal = !p.checklist[section][key];
+    var newVal = !p.checklist[section][key];
     p.checklist[section][key] = newVal;
-    const box = el.querySelector('.check-box');
+    var box = el.querySelector('.check-box');
     if (newVal) { box.classList.add('checked'); el.classList.add('done'); }
     else { box.classList.remove('checked'); el.classList.remove('done'); }
     updateProgress(section);
     markDirty();
   };
 
-  // ── CUSTOM TASK: TOGGLE ──
   window.toggleCustomCheck = function(section, idx, el) {
-    const p = window._currentProject;
+    var p = _currentProject;
     if (!p.checklist.custom) p.checklist.custom = {};
     if (!p.checklist.custom[section]) p.checklist.custom[section] = [];
-    const item = p.checklist.custom[section][idx];
+    var item = p.checklist.custom[section][idx];
     if (!item) return;
     item.done = !item.done;
-    const box = el.querySelector('.check-box');
+    var box = el.querySelector('.check-box');
     if (item.done) { box.classList.add('checked'); el.classList.add('done'); }
     else { box.classList.remove('checked'); el.classList.remove('done'); }
     updateProgress(section);
     markDirty();
   };
 
-  // ── CUSTOM TASK: ADD ──
   window.addCustomItem = function(section) {
-    const input = document.getElementById(`add-${section}`);
-    const label = (input.value || '').trim();
+    var input = document.getElementById('add-' + section);
+    if (!input) return;
+    var label = (input.value || '').trim();
     if (!label) return;
-    const p = window._currentProject;
+    var p = _currentProject;
     if (!p.checklist.custom) p.checklist.custom = {};
     if (!p.checklist.custom[section]) p.checklist.custom[section] = [];
-    p.checklist.custom[section].push({ label, done: false });
-    input.value = '';
+    p.checklist.custom[section].push({ label: label, done: false });
     markDirty();
     renderDetail(p);
   };
 
-  // ── CUSTOM TASK: RENAME ──
-  window.renameCustomItem = function(section, idx, newLabel) {
-    const p = window._currentProject;
-    const item = (p.checklist.custom || {})[section]?.[idx];
-    if (!item || item.label === newLabel) return;
-    item.label = newLabel.trim();
-    markDirty();
-  };
-
-  // ── CUSTOM TASK: DELETE ──
-  window.deleteCustomItem = function(section, idx) {
-    const p = window._currentProject;
-    if (!p.checklist.custom?.[section]) return;
-    p.checklist.custom[section].splice(idx, 1);
-    markDirty();
-    renderDetail(p);
-  };
-
-  // ── FIELD UPDATES ──
-  window.updateField = function(field, value) {
-    window._currentProject[field] = value;
-    markDirty();
-  };
-
-  function markDirty() {
-    window._dirty = true;
-    document.getElementById('saveBar').classList.add('visible');
-    document.getElementById('saveStatus').textContent = 'Unsaved changes';
-  }
-
-  function hideSaveBar() {
-    const bar = document.getElementById('saveBar');
-    if (bar) bar.classList.remove('visible');
-  }
-
-  // ── SAVE ──
-  window.saveProject = async function() {
-    const p = window._currentProject;
-    const btn = document.getElementById('btnSave');
-    btn.disabled = true;
-    btn.textContent = 'Saving…';
-    document.getElementById('saveStatus').textContent = 'Saving…';
-    try {
-      await setDoc(doc(db, 'pm_projects', p.id), {
-        ...p,
-        updatedAt: serverTimestamp()
-      });
-      hideSaveBar();
-      window._dirty = false;
-      showToast('Saved ✓');
-    } catch(e) {
-      showToast('Save failed: ' + e.message, true);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Save Changes';
+  window.editStdItem = function(section, key) {
+    var current = CHECKLIST_LABELS[section][key];
+    var newLabel = window.prompt('Edit task label:', current);
+    if (newLabel && newLabel.trim() && newLabel.trim() !== current) {
+      // Move to custom, mark as removed from std
+      if (!_currentProject.removedTasks) _currentProject.removedTasks = {};
+      if (!_currentProject.removedTasks[section]) _currentProject.removedTasks[section] = [];
+      _currentProject.removedTasks[section].push(key);
+      if (!_currentProject.checklist.custom) _currentProject.checklist.custom = {};
+      if (!_currentProject.checklist.custom[section]) _currentProject.checklist.custom[section] = [];
+      _currentProject.checklist.custom[section].unshift({ label: newLabel.trim(), done: !!(_currentProject.checklist[section]||{})[key] });
+      markDirty();
+      renderDetail(_currentProject);
     }
   };
 
-  // ── TOAST ──
-  window.showToast = function(msg, isError = false) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.className = 'toast' + (isError ? ' error' : '') + ' show';
-    setTimeout(() => { t.classList.remove('show'); }, 2800);
+  window.deleteStdItem = function(section, key) {
+    if (!window.confirm('Remove "' + CHECKLIST_LABELS[section][key] + '" from this project?')) return;
+    if (!_currentProject.removedTasks) _currentProject.removedTasks = {};
+    if (!_currentProject.removedTasks[section]) _currentProject.removedTasks[section] = [];
+    if (_currentProject.removedTasks[section].indexOf(key) === -1)
+      _currentProject.removedTasks[section].push(key);
+    markDirty();
+    renderDetail(_currentProject);
   };
 
-  // ── WARN ON NAVIGATE AWAY ──
-  window.addEventListener('beforeunload', e => {
-    if (window._dirty) { e.preventDefault(); e.returnValue = ''; }
-  });
+  window.editCustomItem = function(section, idx) {
+    var item = (_currentProject.checklist.custom || {})[section]?.[idx];
+    if (!item) return;
+    var newLabel = window.prompt('Edit task label:', item.label);
+    if (newLabel && newLabel.trim()) { item.label = newLabel.trim(); markDirty(); renderDetail(_currentProject); }
+  };
 
-  // ── NEW PROJECT VIEW ──
-  let _hoursRows = [];
-  let _manualCounter = 0;
+  window.deleteCustomItem = function(section, idx) {
+    var items = (_currentProject.checklist.custom || {})[section];
+    if (!items) return;
+    if (!window.confirm('Remove this task?')) return;
+    items.splice(idx, 1);
+    markDirty();
+    renderDetail(_currentProject);
+  };
 
+  // ── FIELD UPDATE ──
+  window.updateField = function(field, value) {
+    _currentProject[field] = value;
+    markDirty();
+  };
+
+  // ── DELETE PROJECT ──
+  window.deleteProject = function() {
+    var p = _currentProject;
+    if (!window.confirm('Delete project "' + (p.clientLastName||p.estimateNumber) + '"?\n\nThis cannot be undone.')) return;
+    db.collection('pm_projects').doc(p.id).delete().then(function() {
+      showToast('Project deleted');
+      showList();
+    }).catch(function(e) { showToast('Delete failed: ' + e.message, true); });
+  };
+
+  // ── SAVE ──
+  window.saveProject = function() {
+    var p = _currentProject;
+    var btn = document.getElementById('btnSave');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    document.getElementById('saveStatus').textContent = 'Saving…';
+    syncDetailHoursToProject();
+    syncSupplies();
+    db.collection('pm_projects').doc(p.id).set(Object.assign({}, p, { updatedAt: firebase.firestore.FieldValue.serverTimestamp() }))
+      .then(function() {
+        hideSaveBar(); _dirty = false; showToast('Saved ✓');
+      }).catch(function(e) { showToast('Save failed: ' + e.message, true); })
+      .finally(function() { btn.disabled = false; btn.textContent = 'Save Changes'; });
+  };
+
+  function markDirty() { _dirty = true; var b = document.getElementById('saveBar'); if(b) b.classList.add('visible'); document.getElementById('saveStatus').textContent = 'Unsaved changes'; }
+  function hideSaveBar() { var b = document.getElementById('saveBar'); if(b) b.classList.remove('visible'); }
+
+  // ── TOAST ──
+  window.showToast = function(msg, isError) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast' + (isError ? ' error' : '') + ' show';
+    setTimeout(function(){ t.classList.remove('show'); }, 2800);
+  };
+
+  window.addEventListener('beforeunload', function(e) { if (_dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+  // ── NEW PROJECT FORM ──
   window.showNewProject = function() {
-    // Reset form
-    ['f-est','f-lastname','f-fullname','f-address','f-phone',
-     'f-amount','f-scope','f-materials','f-notes'].forEach(id => {
-      document.getElementById(id).value = '';
+    ['f-est','f-lastname','f-fullname','f-address','f-phone','f-lead','f-amount','f-scope','f-materials','f-notes'].forEach(function(id){
+      var el = document.getElementById(id); if(el) el.value = '';
     });
     document.getElementById('f-startdate').value = '';
     document.getElementById('f-status').value = 'active';
     document.getElementById('f-priority').value = '';
     _hoursRows = [];
     renderHoursTable();
-    addHoursRow(); // start with one blank row
-
+    addHoursRow();
     document.getElementById('viewList').classList.remove('active');
     document.getElementById('viewNew').classList.add('active');
     document.getElementById('btnBack').classList.add('visible');
     window.scrollTo(0, 0);
   };
 
-  window.addHoursRow = function() {
-    _hoursRows.push({ id: Date.now(), scope: '', units: '', rate: '' });
-    renderHoursTable();
-  };
-
-  window.removeHoursRow = function(id) {
-    _hoursRows = _hoursRows.filter(r => r.id !== id);
-    renderHoursTable();
-  };
-
-  window.updateHoursRow = function(id, field, value) {
-    const row = _hoursRows.find(r => r.id === id);
-    if (row) row[field] = value;
-    recalcHours();
-  };
+  window.addHoursRow = function() { _hoursRows.push({ id: Date.now(), scope: '', units: '', rate: '' }); renderHoursTable(); };
+  window.removeHoursRow = function(id) { _hoursRows = _hoursRows.filter(function(r){ return r.id !== id; }); renderHoursTable(); };
+  window.updateHoursRow = function(id, field, value) { var r = _hoursRows.find(function(r){ return r.id===id; }); if(r) r[field]=value; recalcHours(); };
 
   function recalcHours() {
-    let total = 0;
-    _hoursRows.forEach(row => {
-      const u = parseFloat(row.units) || 0;
-      const r = parseFloat(row.rate) || 0;
-      const t = Math.round(u * r * 10) / 10;
-      row._total = t;
-      total += t;
-      const el = document.getElementById(`row-total-${row.id}`);
-      if (el) el.textContent = t > 0 ? `${t} hrs` : '—';
+    var total = 0;
+    _hoursRows.forEach(function(row) {
+      var u = parseFloat(row.units)||0, r = parseFloat(row.rate)||0;
+      row._total = Math.round(u*r*10)/10; total += row._total;
+      var el = document.getElementById('row-total-'+row.id);
+      if(el) el.textContent = row._total > 0 ? row._total+' hrs' : '—';
     });
-    const totalEl = document.getElementById('hoursTotalDisplay');
-    if (totalEl) totalEl.textContent = `${Math.round(total * 10) / 10} hrs`;
+    var te = document.getElementById('hoursTotalDisplay'); if(te) te.textContent = Math.round(total*10)/10+' hrs';
   }
 
   function renderHoursTable() {
-    document.getElementById('hoursTableBody').innerHTML = _hoursRows.map(row => `
-      <tr>
-        <td>
-          <input class="cell-input" type="text" placeholder="Site - Triage"
-            value="${row.scope}"
-            oninput="updateHoursRow(${row.id},'scope',this.value)" />
-        </td>
-        <td>
-          <input class="cell-input num" type="number" min="0" placeholder="0"
-            value="${row.units}"
-            oninput="updateHoursRow(${row.id},'units',this.value)" />
-        </td>
-        <td>
-          <input class="cell-input num" type="number" min="0" step="0.5" placeholder="0.0"
-            value="${row.rate}"
-            oninput="updateHoursRow(${row.id},'rate',this.value)" />
-        </td>
-        <td>
-          <span class="hours-total-display" id="row-total-${row.id}">
-            ${row._total > 0 ? row._total + ' hrs' : '—'}
-          </span>
-        </td>
-        <td>
-          <button class="btn-del-row" onclick="removeHoursRow(${row.id})" title="Remove row">×</button>
-        </td>
-      </tr>`).join('');
+    document.getElementById('hoursTableBody').innerHTML = _hoursRows.map(function(row) {
+      return '<tr>'
+        + '<td><input class="cell-input" type="text" placeholder="Site - Triage" value="'+row.scope+'" oninput="updateHoursRow('+row.id+',\'scope\',this.value)"></td>'
+        + '<td><input class="cell-input num" type="number" min="0" placeholder="0" value="'+row.units+'" oninput="updateHoursRow('+row.id+',\'units\',this.value)"></td>'
+        + '<td><input class="cell-input num" type="number" min="0" step="0.5" placeholder="0.0" value="'+row.rate+'" oninput="updateHoursRow('+row.id+',\'rate\',this.value)"></td>'
+        + '<td><span class="hours-total-display" id="row-total-'+row.id+'">'+(row._total>0?row._total+' hrs':'—')+'</span></td>'
+        + '<td><button class="btn-del-row" onclick="removeHoursRow('+row.id+')">×</button></td>'
+        + '</tr>';
+    }).join('');
     recalcHours();
   }
 
-  window.createProject = async function() {
-    // Validate required fields
-    const lastName = document.getElementById('f-lastname').value.trim();
-    const fullName = document.getElementById('f-fullname').value.trim();
-    const amount = document.getElementById('f-amount').value.trim();
-    const scope = document.getElementById('f-scope').value.trim();
+  window.createProject = function() {
+    var lastName = document.getElementById('f-lastname').value.trim();
+    var fullName = document.getElementById('f-fullname').value.trim();
+    var amount = document.getElementById('f-amount').value.trim();
+    var scope = document.getElementById('f-scope').value.trim();
+    if (!lastName || !fullName || !amount || !scope) { showToast('Please fill in required fields', true); return; }
 
-    if (!lastName || !fullName || !amount || !scope) {
-      showToast('Please fill in required fields (*)', true);
-      return;
-    }
+    var estNum = document.getElementById('f-est').value.trim();
+    if (!estNum) { _manualCounter++; estNum = 'MANUAL-' + String(_manualCounter).padStart(3,'0'); }
 
-    // Determine estimate number / doc ID
-    let estNum = document.getElementById('f-est').value.trim();
-    if (!estNum) {
-      _manualCounter++;
-      estNum = `MANUAL-${String(_manualCounter).padStart(3, '0')}`;
-    }
-
-    // Check for duplicate
-    const existing = await getDoc(doc(db, 'pm_projects', estNum));
-    if (existing.exists()) {
-      showToast(`Est # ${estNum} already exists — choose a different number`, true);
-      return;
-    }
-
-    // Build hours budget
-    recalcHours();
-    const hoursBudget = _hoursRows
-      .filter(r => r.scope)
-      .map(r => ({
-        scope: r.scope,
-        units: parseFloat(r.units) || 0,
-        benchmark: `${r.rate} hrs/unit`,
-        total: r._total || 0,
-      }));
-    const hoursTotal = hoursBudget.reduce((sum, r) => sum + r.total, 0);
-
-    const newProject = {
-      estimateNumber: estNum,
-      clientLastName: lastName,
-      clientFullName: fullName,
-      address: document.getElementById('f-address').value.trim(),
-      phone: document.getElementById('f-phone').value.trim(),
-      totalAmount: parseFloat(amount) || 0,
-      scopeSummary: scope,
-      materialsSummary: document.getElementById('f-materials').value.trim(),
-      notes: document.getElementById('f-notes').value.trim(),
-      projectSpecificSupplies: '',
-      priority: document.getElementById('f-priority').value
-        ? parseInt(document.getElementById('f-priority').value) : null,
-      status: document.getElementById('f-status').value,
-      startDate: document.getElementById('f-startdate').value || null,
-      hoursBudget,
-      hoursTotal: Math.round(hoursTotal * 10) / 10,
-      checklist: {
-        preProject: {
-          contractSigned: false, siteAccessConfirmed: false,
-          addedToHarvest: false, hoursBudgetEntered: false,
-          addedToStreak: false, specialRequirementsDocumented: false,
-          leadTimeMaterialsOrdered: false, screenMeasureScheduled: false,
-          catManagementConfirmed: false,
+    db.collection('pm_projects').doc(estNum).get().then(function(existing) {
+      if (existing.exists) { showToast('Est # '+estNum+' already exists', true); return; }
+      recalcHours();
+      var hoursBudget = _hoursRows.filter(function(r){ return r.scope; }).map(function(r){
+        return { scope: r.scope, units: parseFloat(r.units)||0, benchmark: r.rate+' hrs/unit', total: r._total||0 };
+      });
+      var hoursTotal = Math.round(hoursBudget.reduce(function(s,r){ return s+r.total; },0)*10)/10;
+      var newProject = {
+        estimateNumber: estNum,
+        clientLastName: lastName, clientFullName: fullName,
+        address: document.getElementById('f-address').value.trim(),
+        phone: document.getElementById('f-phone').value.trim(),
+        leadTech: document.getElementById('f-lead').value.trim(),
+        totalAmount: parseFloat(amount)||0,
+        scopeSummary: scope,
+        materialsSummary: document.getElementById('f-materials').value.trim(),
+        notes: document.getElementById('f-notes').value.trim(),
+        supplies: [],
+        priority: document.getElementById('f-priority').value ? parseInt(document.getElementById('f-priority').value) : null,
+        status: document.getElementById('f-status').value,
+        startDate: document.getElementById('f-startdate').value || null,
+        hoursBudget: hoursBudget, hoursTotal: hoursTotal,
+        checklist: {
+          preProject: { contractSigned:false,siteAccessConfirmed:false,addedToHarvest:false,hoursBudgetEntered:false,addedToStreak:false,specialRequirementsDocumented:false,leadTimeMaterialsOrdered:false,screenMeasureScheduled:false },
+          production: { shopWorkScheduled:false,siteWorkScheduled:false,materialsReceivedAndStaged:false,crewAssignedAndBriefed:false,workInProgress:false },
+          closeout: { finalWalkthrough:false,photosDocumented:false,punchListCompleted:false,postProjectAnalysis:false,finalInvoiceSent:false,followUpScheduled:false,paymentReceived:false },
+          custom: { preProject:[], production:[], closeout:[] }
         },
-        production: {
-          shopWorkScheduled: false, siteWorkScheduled: false,
-          materialsReceivedAndStaged: false, crewAssignedAndBriefed: false,
-          workInProgress: false,
-        },
-        closeout: {
-          finalWalkthrough: false, photosDocumented: false,
-          punchListCompleted: false, postProjectAnalysis: false,
-          finalInvoiceSent: false, followUpScheduled: false,
-          paymentReceived: false,
-        }
-      },
-      createdAt: serverTimestamp(),
-    };
-
-    const btn = document.getElementById('btnCreate');
-    btn.disabled = true;
-    btn.textContent = 'Creating…';
-
-    try {
-      await setDoc(doc(db, 'pm_projects', estNum), newProject);
-      showToast('Project created ✓');
-      // Navigate directly to the new project detail
-      window._currentProject = { id: estNum, ...newProject };
-      renderDetail(window._currentProject);
-      document.getElementById('viewNew').classList.remove('active');
-      document.getElementById('viewDetail').classList.add('active');
-      window.scrollTo(0, 0);
-    } catch(e) {
-      showToast('Error creating project: ' + e.message, true);
-      btn.disabled = false;
-      btn.textContent = 'Create Project';
-    }
+        removedTasks: {},
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      };
+      var btn = document.getElementById('btnCreate');
+      btn.disabled = true; btn.textContent = 'Creating…';
+      db.collection('pm_projects').doc(estNum).set(newProject).then(function() {
+        showToast('Project created ✓');
+        _currentProject = Object.assign({ id: estNum }, newProject);
+        renderDetail(_currentProject);
+        document.getElementById('viewNew').classList.remove('active');
+        document.getElementById('viewDetail').classList.add('active');
+        window.scrollTo(0,0);
+      }).catch(function(e) {
+        showToast('Error: '+e.message, true);
+        btn.disabled = false; btn.textContent = 'Create Project';
+      });
+    });
   };
 
   // ── INIT ──
