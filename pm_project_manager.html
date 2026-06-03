@@ -68,9 +68,14 @@
     .lead-cell { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--text-muted); }
     .status-badge { display: inline-block; font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 7px; border-radius: 3px; }
     .status-active { background: var(--blue-light); color: var(--blue); border: 1px solid var(--blue-border); }
+    .status-pre-production { background: var(--blue-light); color: var(--blue); border: 1px solid var(--blue-border); }
     .status-production { background: var(--amber-light); color: var(--amber); border: 1px solid var(--amber-border); }
     .status-complete { background: var(--green-light); color: var(--green); border: 1px solid var(--green-border); }
     .status-hold { background: #f5f0f0; color: #8a5050; border: 1px solid #d4a0a0; }
+    .tally-bar { display: flex; align-items: center; justify-content: space-between; background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 10px 16px; margin-bottom: 10px; }
+    .tally-label { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+    .tally-amount { font-family: var(--mono); font-size: 20px; font-weight: 600; color: var(--text); }
+    .tally-sub { font-family: var(--mono); font-size: 10px; color: var(--text-light); margin-top: 1px; }
     .empty-state { padding: 60px 20px; text-align: center; color: var(--text-muted); }
     .empty-state .icon { font-size: 32px; margin-bottom: 12px; }
     .empty-state p { font-family: var(--mono); font-size: 12px; }
@@ -292,10 +297,17 @@
     </div>
     <div class="filter-bar">
       <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
-      <button class="filter-btn" onclick="setFilter('active',this)">Active</button>
+      <button class="filter-btn" onclick="setFilter('pre-production',this)">Pre-Production</button>
       <button class="filter-btn" onclick="setFilter('production',this)">Production</button>
       <button class="filter-btn" onclick="setFilter('complete',this)">Complete</button>
       <button class="filter-btn" onclick="setFilter('hold',this)">Hold</button>
+    </div>
+    <div class="tally-bar">
+      <div>
+        <div class="tally-label">Visible Contract Value</div>
+        <div class="tally-sub" id="tallyCount">—</div>
+      </div>
+      <div class="tally-amount" id="tallyAmount">—</div>
     </div>
     <div class="project-table">
       <div class="table-head">
@@ -328,7 +340,7 @@
           <div class="field-group">
             <label class="field-label">Status</label>
             <select class="field-input" id="f-status">
-              <option value="active">Active</option>
+              <option value="pre-production">Pre-Production</option>
               <option value="production">Production</option>
               <option value="complete">Complete</option>
               <option value="hold">Hold</option>
@@ -493,14 +505,22 @@
       if (pa !== pb) return pa - pb;
       return parseInt(b.estimateNumber) - parseInt(a.estimateNumber);
     });
-    document.getElementById('projectCount').textContent = projects.length + ' project' + (projects.length !== 1 ? 's' : '');
+
+    // Tally
+    var total = projects.reduce(function(s, p) { return s + (p.totalAmount || 0); }, 0);
+    document.getElementById('tallyAmount').textContent = '$' + total.toLocaleString();
+    document.getElementById('tallyCount').textContent = projects.length + ' project' + (projects.length !== 1 ? 's' : '');
+    document.getElementById('projectCount').textContent = '';
+
     if (!projects.length) {
       document.getElementById('projectList').innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>No projects found.</p></div>';
       return;
     }
     document.getElementById('projectList').innerHTML = projects.map(function(p) {
-      var sc = 'status-' + (p.status || 'active');
-      var sl = p.status || 'active';
+      var status = p.status || 'pre-production';
+      var sc = 'status-' + status;
+      var sl = status === 'pre-production' ? 'Pre-Production'
+             : status.charAt(0).toUpperCase() + status.slice(1);
       var ph = p.priority ? '<span class="priority-badge">' + p.priority + '</span>' : '';
       return '<div class="project-row" onclick="openProject(\'' + p.id + '\')">'
         + '<div class="est-num">#' + p.estimateNumber + '</div>'
@@ -606,8 +626,9 @@
     var proS = checklistSection('production', prod, CHECKLIST_LABELS.production);
     var clS  = checklistSection('closeout', close, CHECKLIST_LABELS.closeout);
 
-    var statusOptions = ['active','production','complete','hold'].map(function(s) {
-      return '<option value="' + s + '"' + ((p.status||'active')===s?' selected':'') + '>' + s.charAt(0).toUpperCase()+s.slice(1) + '</option>';
+    var statusOptions = ['pre-production','production','complete','hold'].map(function(s) {
+      var label = s === 'pre-production' ? 'Pre-Production' : s.charAt(0).toUpperCase()+s.slice(1);
+      return '<option value="' + s + '"' + ((p.status||'pre-production')===s?' selected':'') + '>' + label + '</option>';
     }).join('');
 
     document.getElementById('detailContent').innerHTML =
