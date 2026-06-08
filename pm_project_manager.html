@@ -1139,7 +1139,7 @@
   // ── SCHEDULING SUMMARY ──
   function renderSchedulingSummary() {
     var p = _currentProject;
-    var lead = resolveEmp(p.leadTech || '') || '—';
+    var lead = p.leadTech || '—';
     var fabStart  = p.fabStart   || null;
     var restoStart = p.restoStart || null;
 
@@ -1219,20 +1219,11 @@
   }
 
   // ── PUSH TO SCHEDULER ──
-  var INITIALS_TO_NAME = {
-    'AB': 'Adam', 'SF': 'Sam', 'AP': 'Addy',
-    'AS': 'Aly',  'MW': 'Maxx', 'GH': 'Geoffrey'
-  };
-  function resolveEmp(initials) {
-    return INITIALS_TO_NAME[initials] || initials || '';
-  }
-
   window.pushToScheduler = function() {
     var p = _currentProject;
     if (!p.priority) { showToast('Set a Priority # first — it links to the scheduler', true); return; }
 
-    var leadInitials = p.leadTech || '';
-    var lead         = resolveEmp(leadInitials);
+    var lead      = p.leadTech || '';
     var fabStart  = p.fabStart   || null;
     var restoStart = p.restoStart || null;
     var dates     = [fabStart, restoStart].filter(Boolean).sort();
@@ -1259,10 +1250,10 @@
       newCards.push({ id: mkUid(), emp: lead, type: 'walk', client: p.clientLastName||'', desc: 'Walk/Plan', startDate: walkDate, endDate: walkDate, priorityId: p.priority });
     }
     if (fabStart && adamHours > 0) {
-      newCards.push({ id: mkUid(), emp: 'Adam', type: 'fab', client: p.clientLastName||'', desc: 'Fabrication', startDate: fabStart, endDate: adamEndDate||fabStart, priorityId: p.priority });
+      newCards.push({ id: mkUid(), emp: 'AB', type: 'fab', client: p.clientLastName||'', desc: 'Fabrication', startDate: fabStart, endDate: adamEndDate||fabStart, priorityId: p.priority });
     }
     if (floaterStart && floaterHours > 0) {
-      newCards.push({ id: mkUid(), emp: 'Floater A', type: 'fab', client: p.clientLastName||'', desc: 'Fabrication', startDate: floaterStart, endDate: floaterEnd||floaterStart, priorityId: p.priority });
+      newCards.push({ id: mkUid(), emp: 'FA', type: 'fab', client: p.clientLastName||'', desc: 'Fabrication', startDate: floaterStart, endDate: floaterEnd||floaterStart, priorityId: p.priority });
     }
     if (restoStart && restoHours > 0 && lead) {
       newCards.push({ id: mkUid(), emp: lead, type: 'resto', client: p.clientLastName||'', desc: 'Restoration', startDate: restoStart, endDate: restoEnd||restoStart, priorityId: p.priority });
@@ -1273,16 +1264,23 @@
     var msg = 'Push ' + newCards.length + ' card(s) to Scheduler for #' + p.priority + ' ' + (p.clientLastName||'') + '?\n\nExisting cards for this project will not be removed.';
     if (!window.confirm(msg)) return;
 
-    // Read current schedule, append new cards, save
-    db.collection('boards').doc('schedule').get().then(function(snap) {
-      var state = snap.exists ? snap.data() : {};
-      var existingCards = state.cards || [];
+    var schedRef = db.collection('boards').doc('schedule');
+    schedRef.get().then(function(snap) {
+      var existingCards = [];
+      if (snap && snap.exists) {
+        var data = snap.data();
+        existingCards = (data && data.cards) ? data.cards : [];
+      }
       var merged = existingCards.concat(newCards);
-      return db.collection('boards').doc('schedule').set(Object.assign({}, state, { cards: merged }), { merge: true });
+      return schedRef.update({ cards: merged }).catch(function() {
+        // If doc doesn't exist yet, create it
+        return schedRef.set({ cards: merged });
+      });
     }).then(function() {
       showToast('Pushed ' + newCards.length + ' card(s) to Scheduler ✓');
     }).catch(function(e) {
       showToast('Push failed: ' + e.message, true);
+      console.error('Push error:', e);
     });
   };
 
