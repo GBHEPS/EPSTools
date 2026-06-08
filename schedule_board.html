@@ -366,15 +366,16 @@ const db = getFirestore(fbApp);
 const DOC_REF = doc(db, "boards", "schedule");
 const PM_COLL = "pm_projects";
 
-const FIXED_EMPLOYEES = ["Adam","Sam","Addy","Aly","Maxx"];
-const FLOATER_DEFAULTS = ["Floater A","Floater B"];
+const FIXED_EMPLOYEES = ["AB","SF","AP","AS","MW","GH"];
+const FLOATER_DEFAULTS = ["FA","FB"];
 let floaterNames = [...FLOATER_DEFAULTS];
 const DAYS = ["Mon","Tue","Wed","Thu","Fri"];
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
-const INITIALS_MAP = { "Adam":"AB","Sam":"SF","Addy":"AP","Aly":"AS","Maxx":"MW","Geoffrey":"GH" };
+const INITIALS_MAP = { "AB":"AB","SF":"SF","AP":"AP","AS":"AS","MW":"MW","GH":"GH" };
 function getInitials(empName) {
   if (INITIALS_MAP[empName]) return INITIALS_MAP[empName];
+  // Floaters and custom names — take first letters
   const parts = empName.trim().split(/\s+/);
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
   return parts[0].slice(0,2).toUpperCase();
