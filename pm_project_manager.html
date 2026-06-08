@@ -55,8 +55,8 @@
     .filter-btn { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; padding: 5px 12px; border-radius: 3px; border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
     .filter-btn.active, .filter-btn:hover { background: var(--text); color: #fff; border-color: var(--text); }
     .project-table { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
-    .table-head { display: grid; grid-template-columns: 55px 45px 1fr 85px 85px 75px 80px 60px 85px; padding: 8px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
-    .project-row { display: grid; grid-template-columns: 55px 45px 1fr 85px 85px 75px 80px 60px 85px; padding: 11px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; align-items: center; }
+    .table-head { display: grid; grid-template-columns: 55px 45px 1fr 85px 85px 85px 75px 80px 60px 85px; padding: 8px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+    .project-row { display: grid; grid-template-columns: 55px 45px 1fr 85px 85px 85px 75px 80px 60px 85px; padding: 11px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; align-items: center; }
     .date-cell { font-family: var(--mono); font-size: 10px; color: var(--text-muted); }
     .project-row:last-child { border-bottom: none; }
     .project-row:hover { background: var(--surface2); }
@@ -394,6 +394,7 @@
         <div class="sortable" onclick="setSort('clientLastName',this)">Project <span class="sort-arrow" id="sort-clientLastName"></span></div>
         <div class="sortable" style="justify-content:center;text-align:center" onclick="setSort('startDate',this)">Walk/Plan <span class="sort-arrow" id="sort-startDate"></span></div>
         <div class="sortable" style="justify-content:center;text-align:center" onclick="setSort('fabStart',this)">Fab St <span class="sort-arrow" id="sort-fabStart"></span></div>
+        <div class="sortable" style="justify-content:center;text-align:center" onclick="setSort('restoStart',this)">Resto St <span class="sort-arrow" id="sort-restoStart"></span></div>
         <div>Remaining</div><div>Hours</div>
         <div class="sortable" onclick="setSort('leadTech',this)">Lead <span class="sort-arrow" id="sort-leadTech"></span></div>
         <div class="sortable" onclick="setSort('status',this)">Status <span class="sort-arrow" id="sort-status"></span></div>
@@ -830,13 +831,14 @@
       var remainColor = remaining < (p.totalAmount||0) ? 'color:var(--green);' : '';
 
       if (_printMode) {
-        return '<div class="project-row print-mode" onclick="togglePrintSelect(\'' + p.id + '\',this.querySelector(\'.print-check\'))" style="grid-template-columns:30px 55px 45px 1fr 85px 85px 75px 80px 60px 85px">'
+        return '<div class="project-row print-mode" onclick="togglePrintSelect(\'' + p.id + '\',this.querySelector(\'.print-check\'))" style="grid-template-columns:30px 55px 45px 1fr 85px 85px 85px 75px 80px 60px 85px">'
           + '<div class="print-check' + (isSelected ? ' selected' : '') + '"></div>'
           + '<div class="est-num">#' + p.estimateNumber + '</div>'
           + '<div class="est-num">' + (p.priority || '—') + '</div>'
           + '<div class="client-cell"><div class="last-name">' + (p.clientLastName || '—') + '</div><div class="full-name">' + (p.clientFullName || '') + '</div></div>'
           + '<div class="date-cell" style="text-align:center">' + startStr + '</div>'
           + '<div class="date-cell" style="text-align:center">' + fabStr + '</div>'
+          + '<div class="date-cell" style="text-align:center">' + restoStr + '</div>'
           + '<div class="amount-cell" style="' + remainColor + '">' + remainStr + '</div>'
           + '<div class="hours-cell">' + (p.hoursTotal || '—') + ' hrs</div>'
           + '<div class="lead-cell">' + (p.leadTech || '—') + '</div>'
@@ -850,6 +852,7 @@
         + '<div class="client-cell"><div class="last-name">' + (p.clientLastName || '—') + '</div><div class="full-name">' + (p.clientFullName || '') + '</div></div>'
         + '<div class="date-cell" style="text-align:center">' + startStr + '</div>'
         + '<div class="date-cell" style="text-align:center">' + fabStr + '</div>'
+        + '<div class="date-cell" style="text-align:center">' + restoStr + '</div>'
         + '<div class="amount-cell" style="' + remainColor + '">' + remainStr + '</div>'
         + '<div class="hours-cell">' + (p.hoursTotal || '—') + ' hrs</div>'
         + '<div class="lead-cell">' + (p.leadTech || '—') + '</div>'
