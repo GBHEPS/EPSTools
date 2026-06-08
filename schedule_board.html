@@ -501,6 +501,14 @@ function toast(msg) {
 // ── VIEW SWITCHING ──
 function setView(view) {
   currentView = view;
+  // Sync position between views
+  if (view === "month") {
+    // Sync 2-week anchor → month: use the month of the current anchor Monday
+    monthAnchor = { year: anchorMonday.getFullYear(), month: anchorMonday.getMonth() };
+  } else {
+    // Sync month → 2-week: land on first Monday of the current month view
+    anchorMonday = getMondayOf(new Date(monthAnchor.year, monthAnchor.month, 1));
+  }
   document.getElementById("btn-view-2week").classList.toggle("active", view === "2week");
   document.getElementById("btn-view-month").classList.toggle("active", view === "month");
   document.getElementById("nav-2week").style.display   = view === "2week" ? "" : "none";
@@ -631,6 +639,27 @@ function getJobInitials(clientName, rangeStart, rangeEnd) {
   return Array.from(initialsSet).join(" ");
 }
 
+function getJobPrimaryType(clientName, rangeStart, rangeEnd) {
+  // Returns the dominant type for a job in a given range
+  // Priority: resto > fab > walk (resto is the main visible work)
+  const types = new Set();
+  cards.forEach(c => {
+    if (c.type === "off" || c.client !== clientName) return;
+    if (c.endDate < rangeStart || c.startDate > rangeEnd) return;
+    types.add(normalizeType(c.type));
+  });
+  if (types.has('resto')) return 'resto';
+  if (types.has('fab'))   return 'fab';
+  if (types.has('walk'))  return 'walk';
+  return 'walk';
+}
+
+function getBarColors(type) {
+  if (type === 'fab')   return { bg: 'var(--fab-bg)',   border: 'var(--fab-border)',   text: 'var(--fab-text)' };
+  if (type === 'resto') return { bg: 'var(--resto-bg)', border: 'var(--resto-border)', text: 'var(--resto-text)' };
+  return { bg: 'var(--walk-bg)', border: 'var(--walk-border)', text: 'var(--walk-text)' };
+}
+
 function getJobsForMonth(year, month) {
   const monthStart = dateKey(new Date(year, month, 1));
   const monthEnd   = dateKey(new Date(year, month + 1, 0));
@@ -702,7 +731,8 @@ function renderMonth() {
       let rowIdx = barRows.findIndex(r => r < startCol);
       if (rowIdx < 0) { rowIdx = barRows.length; barRows.push(endCol); } else { barRows[rowIdx] = endCol; }
       const initials = getJobInitials(job.client, clampStart, clampEnd);
-      return { job, startCol, endCol, rowIdx, initials };
+      const barType  = getJobPrimaryType(job.client, clampStart, clampEnd);
+      return { job, startCol, endCol, rowIdx, initials, barType };
     });
     const barH = 22, barGap = 3, barTopOffset = 20;
     const neededH = barTopOffset + barRows.length * (barH + barGap) + 6;
@@ -711,7 +741,7 @@ function renderMonth() {
       const allCells = weekRow.querySelectorAll(".month-day-cell");
       if (!allCells.length) return;
       const rowRect = weekRow.getBoundingClientRect();
-      placements.forEach(({ job, startCol, endCol, rowIdx, initials }) => {
+      placements.forEach(({ job, startCol, endCol, rowIdx, initials, barType }) => {
         const startCell = allCells[startCol];
         const endCell   = allCells[endCol];
         if (!startCell || !endCell) return;
@@ -720,19 +750,24 @@ function renderMonth() {
         const left   = startRect.left - rowRect.left + 3;
         const width  = endRect.right  - startRect.left - 6;
         const top    = barTopOffset + rowIdx * (barH + barGap);
+        const colors = getBarColors(barType);
         const bar = document.createElement("div");
         bar.className = "month-job-bar";
         bar.style.left = left + "px"; bar.style.width = width + "px";
         bar.style.top = top + "px";   bar.style.height = barH + "px";
+        bar.style.background = colors.bg;
+        bar.style.borderColor = colors.border;
         const inner = document.createElement("div");
         inner.className = "month-job-bar-inner";
         const nameEl = document.createElement("span");
         nameEl.className = "month-job-bar-name";
+        nameEl.style.color = colors.text;
         nameEl.textContent = job.client;
         inner.appendChild(nameEl);
         if (initials) {
           const initEl = document.createElement("span");
           initEl.className = "month-job-bar-initials";
+          initEl.style.color = colors.text;
           initEl.textContent = initials;
           inner.appendChild(initEl);
         }
