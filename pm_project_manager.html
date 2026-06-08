@@ -1139,7 +1139,7 @@
   // ── SCHEDULING SUMMARY ──
   function renderSchedulingSummary() {
     var p = _currentProject;
-    var lead = p.leadTech || '—';
+    var lead = resolveEmp(p.leadTech || '') || '—';
     var fabStart  = p.fabStart   || null;
     var restoStart = p.restoStart || null;
 
@@ -1219,11 +1219,20 @@
   }
 
   // ── PUSH TO SCHEDULER ──
+  var INITIALS_TO_NAME = {
+    'AB': 'Adam', 'SF': 'Sam', 'AP': 'Addy',
+    'AS': 'Aly',  'MW': 'Maxx', 'GH': 'Geoffrey'
+  };
+  function resolveEmp(initials) {
+    return INITIALS_TO_NAME[initials] || initials || '';
+  }
+
   window.pushToScheduler = function() {
     var p = _currentProject;
     if (!p.priority) { showToast('Set a Priority # first — it links to the scheduler', true); return; }
 
-    var lead      = p.leadTech || '';
+    var leadInitials = p.leadTech || '';
+    var lead         = resolveEmp(leadInitials);
     var fabStart  = p.fabStart   || null;
     var restoStart = p.restoStart || null;
     var dates     = [fabStart, restoStart].filter(Boolean).sort();
