@@ -35,6 +35,9 @@
   --red-text: #791F1F;
   --today-bg: #fffbf0;
   --today-border: #EF9F27;
+  --orange-bg: #FFF3E0;
+  --orange-border: #EF9F27;
+  --orange-text: #7A4A00;
   --row-label-w: 90px;
   --cell-min-h: 80px;
   --radius-sm: 4px;
@@ -50,7 +53,14 @@ header h1 { font-size: 13px; font-weight: 500; color: var(--text-secondary); let
 .header-divider { width: 0.5px; height: 20px; background: var(--border-light); }
 .toolbar-btn { font-size: 11px; font-family: inherit; color: var(--text-secondary); background: var(--bg-secondary); border: 0.5px solid var(--border-mid); border-radius: var(--radius-sm); padding: 5px 10px; cursor: pointer; white-space: nowrap; }
 .toolbar-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.toolbar-btn.active { background: var(--bg-tertiary); color: var(--text-primary); border-color: var(--border-strong); }
 .version-tag { font-size: 10px; color: var(--text-tertiary); font-family: monospace; padding: 3px 6px; background: var(--bg-tertiary); border-radius: 3px; }
+
+.view-toggle { display: flex; border: 0.5px solid var(--border-mid); border-radius: var(--radius-sm); overflow: hidden; }
+.view-toggle-btn { font-size: 11px; font-family: inherit; color: var(--text-secondary); background: var(--bg-secondary); border: none; border-right: 0.5px solid var(--border-mid); padding: 5px 12px; cursor: pointer; white-space: nowrap; }
+.view-toggle-btn:last-child { border-right: none; }
+.view-toggle-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.view-toggle-btn.active { background: var(--text-primary); color: var(--bg-primary); }
 
 .legend { display: flex; gap: 10px; align-items: center; }
 .legend-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-secondary); }
@@ -68,6 +78,16 @@ header h1 { font-size: 13px; font-weight: 500; color: var(--text-secondary); let
 .board-outer { padding: 10px 16px 40px; }
 .week-block { margin-bottom: 14px; }
 .week-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--text-tertiary); padding: 6px 0 4px var(--row-label-w); }
+
+/* ── JOB STRIP ── */
+.job-strip-wrap { display: grid; grid-template-columns: var(--row-label-w) repeat(5, 1fr); margin-bottom: 4px; position: relative; min-height: 28px; }
+.job-strip-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--text-tertiary); padding: 6px 6px 0 2px; display: flex; align-items: flex-start; white-space: nowrap; overflow: hidden; }
+.job-strip-cells { grid-column: 2 / 7; position: relative; min-height: 28px; display: grid; grid-template-columns: repeat(5, 1fr); }
+.job-strip-day-col { position: relative; }
+.job-bar { position: absolute; top: 4px; height: 20px; background: var(--orange-bg); border: 0.5px solid var(--orange-border); border-radius: 3px; display: flex; align-items: center; padding: 0 6px; overflow: hidden; pointer-events: none; z-index: 2; }
+.job-bar-label { font-size: 10px; font-weight: 600; color: var(--orange-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── GRID ── */
 .grid-wrap { display: grid; grid-template-columns: var(--row-label-w) repeat(5, 1fr); border: 0.5px solid var(--border-mid); border-radius: var(--radius-md); overflow: visible; background: var(--bg-primary); position: relative; }
 .row-label-header { background: var(--bg-tertiary); border-right: 0.5px solid var(--border-mid); border-bottom: 1px solid var(--border-mid); border-radius: var(--radius-md) 0 0 0; }
 .day-header { background: var(--bg-tertiary); border-right: 0.5px solid var(--border-light); border-bottom: 1px solid var(--border-mid); padding: 6px 4px 5px; text-align: center; }
@@ -93,28 +113,53 @@ header h1 { font-size: 13px; font-weight: 500; color: var(--text-secondary); let
 .scard:active { cursor: grabbing; }
 .scard.dragging { opacity: 0.3; }
 .scard + .scard { top: auto; }
+/* New types */
 .scard-walk  { background: var(--walk-bg);  border: 0.5px solid var(--walk-border);  color: var(--walk-text); }
 .scard-fab   { background: var(--fab-bg);   border: 0.5px solid var(--fab-border);   color: var(--fab-text); }
 .scard-resto { background: var(--resto-bg); border: 0.5px solid var(--resto-border); color: var(--resto-text); }
 .scard-off   { background: var(--red-bg);   border: 0.5px solid var(--red-border);   color: var(--red-text); }
+/* Legacy fallbacks — old shop/site cards still render with color */
+.scard-shop  { background: var(--fab-bg);   border: 0.5px solid var(--fab-border);   color: var(--fab-text); }
+.scard-site  { background: var(--resto-bg); border: 0.5px solid var(--resto-border); color: var(--resto-text); }
 .scard-name  { font-weight: 600; font-size: 11px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .scard-desc  { font-size: 10px; font-weight: 400; opacity: 0.85; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .scard-span  { font-size: 9px; font-weight: 500; opacity: 0.65; margin-top: 1px; }
 .scard-btns  { position: absolute; top: 3px; right: 3px; display: flex; gap: 2px; opacity: 0; transition: opacity 0.1s; }
 .scard:hover .scard-btns { opacity: 1; }
 .scard-btn   { width: 16px; height: 16px; border-radius: 2px; border: none; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-family: inherit; line-height: 1; }
-.scard-walk  .scard-btn { background: rgba(122,74,0,0.14);   color: var(--walk-text); }
-.scard-fab   .scard-btn { background: rgba(39,80,10,0.14);   color: var(--fab-text); }
-.scard-resto .scard-btn { background: rgba(12,68,124,0.14);  color: var(--resto-text); }
-.scard-off   .scard-btn { background: rgba(121,31,31,0.14);  color: var(--red-text); }
+.scard-walk  .scard-btn, .scard-shop .scard-btn { background: rgba(39,80,10,0.14);   color: var(--fab-text); }
+.scard-fab   .scard-btn  { background: rgba(39,80,10,0.14);   color: var(--fab-text); }
+.scard-resto .scard-btn, .scard-site .scard-btn { background: rgba(12,68,124,0.14);  color: var(--resto-text); }
+.scard-off   .scard-btn  { background: rgba(121,31,31,0.14);  color: var(--red-text); }
 .scard-btn:hover { opacity: 0.65; }
 .scard.selected { outline: 2px solid var(--text-primary); outline-offset: 1px; }
 .scard-walk.selected  { outline-color: var(--walk-border); }
-.scard-fab.selected   { outline-color: var(--fab-border); }
-.scard-resto.selected { outline-color: var(--resto-border); }
+.scard-fab.selected, .scard-shop.selected  { outline-color: var(--fab-border); }
+.scard-resto.selected, .scard-site.selected { outline-color: var(--resto-border); }
 .scard-off.selected   { outline-color: var(--red-border); }
 .paste-ready .day-cell { cursor: copy; }
 .paste-ready .day-cell:hover { background: var(--fab-bg); outline: 1.5px dashed var(--fab-border); outline-offset: -2px; }
+
+/* ── MONTH VIEW ── */
+.month-outer { padding: 10px 16px 40px; }
+.month-grid { background: var(--bg-primary); border: 0.5px solid var(--border-mid); border-radius: var(--radius-md); overflow: hidden; }
+.month-header-row { display: grid; grid-template-columns: repeat(5, 1fr) 60px 60px; border-bottom: 1px solid var(--border-mid); background: var(--bg-tertiary); }
+.month-col-header { padding: 6px 4px 5px; text-align: center; border-right: 0.5px solid var(--border-light); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--text-tertiary); }
+.month-col-header:last-child { border-right: none; }
+.month-col-header.weekend { color: var(--text-tertiary); opacity: 0.5; }
+.month-week-row { display: grid; grid-template-columns: repeat(5, 1fr) 60px 60px; border-bottom: 0.5px solid var(--border-light); min-height: 80px; position: relative; }
+.month-week-row:last-child { border-bottom: none; }
+.month-day-cell { border-right: 0.5px solid var(--border-light); padding: 4px 5px 24px; position: relative; min-height: 80px; }
+.month-day-cell:last-child { border-right: none; }
+.month-day-cell.weekend { background: var(--bg-secondary); opacity: 0.6; }
+.month-day-cell.other-month .month-day-num { color: var(--text-tertiary); opacity: 0.4; }
+.month-day-cell.is-today { background: var(--today-bg); }
+.month-day-num { font-size: 11px; font-weight: 500; color: var(--text-secondary); line-height: 1; margin-bottom: 2px; }
+.month-day-cell.is-today .month-day-num { color: #854F0B; font-weight: 700; }
+.month-job-bar { position: absolute; height: 22px; background: var(--orange-bg); border: 0.5px solid var(--orange-border); border-radius: 3px; display: flex; align-items: center; padding: 0 6px; overflow: hidden; pointer-events: none; z-index: 5; }
+.month-job-bar-inner { display: flex; align-items: center; gap: 5px; min-width: 0; width: 100%; }
+.month-job-bar-name { font-size: 10px; font-weight: 600; color: var(--orange-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+.month-job-bar-initials { font-size: 9px; font-weight: 500; color: var(--orange-text); opacity: 0.75; white-space: nowrap; flex-shrink: 0; }
 
 /* ── MODALS ── */
 .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 200; align-items: center; justify-content: center; }
@@ -129,7 +174,7 @@ header h1 { font-size: 13px; font-weight: 500; color: var(--text-secondary); let
 .modal-btns button { font-size: 13px; padding: 7px 16px; border-radius: var(--radius-sm); border: 0.5px solid var(--border-mid); background: var(--bg-primary); color: var(--text-primary); cursor: pointer; font-family: inherit; }
 .modal-btns button:hover { background: var(--bg-secondary); }
 .btn-primary { background: var(--text-primary) !important; color: var(--bg-primary) !important; border-color: var(--text-primary) !important; }
-.btn-primary:hover { opacity: 0.82 !important; background: var(--text-primary) !important; }
+.btn-primary:hover { opacity: 0.82 !important; }
 .btn-danger { background: #c0392b !important; color: #fff !important; border-color: #c0392b !important; }
 .btn-danger:hover { opacity: 0.85 !important; }
 .type-btns { display: flex; gap: 6px; }
@@ -140,8 +185,6 @@ header h1 { font-size: 13px; font-weight: 500; color: var(--text-secondary); let
 .type-btn.active-off   { background: var(--red-bg);   color: var(--red-text);   border-color: var(--red-border); }
 .modal-note-text { font-size: 12px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.5; }
 .priority-hint { font-size: 11px; color: var(--text-tertiary); margin-top: 3px; font-style: italic; }
-
-/* Client manager */
 .client-list-wrap { max-height: 260px; overflow-y: auto; border: 0.5px solid var(--border-light); border-radius: var(--radius-sm); margin-top: 4px; }
 .client-list-item { display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; border-bottom: 0.5px solid var(--border-light); font-size: 13px; color: var(--text-primary); }
 .client-list-item:last-child { border-bottom: none; }
@@ -158,8 +201,11 @@ header h1 { font-size: 13px; font-weight: 500; color: var(--text-secondary); let
   header, .nav-wrap, #toast, .modal-overlay { display: none !important; }
   body { background: white; }
   .board-outer { padding: 4px 8px 8px; }
+  .month-outer { padding: 4px 8px 8px; }
   .week-block { margin-bottom: 10px; page-break-inside: avoid; }
-  .week-label { font-size: 9px; letter-spacing: .07em; padding: 3px 0 3px var(--row-label-w); }
+  .job-strip-wrap { min-height: 24px; }
+  .job-bar { height: 16px; top: 3px; }
+  .job-bar-label { font-size: 9px; }
   :root { --row-label-w: 72px; --cell-min-h: 64px; }
   .day-header { padding: 4px 3px; }
   .day-name { font-size: 12px; } .day-date { font-size: 17px; margin-top: 1px; }
@@ -167,11 +213,12 @@ header h1 { font-size: 13px; font-weight: 500; color: var(--text-secondary); let
   .day-cell { min-height: var(--cell-min-h); padding: 3px; }
   .scard { padding: 3px 5px; min-height: 32px; border-radius: 3px; background: white !important; }
   .scard-walk  { border: 2px solid var(--walk-border)  !important; color: var(--walk-text)  !important; }
-  .scard-fab   { border: 2px solid var(--fab-border)   !important; color: var(--fab-text)   !important; }
-  .scard-resto { border: 2px solid var(--resto-border) !important; color: var(--resto-text) !important; }
+  .scard-fab, .scard-shop  { border: 2px solid var(--fab-border)   !important; color: var(--fab-text)   !important; }
+  .scard-resto, .scard-site { border: 2px solid var(--resto-border) !important; color: var(--resto-text) !important; }
   .scard-off   { border: 2px solid var(--red-border)   !important; color: var(--red-text)   !important; }
   .scard-name { font-size: 16px; } .scard-desc { font-size: 12px; } .scard-span { font-size: 11px; }
   .scard-btns { display: none; }
+  .month-job-bar { border: 1.5px solid #EF9F27 !important; background: white !important; }
 }
 </style>
 </head>
@@ -182,12 +229,20 @@ header h1 { font-size: 13px; font-weight: 500; color: var(--text-secondary); let
   <div class="header-right">
     <span class="version-tag">v3</span>
     <div class="legend">
-      <div class="legend-item"><div class="legend-dot" style="background:#E89020;"></div> Walk</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#97C459;"></div> Fab</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#378ADD;"></div> Resto</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#E24B4A;"></div> Off</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--walk-border);"></div> Walk</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--fab-border);"></div> Fab</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--resto-border);"></div> Resto</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--red-border);"></div> Off</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--orange-border);"></div> Job</div>
     </div>
     <div class="header-divider"></div>
+    <div class="view-toggle">
+      <button class="view-toggle-btn active" id="btn-view-2week">2-Week</button>
+      <button class="view-toggle-btn" id="btn-view-month">Month</button>
+    </div>
+    <div class="header-divider"></div>
+    <button class="toolbar-btn" id="btn-toggle-jobs">Hide jobs</button>
+    <div class="header-divider" id="divider-2week-only"></div>
     <button class="toolbar-btn" id="btn-save-json">Save schedule</button>
     <button class="toolbar-btn" id="btn-load-json">Restore schedule</button>
     <div class="header-divider"></div>
@@ -196,7 +251,8 @@ header h1 { font-size: 13px; font-weight: 500; color: var(--text-secondary); let
   </div>
 </header>
 
-<div class="nav-wrap">
+<!-- Two-week nav -->
+<div class="nav-wrap" id="nav-2week">
   <div style="display:flex;align-items:center;gap:10px;">
     <div style="display:flex;flex-direction:column;gap:3px;">
       <button class="nav-btn" id="btn-prev" title="Previous week">&#9650;</button>
@@ -209,7 +265,22 @@ header h1 { font-size: 13px; font-weight: 500; color: var(--text-secondary); let
   </div>
 </div>
 
+<!-- Month nav -->
+<div class="nav-wrap" id="nav-month" style="display:none;">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div style="display:flex;flex-direction:column;gap:3px;">
+      <button class="nav-btn" id="btn-month-prev" title="Previous month">&#9650;</button>
+      <button class="nav-btn" id="btn-month-next" title="Next month">&#9660;</button>
+    </div>
+    <div>
+      <div class="nav-week-label" id="nav-month-label"></div>
+      <button class="nav-today-btn" id="btn-month-today" style="margin-top:5px;">This month</button>
+    </div>
+  </div>
+</div>
+
 <div class="board-outer" id="board-outer"></div>
+<div class="month-outer" id="month-outer" style="display:none;"></div>
 
 <!-- Card modal -->
 <div class="modal-overlay" id="modal-card">
@@ -279,7 +350,7 @@ header h1 { font-size: 13px; font-weight: 500; color: var(--text-secondary); let
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBiwsuVyEormZua4fUh7rLeIAQp0BZ-y8A",
@@ -292,15 +363,36 @@ const firebaseConfig = {
 
 const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
-const DOC_REF     = doc(db, "boards", "schedule");
-const PM_COLL     = "pm_projects";
+const DOC_REF = doc(db, "boards", "schedule");
+const PM_COLL = "pm_projects";
 
 const FIXED_EMPLOYEES = ["Adam","Sam","Addy","Aly","Maxx"];
 const FLOATER_DEFAULTS = ["Floater A","Floater B"];
 let floaterNames = [...FLOATER_DEFAULTS];
 const DAYS = ["Mon","Tue","Wed","Thu","Fri"];
+const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
+const INITIALS_MAP = { "Adam":"AB","Sam":"SF","Addy":"AP","Aly":"AS","Maxx":"MW","Geoffrey":"GH" };
+function getInitials(empName) {
+  if (INITIALS_MAP[empName]) return INITIALS_MAP[empName];
+  const parts = empName.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return parts[0].slice(0,2).toUpperCase();
+}
 function getEmployees() { return [...FIXED_EMPLOYEES, ...floaterNames]; }
+
+// Normalize legacy card types
+function normalizeType(t) {
+  if (t === 'shop') return 'fab';
+  if (t === 'site') return 'resto';
+  return t || 'fab';
+}
+
+// ── VIEW STATE ──
+let currentView = "2week";
+let showJobStrip = true;
+const now = new Date();
+let monthAnchor = { year: now.getFullYear(), month: now.getMonth() };
 
 // ── DATE UTILS ──
 function getMondayOf(date) {
@@ -314,25 +406,16 @@ function getMondayOf(date) {
 function addDays(date, n) { const d = new Date(date); d.setDate(d.getDate() + n); return d; }
 function dateKey(date) {
   const d = new Date(date);
-  const y = d.getFullYear();
-  const m = String(d.getMonth()+1).padStart(2,"0");
-  const day = String(d.getDate()).padStart(2,"0");
-  return `${y}-${m}-${day}`;
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 function fromKey(key) { const [y,m,d] = key.split("-").map(Number); return new Date(y, m-1, d); }
 function fmt(date) { return (date.getMonth()+1) + "/" + date.getDate(); }
 function isToday(date) { const t = new Date(); return date.getFullYear()===t.getFullYear()&&date.getMonth()===t.getMonth()&&date.getDate()===t.getDate(); }
 function daysBetween(startKey, endKey) { return Math.round((fromKey(endKey) - fromKey(startKey)) / 86400000); }
-
-// Add N business days (Mon-Fri) from a date key
 function addBusinessDays(startKey, n) {
   let d = fromKey(startKey);
   let added = 0;
-  while (added < n) {
-    d = addDays(d, 1);
-    const dow = d.getDay();
-    if (dow !== 0 && dow !== 6) added++;
-  }
+  while (added < n) { d = addDays(d, 1); const dow = d.getDay(); if (dow !== 0 && dow !== 6) added++; }
   return dateKey(d);
 }
 
@@ -347,7 +430,6 @@ let copiedCard = null;
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
 
-// ── FIREBASE ──
 async function loadState() {
   try {
     const snap = await getDoc(DOC_REF);
@@ -367,61 +449,40 @@ function saveState() {
   saveTimer = setTimeout(async () => {
     try {
       await setDoc(DOC_REF, { cards, prodClients, floaterNames, anchorMonday: dateKey(anchorMonday) });
-      // After saving, sync dates back to any linked PM projects
       syncDatesToPM();
-    } catch(e) {
-      console.warn("Firestore save failed", e);
-      toast("Auto-save failed — check connection.");
-    }
+    } catch(e) { console.warn("Firestore save failed", e); toast("Auto-save failed — check connection."); }
   }, 800);
 }
 
-// ── PM DATE SYNC (scheduler → PM) ──
+// ── PM SYNC ──
 async function syncDatesToPM() {
-  // Collect all priorityIds on the board
   const priorityIds = [...new Set(cards.filter(c => c.priorityId).map(c => c.priorityId))];
   if (!priorityIds.length) return;
-
   for (const pid of priorityIds) {
     const linked = cards.filter(c => c.priorityId === pid && c.type !== 'off');
     if (!linked.length) continue;
-
-    // Find PM project by priority number
     try {
-      // Query pm_projects for matching priority
-      const { collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js");
-      // We stored priorityId as number on card, priority as number in PM
-      // Find earliest dates per type
-      const fabCards   = linked.filter(c => c.type === 'fab');
-      const restoCards = linked.filter(c => c.type === 'resto');
-      const walkCards  = linked.filter(c => c.type === 'walk');
-
+      const fabCards   = linked.filter(c => normalizeType(c.type) === 'fab');
+      const restoCards = linked.filter(c => normalizeType(c.type) === 'resto');
+      const walkCards  = linked.filter(c => normalizeType(c.type) === 'walk');
       const fabStart   = fabCards.length   ? fabCards.sort((a,b)=>a.startDate.localeCompare(b.startDate))[0].startDate   : null;
       const restoStart = restoCards.length ? restoCards.sort((a,b)=>a.startDate.localeCompare(b.startDate))[0].startDate : null;
       const walkDate   = walkCards.length  ? walkCards.sort((a,b)=>a.startDate.localeCompare(b.startDate))[0].startDate  : null;
-
-      // Find PM project docs where priority matches
       const pmSnap = await getDocs(query(collection(db, PM_COLL), where("priority", "==", pid)));
       for (const pmDoc of pmSnap.docs) {
         const update = {};
         if (fabStart)   update.fabStart   = fabStart;
         if (restoStart) update.restoStart = restoStart;
         if (walkDate)   update.startDate  = walkDate;
-        if (Object.keys(update).length) {
-          await setDoc(pmDoc.ref, update, { merge: true });
-        }
+        if (Object.keys(update).length) await setDoc(pmDoc.ref, update, { merge: true });
       }
-    } catch(e) {
-      console.warn("PM sync failed for priority", pid, e);
-    }
+    } catch(e) { console.warn("PM sync failed for priority", pid, e); }
   }
 }
 
-// ── PM PROJECT LOOKUP (for auto-fill duration) ──
 async function lookupPMProject(priorityNum) {
   if (!priorityNum) return null;
   try {
-    const { collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js");
     const snap = await getDocs(query(collection(db, PM_COLL), where("priority", "==", priorityNum)));
     if (snap.empty) return null;
     return snap.docs[0].data();
@@ -436,9 +497,254 @@ function toast(msg) {
   t._to = setTimeout(() => t.classList.remove("show"), 2400);
 }
 
-// ── RENDER ──
-function getWeekDates(monday) { return Array.from({length:5}, (_,i) => addDays(monday, i)); }
+// ── VIEW SWITCHING ──
+function setView(view) {
+  currentView = view;
+  document.getElementById("btn-view-2week").classList.toggle("active", view === "2week");
+  document.getElementById("btn-view-month").classList.toggle("active", view === "month");
+  document.getElementById("nav-2week").style.display   = view === "2week" ? "" : "none";
+  document.getElementById("nav-month").style.display   = view === "month" ? "" : "none";
+  document.getElementById("board-outer").style.display = view === "2week" ? "" : "none";
+  document.getElementById("month-outer").style.display = view === "month" ? "" : "none";
+  document.getElementById("btn-toggle-jobs").style.display    = view === "2week" ? "" : "none";
+  document.getElementById("divider-2week-only").style.display = view === "2week" ? "" : "none";
+  if (view === "2week") renderBoard(); else renderMonth();
+}
+document.getElementById("btn-view-2week").addEventListener("click", () => setView("2week"));
+document.getElementById("btn-view-month").addEventListener("click", () => setView("month"));
 
+// ── JOB STRIP ──
+function getJobsForWeek(weekDates) {
+  const weekStart = dateKey(weekDates[0]);
+  const weekEnd   = dateKey(weekDates[4]);
+  const jobMap = {};
+  cards.forEach(c => {
+    if (c.type === "off" || !c.client) return;
+    if (c.endDate < weekStart || c.startDate > weekEnd) return;
+    if (!jobMap[c.client]) { jobMap[c.client] = { client: c.client, startDate: c.startDate, endDate: c.endDate }; }
+    else {
+      if (c.startDate < jobMap[c.client].startDate) jobMap[c.client].startDate = c.startDate;
+      if (c.endDate   > jobMap[c.client].endDate)   jobMap[c.client].endDate   = c.endDate;
+    }
+  });
+  return Object.values(jobMap);
+}
+
+function jobColRange(job, weekDates) {
+  const weekStart = dateKey(weekDates[0]);
+  const weekEnd   = dateKey(weekDates[4]);
+  const clampedStart = job.startDate < weekStart ? weekStart : job.startDate;
+  const clampedEnd   = job.endDate   > weekEnd   ? weekEnd   : job.endDate;
+  let startCol = -1, endCol = -1;
+  weekDates.forEach((d, i) => {
+    const dk = dateKey(d);
+    if (startCol < 0 && dk >= clampedStart) startCol = i;
+    if (dk <= clampedEnd) endCol = i;
+  });
+  if (startCol < 0) startCol = 0;
+  if (endCol   < 0) endCol   = 4;
+  return { startCol, endCol };
+}
+
+function renderJobStrip(weekBlock, weekDates) {
+  const existing = weekBlock.querySelector(".job-strip-wrap");
+  if (existing) existing.remove();
+  if (!showJobStrip) return;
+  const jobs = getJobsForWeek(weekDates);
+  if (jobs.length === 0) return;
+  jobs.sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const rows = [];
+  const barPlacements = jobs.map(job => {
+    const { startCol, endCol } = jobColRange(job, weekDates);
+    let rowIdx = rows.findIndex(rowEndCol => rowEndCol < startCol);
+    if (rowIdx < 0) { rowIdx = rows.length; rows.push(endCol); } else { rows[rowIdx] = endCol; }
+    return { job, startCol, endCol, rowIdx };
+  });
+  const barH = 20, barGap = 3;
+  const stripH = rows.length * (barH + barGap) + 4;
+  const stripWrap = document.createElement("div");
+  stripWrap.className = "job-strip-wrap";
+  stripWrap.style.minHeight = stripH + "px";
+  const stripLabel = document.createElement("div");
+  stripLabel.className = "job-strip-label";
+  stripLabel.textContent = "Jobs";
+  stripWrap.appendChild(stripLabel);
+  const stripCells = document.createElement("div");
+  stripCells.className = "job-strip-cells";
+  stripCells.style.minHeight = stripH + "px";
+  for (let i = 0; i < 5; i++) {
+    const col = document.createElement("div");
+    col.className = "job-strip-day-col";
+    col.dataset.col = i;
+    stripCells.appendChild(col);
+  }
+  stripWrap.appendChild(stripCells);
+  const weekLabel = weekBlock.querySelector(".week-label");
+  weekLabel.insertAdjacentElement("afterend", stripWrap);
+  requestAnimationFrame(() => {
+    const colEls = stripCells.querySelectorAll(".job-strip-day-col");
+    barPlacements.forEach(({ job, startCol, endCol, rowIdx }) => {
+      if (!colEls[startCol]) return;
+      const startRect = colEls[startCol].getBoundingClientRect();
+      const endRect   = colEls[endCol].getBoundingClientRect();
+      const stripRect = stripCells.getBoundingClientRect();
+      const left  = startRect.left - stripRect.left + 2;
+      const width = endRect.right  - startRect.left - 4;
+      const top   = 4 + rowIdx * (barH + barGap);
+      const bar = document.createElement("div");
+      bar.className = "job-bar";
+      bar.style.left = left + "px"; bar.style.width = width + "px";
+      bar.style.top = top + "px";   bar.style.height = barH + "px";
+      const label = document.createElement("span");
+      label.className = "job-bar-label";
+      label.textContent = job.client;
+      bar.appendChild(label);
+      stripCells.appendChild(bar);
+    });
+  });
+}
+
+// ── MONTH VIEW ──
+function getMonthWeeks(year, month) {
+  const firstDay = new Date(year, month, 1);
+  const lastDay  = new Date(year, month + 1, 0);
+  const monday   = getMondayOf(firstDay);
+  const weeks    = [];
+  let cursor     = new Date(monday);
+  while (cursor <= lastDay || weeks.length === 0) {
+    const week = [];
+    for (let i = 0; i < 7; i++) { week.push(new Date(cursor)); cursor = addDays(cursor, 1); }
+    weeks.push(week);
+    if (cursor > lastDay && weeks.length >= 4) break;
+  }
+  return weeks;
+}
+
+function getJobInitials(clientName, rangeStart, rangeEnd) {
+  const initialsSet = new Set();
+  cards.forEach(c => {
+    if (c.type === "off" || c.client !== clientName) return;
+    if (c.endDate < rangeStart || c.startDate > rangeEnd) return;
+    initialsSet.add(getInitials(c.emp));
+  });
+  return Array.from(initialsSet).join(" ");
+}
+
+function getJobsForMonth(year, month) {
+  const monthStart = dateKey(new Date(year, month, 1));
+  const monthEnd   = dateKey(new Date(year, month + 1, 0));
+  const jobMap = {};
+  cards.forEach(c => {
+    if (c.type === "off" || !c.client) return;
+    if (c.endDate < monthStart || c.startDate > monthEnd) return;
+    if (!jobMap[c.client]) { jobMap[c.client] = { client: c.client, startDate: c.startDate, endDate: c.endDate }; }
+    else {
+      if (c.startDate < jobMap[c.client].startDate) jobMap[c.client].startDate = c.startDate;
+      if (c.endDate   > jobMap[c.client].endDate)   jobMap[c.client].endDate   = c.endDate;
+    }
+  });
+  return Object.values(jobMap).sort((a,b) => a.startDate.localeCompare(b.startDate));
+}
+
+function renderMonth() {
+  const outer = document.getElementById("month-outer");
+  outer.innerHTML = "";
+  const { year, month } = monthAnchor;
+  document.getElementById("nav-month-label").textContent = MONTH_NAMES[month] + " " + year;
+  const weeks = getMonthWeeks(year, month);
+  const monthJobs = getJobsForMonth(year, month);
+  const grid = document.createElement("div");
+  grid.className = "month-grid";
+  const headerRow = document.createElement("div");
+  headerRow.className = "month-header-row";
+  ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].forEach((d, i) => {
+    const h = document.createElement("div");
+    h.className = "month-col-header" + (i >= 5 ? " weekend" : "");
+    h.textContent = d;
+    headerRow.appendChild(h);
+  });
+  grid.appendChild(headerRow);
+
+  weeks.forEach(weekDays => {
+    const wkStart = dateKey(weekDays[0]);
+    const wkEnd   = dateKey(weekDays[4]);
+    const weekRow = document.createElement("div");
+    weekRow.className = "month-week-row";
+    weekDays.forEach((d, di) => {
+      const cell = document.createElement("div");
+      const inMonth = d.getMonth() === month && d.getFullYear() === year;
+      const isWknd  = di >= 5;
+      cell.className = "month-day-cell" + (isWknd ? " weekend" : "") + (!inMonth ? " other-month" : "") + (isToday(d) ? " is-today" : "");
+      const num = document.createElement("div");
+      num.className = "month-day-num";
+      num.textContent = d.getDate();
+      cell.appendChild(num);
+      weekRow.appendChild(cell);
+    });
+    grid.appendChild(weekRow);
+
+    const weekJobs = monthJobs.filter(job => job.endDate >= wkStart && job.startDate <= wkEnd);
+    if (weekJobs.length === 0) return;
+    weekJobs.sort((a,b) => a.startDate.localeCompare(b.startDate));
+    const barRows = [];
+    const placements = weekJobs.map(job => {
+      const clampStart = job.startDate < wkStart ? wkStart : job.startDate;
+      const clampEnd   = job.endDate   > wkEnd   ? wkEnd   : job.endDate;
+      let startCol = -1, endCol = -1;
+      weekDays.slice(0,5).forEach((d, i) => {
+        const dk = dateKey(d);
+        if (startCol < 0 && dk >= clampStart) startCol = i;
+        if (dk <= clampEnd) endCol = i;
+      });
+      if (startCol < 0) startCol = 0;
+      if (endCol   < 0) endCol   = 4;
+      let rowIdx = barRows.findIndex(r => r < startCol);
+      if (rowIdx < 0) { rowIdx = barRows.length; barRows.push(endCol); } else { barRows[rowIdx] = endCol; }
+      const initials = getJobInitials(job.client, clampStart, clampEnd);
+      return { job, startCol, endCol, rowIdx, initials };
+    });
+    const barH = 22, barGap = 3, barTopOffset = 20;
+    const neededH = barTopOffset + barRows.length * (barH + barGap) + 6;
+    if (neededH > 80) weekRow.style.minHeight = neededH + "px";
+    requestAnimationFrame(() => {
+      const allCells = weekRow.querySelectorAll(".month-day-cell");
+      if (!allCells.length) return;
+      const rowRect = weekRow.getBoundingClientRect();
+      placements.forEach(({ job, startCol, endCol, rowIdx, initials }) => {
+        const startCell = allCells[startCol];
+        const endCell   = allCells[endCol];
+        if (!startCell || !endCell) return;
+        const startRect = startCell.getBoundingClientRect();
+        const endRect   = endCell.getBoundingClientRect();
+        const left   = startRect.left - rowRect.left + 3;
+        const width  = endRect.right  - startRect.left - 6;
+        const top    = barTopOffset + rowIdx * (barH + barGap);
+        const bar = document.createElement("div");
+        bar.className = "month-job-bar";
+        bar.style.left = left + "px"; bar.style.width = width + "px";
+        bar.style.top = top + "px";   bar.style.height = barH + "px";
+        const inner = document.createElement("div");
+        inner.className = "month-job-bar-inner";
+        const nameEl = document.createElement("span");
+        nameEl.className = "month-job-bar-name";
+        nameEl.textContent = job.client;
+        inner.appendChild(nameEl);
+        if (initials) {
+          const initEl = document.createElement("span");
+          initEl.className = "month-job-bar-initials";
+          initEl.textContent = initials;
+          inner.appendChild(initEl);
+        }
+        bar.appendChild(inner);
+        weekRow.appendChild(bar);
+      });
+    });
+  });
+  outer.appendChild(grid);
+}
+
+// ── RENDER BOARD ──
+function getWeekDates(monday) { return Array.from({length:5}, (_,i) => addDays(monday, i)); }
 function cardsForEmpWeek(emp, weekDates) {
   const weekStart = dateKey(weekDates[0]);
   const weekEnd   = dateKey(weekDates[4]);
@@ -464,21 +770,19 @@ function renderBoard() {
 
     const grid = document.createElement("div");
     grid.className = "grid-wrap";
-
-    // Header row
     const corner = document.createElement("div");
     corner.className = "row-label-header";
     grid.appendChild(corner);
-    dates.forEach(date => {
+    dates.forEach((d, i) => {
       const dh = document.createElement("div");
-      dh.className = "day-header" + (isToday(date) ? " is-today" : "");
-      dh.innerHTML = `<div class="day-name">${DAYS[dates.indexOf(date)]}</div><div class="day-date">${fmt(date)}</div>`;
+      dh.className = "day-header" + (isToday(d) ? " is-today" : "");
+      dh.innerHTML = `<div class="day-name">${DAYS[i]}</div><div class="day-date">${fmt(d)}</div>`;
       grid.appendChild(dh);
     });
 
     const employees = getEmployees();
     employees.forEach((emp, empIdx) => {
-      const isLast = empIdx === employees.length - 1;
+      const isLast    = empIdx === employees.length - 1;
       const isFloater = empIdx >= FIXED_EMPLOYEES.length;
       const floaterIdx = isFloater ? empIdx - FIXED_EMPLOYEES.length : -1;
 
@@ -501,16 +805,11 @@ function renderBoard() {
         cell.className = "day-cell" + (isLast ? " emp-row-last" : "") + (isToday(date) ? " is-today" : "");
         cell.dataset.emp = emp;
         cell.dataset.day = dk;
-        cell.addEventListener("click", e => {
-          if (e.target.closest(".scard")) return;
-          if (copiedCard) return;
-          openAddModal(emp, dk);
-        });
+        cell.addEventListener("click", e => { if (e.target.closest(".scard")) return; if (copiedCard) return; openAddModal(emp, dk); });
         cell.addEventListener("dragover", e => { e.preventDefault(); cell.classList.add("drag-over"); });
         cell.addEventListener("dragleave", () => cell.classList.remove("drag-over"));
         cell.addEventListener("drop", e => {
-          e.preventDefault();
-          cell.classList.remove("drag-over");
+          e.preventDefault(); cell.classList.remove("drag-over");
           const id = e.dataTransfer.getData("card-id");
           const card = cards.find(c => c.id === id);
           if (!card) return;
@@ -524,7 +823,6 @@ function renderBoard() {
         grid.appendChild(cell);
       });
 
-      // Place cards
       const empCards = cardsForEmpWeek(emp, dates);
       empCards.forEach(card => {
         const weekStart = dateKey(dates[0]);
@@ -535,7 +833,6 @@ function renderBoard() {
         let endCol   = cells.findIndex(c => c.dk === visEnd);
         if (startCol < 0) startCol = 0;
         if (endCol   < 0) endCol   = 4;
-
         const startCell = cells[startCol];
         if (!startCell) return;
         const el = buildScardEl(card, startCol, endCol);
@@ -543,13 +840,11 @@ function renderBoard() {
         el.style.top  = (4 + colStackTop[startCol]) + "px";
         el.style.right = "";
         startCell.el.appendChild(el);
-
         requestAnimationFrame(() => {
           let totalWidth = 0;
           for (let c = startCol; c <= endCol; c++) totalWidth += cells[c].el.getBoundingClientRect().width;
           el.style.width = (totalWidth - 8) + "px";
         });
-
         const cardH = 44;
         for (let c = startCol; c <= endCol; c++) colStackTop[c] += cardH + 3;
         const maxStack = Math.max(...colStackTop.slice(startCol, endCol+1));
@@ -563,6 +858,7 @@ function renderBoard() {
 
     weekBlock.appendChild(grid);
     outer.appendChild(weekBlock);
+    renderJobStrip(weekBlock, dates);
   });
 
   setTimeout(() => {
@@ -587,8 +883,10 @@ function renderBoard() {
 }
 
 function buildScardEl(card, startCol, endCol) {
+  // Normalize legacy types for CSS class
+  const displayType = normalizeType(card.type);
   const el = document.createElement("div");
-  el.className = "scard scard-" + card.type;
+  el.className = "scard scard-" + displayType;
   el.draggable = true;
   el.dataset.id = card.id;
   el.dataset.startcol = startCol;
@@ -601,11 +899,7 @@ function buildScardEl(card, startCol, endCol) {
   if (card.type === "off") {
     el.innerHTML = `<span class="scard-name">Off</span>${spanLabel ? `<span class="scard-span">${spanLabel}</span>` : ""}<div class="scard-btns"><button class="scard-btn edit-btn" title="Edit">&#9998;</button><button class="scard-btn del-btn" title="Remove">&#x2715;</button></div>`;
   } else {
-    el.innerHTML =
-      `<span class="scard-name">${priorityTag}${card.client || ""}</span>` +
-      (card.desc ? `<span class="scard-desc">${card.desc}</span>` : "") +
-      (spanLabel ? `<span class="scard-span">${spanLabel}</span>` : "") +
-      `<div class="scard-btns"><button class="scard-btn edit-btn" title="Edit">&#9998;</button><button class="scard-btn del-btn" title="Remove">&#x2715;</button></div>`;
+    el.innerHTML = `<span class="scard-name">${priorityTag}${card.client || ""}</span>${card.desc ? `<span class="scard-desc">${card.desc}</span>` : ""}${spanLabel ? `<span class="scard-span">${spanLabel}</span>` : ""}<div class="scard-btns"><button class="scard-btn edit-btn" title="Edit">&#9998;</button><button class="scard-btn del-btn" title="Remove">&#x2715;</button></div>`;
   }
 
   el.querySelector(".edit-btn").addEventListener("click", e => { e.stopPropagation(); openEditModal(card.id); });
@@ -647,8 +941,7 @@ function populateClientDatalist() {
 
 // ── ADD MODAL ──
 function openAddModal(emp, dayKey) {
-  editId = null;
-  addContext = {emp, dayKey};
+  editId = null; addContext = {emp, dayKey};
   document.getElementById("modal-card-title").textContent = `Add — ${emp}`;
   document.getElementById("modal-client").value   = "";
   document.getElementById("modal-desc").value     = "";
@@ -665,10 +958,9 @@ function openAddModal(emp, dayKey) {
 function openEditModal(id) {
   const card = cards.find(c => c.id === id);
   if (!card) return;
-  editId = id;
-  addContext = null;
+  editId = id; addContext = null;
   document.getElementById("modal-card-title").textContent = `Edit — ${card.emp}`;
-  setType(card.type);
+  setType(normalizeType(card.type));
   document.getElementById("modal-client").value   = card.client   || "";
   document.getElementById("modal-desc").value     = card.desc     || "";
   document.getElementById("modal-priority").value = card.priorityId || "";
@@ -680,19 +972,10 @@ function openEditModal(id) {
 
 document.getElementById("modal-card-cancel").addEventListener("click", () => { document.getElementById("modal-card").classList.remove("open"); });
 document.getElementById("modal-card").addEventListener("click", e => { if (e.target === document.getElementById("modal-card")) document.getElementById("modal-card").classList.remove("open"); });
+document.getElementById("modal-start").addEventListener("change", () => { const s = document.getElementById("modal-start").value; const e = document.getElementById("modal-end").value; if (e < s) document.getElementById("modal-end").value = s; });
+document.getElementById("modal-end").addEventListener("change", () => { const s = document.getElementById("modal-start").value; const e = document.getElementById("modal-end").value; if (e < s) document.getElementById("modal-end").value = s; });
 
-document.getElementById("modal-start").addEventListener("change", () => {
-  const s = document.getElementById("modal-start").value;
-  const e = document.getElementById("modal-end").value;
-  if (e < s) document.getElementById("modal-end").value = s;
-});
-document.getElementById("modal-end").addEventListener("change", () => {
-  const s = document.getElementById("modal-start").value;
-  const e = document.getElementById("modal-end").value;
-  if (e < s) document.getElementById("modal-end").value = s;
-});
-
-// Auto-fill duration when priority # is entered
+// Auto-fill duration from PM project
 document.getElementById("modal-priority").addEventListener("change", async () => {
   const pNum = parseInt(document.getElementById("modal-priority").value);
   if (!pNum) return;
@@ -700,28 +983,20 @@ document.getElementById("modal-priority").addEventListener("change", async () =>
   if (!startDate) return;
   const type = activeType;
   if (type === "off" || type === "walk") return;
-
   toast("Looking up PM project…");
   const pm = await lookupPMProject(pNum);
   if (!pm) { toast("No PM project found for priority #" + pNum); return; }
-
-  // Auto-fill client name
   if (pm.clientLastName && !document.getElementById("modal-client").value) {
     document.getElementById("modal-client").value = pm.clientLastName;
   }
-
-  // Calculate duration based on type
   const budget = pm.hoursBudget || [];
   let hours = 0;
   if (type === "fab") {
-    const fabHours = budget.filter(r => (r.type === 'fab') || (!r.type && r.scope && r.scope.toLowerCase().startsWith('fab')))
-      .reduce((s,r) => s + (r.total||0), 0);
-    hours = fabHours * 0.5; // Adam's 50%
+    const fabHours = budget.filter(r => (r.type==='fab')||(!r.type&&r.scope&&r.scope.toLowerCase().startsWith('fab'))).reduce((s,r)=>s+(r.total||0),0);
+    hours = fabHours * 0.5;
   } else if (type === "resto") {
-    hours = budget.filter(r => (r.type === 'resto') || (!r.type && r.scope && r.scope.toLowerCase().startsWith('resto')))
-      .reduce((s,r) => s + (r.total||0), 0);
+    hours = budget.filter(r => (r.type==='resto')||(!r.type&&r.scope&&r.scope.toLowerCase().startsWith('resto'))).reduce((s,r)=>s+(r.total||0),0);
   }
-
   if (hours > 0) {
     const days = Math.ceil(hours / 8);
     const endDate = addBusinessDays(startDate, days - 1);
@@ -740,10 +1015,7 @@ document.getElementById("modal-card-save").addEventListener("click", () => {
   if (!startDate) return;
   if (!endDate || endDate < startDate) endDate = startDate;
   if (type !== "off" && !client) { document.getElementById("modal-client").focus(); return; }
-
-  // Add client to prodClients if new
   if (client && !prodClients.includes(client)) { prodClients.push(client); prodClients.sort(); }
-
   if (editId) {
     const card = cards.find(c => c.id === editId);
     if (card) Object.assign(card, {type, client: type==="off"?"":client, desc: type==="off"?"":desc, startDate, endDate, priorityId});
@@ -752,19 +1024,13 @@ document.getElementById("modal-card-save").addEventListener("click", () => {
     cards.push({ id: uid(), emp: addContext.emp, type, client: type==="off"?"":client, desc: type==="off"?"":desc, startDate, endDate, priorityId });
     toast("Assignment added.");
   }
-
-  saveState(); renderBoard();
+  saveState();
+  if (currentView === "2week") renderBoard(); else renderMonth();
   document.getElementById("modal-card").classList.remove("open");
 });
 
-document.getElementById("modal-client").addEventListener("keydown", e => {
-  if (e.key === "Enter") document.getElementById("modal-desc").focus();
-  if (e.key === "Escape") document.getElementById("modal-card-cancel").click();
-});
-document.getElementById("modal-desc").addEventListener("keydown", e => {
-  if (e.key === "Enter") document.getElementById("modal-card-save").click();
-  if (e.key === "Escape") document.getElementById("modal-card-cancel").click();
-});
+document.getElementById("modal-client").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("modal-desc").focus(); if (e.key === "Escape") document.getElementById("modal-card-cancel").click(); });
+document.getElementById("modal-desc").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("modal-card-save").click(); if (e.key === "Escape") document.getElementById("modal-card-cancel").click(); });
 
 // ── DELETE ──
 let deleteId = null;
@@ -777,20 +1043,23 @@ function openDeleteModal(id) {
 }
 document.getElementById("modal-delete-cancel").addEventListener("click", () => { document.getElementById("modal-delete").classList.remove("open"); deleteId = null; });
 document.getElementById("modal-delete-confirm").addEventListener("click", () => {
-  if (deleteId) { cards = cards.filter(c => c.id !== deleteId); saveState(); renderBoard(); toast("Assignment removed."); }
-  document.getElementById("modal-delete").classList.remove("open");
-  deleteId = null;
+  if (deleteId) { cards = cards.filter(c => c.id !== deleteId); saveState(); if (currentView==="2week") renderBoard(); else renderMonth(); toast("Assignment removed."); }
+  document.getElementById("modal-delete").classList.remove("open"); deleteId = null;
 });
 document.getElementById("modal-delete").addEventListener("click", e => { if (e.target === document.getElementById("modal-delete")) { document.getElementById("modal-delete").classList.remove("open"); deleteId = null; } });
+
+// ── JOB STRIP TOGGLE ──
+document.getElementById("btn-toggle-jobs").addEventListener("click", () => {
+  showJobStrip = !showJobStrip;
+  document.getElementById("btn-toggle-jobs").textContent = showJobStrip ? "Hide jobs" : "Show jobs";
+  renderBoard();
+});
 
 // ── CLIENT MANAGER ──
 function renderClientManager() {
   const wrap = document.getElementById("client-list-wrap");
   wrap.innerHTML = "";
-  if (prodClients.length === 0) {
-    wrap.innerHTML = `<div class="client-empty">No clients yet.</div>`;
-    return;
-  }
+  if (prodClients.length === 0) { wrap.innerHTML = `<div class="client-empty">No clients yet.</div>`; return; }
   prodClients.slice().sort().forEach(name => {
     const row = document.createElement("div");
     row.className = "client-list-item";
@@ -811,44 +1080,47 @@ document.getElementById("btn-add-client").addEventListener("click", () => {
   if (!name || prodClients.includes(name)) return;
   prodClients.push(name); prodClients.sort();
   saveState(); renderClientManager(); populateClientDatalist();
-  input.value = "";
-  toast(`"${name}" added.`);
+  input.value = ""; toast(`"${name}" added.`);
 });
 
 // ── NAV ──
-document.getElementById("btn-prev").addEventListener("click", () => { anchorMonday = addDays(anchorMonday, -7); saveState(); renderBoard(); });
-document.getElementById("btn-next").addEventListener("click", () => { anchorMonday = addDays(anchorMonday,  7); saveState(); renderBoard(); });
+document.getElementById("btn-prev").addEventListener("click",  () => { anchorMonday = addDays(anchorMonday, -7); saveState(); renderBoard(); });
+document.getElementById("btn-next").addEventListener("click",  () => { anchorMonday = addDays(anchorMonday,  7); saveState(); renderBoard(); });
 document.getElementById("btn-today").addEventListener("click", () => { anchorMonday = getMondayOf(new Date()); saveState(); renderBoard(); });
+document.getElementById("btn-month-prev").addEventListener("click", () => {
+  monthAnchor.month--; if (monthAnchor.month < 0) { monthAnchor.month = 11; monthAnchor.year--; } renderMonth();
+});
+document.getElementById("btn-month-next").addEventListener("click", () => {
+  monthAnchor.month++; if (monthAnchor.month > 11) { monthAnchor.month = 0; monthAnchor.year++; } renderMonth();
+});
+document.getElementById("btn-month-today").addEventListener("click", () => {
+  const n = new Date(); monthAnchor = { year: n.getFullYear(), month: n.getMonth() }; renderMonth();
+});
 
-// ── JSON SAVE ──
+// ── JSON SAVE/RESTORE ──
 document.getElementById("btn-save-json").addEventListener("click", async () => {
   try {
     const snap = await getDoc(DOC_REF);
     const s = snap.exists() ? snap.data() : {cards, prodClients, anchorMonday: dateKey(anchorMonday)};
     const blob = new Blob([JSON.stringify(s, null, 2)], {type:"application/json"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "schedule_" + new Date().toISOString().slice(0,10) + ".json";
-    a.click();
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = "schedule_" + new Date().toISOString().slice(0,10) + ".json"; a.click();
     toast("Schedule saved.");
   } catch(e) { toast("Could not download — check connection."); }
 });
-
-// ── JSON RESTORE ──
 document.getElementById("btn-load-json").addEventListener("click", () => { document.getElementById("file-json").click(); });
 document.getElementById("file-json").addEventListener("change", e => {
-  const file = e.target.files[0];
-  if (!file) return;
+  const file = e.target.files[0]; if (!file) return;
   const reader = new FileReader();
   reader.onload = async ev => {
     try {
       const s = JSON.parse(ev.target.result);
-      cards = s.cards || [];
-      prodClients = s.prodClients || [];
+      cards = s.cards || []; prodClients = s.prodClients || [];
       floaterNames = s.floaterNames || [...FLOATER_DEFAULTS];
       if (s.anchorMonday) anchorMonday = fromKey(s.anchorMonday);
       await setDoc(DOC_REF, { cards, prodClients, floaterNames, anchorMonday: dateKey(anchorMonday) });
-      renderBoard(); toast("Schedule restored.");
+      if (currentView==="2week") renderBoard(); else renderMonth();
+      toast("Schedule restored.");
     } catch(err) { alert("Could not read that file."); }
     e.target.value = "";
   };
@@ -861,8 +1133,7 @@ function startInlineEdit(labelEl, floaterIdx) {
   const input = document.createElement("input");
   input.type = "text"; input.value = currentName;
   input.style.cssText = "width:100%;font:inherit;font-size:12px;font-weight:600;color:inherit;background:transparent;border:none;border-bottom:1.5px solid var(--border-strong);outline:none;padding:0;";
-  labelEl.textContent = "";
-  labelEl.appendChild(input);
+  labelEl.textContent = ""; labelEl.appendChild(input);
   input.focus(); input.select();
   function commit() {
     const newName = input.value.trim() || currentName;
@@ -875,7 +1146,7 @@ function startInlineEdit(labelEl, floaterIdx) {
   input.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); input.blur(); } if (e.key === "Escape") { input.value = currentName; input.blur(); } });
 }
 
-// ── COPY / PASTE ──
+// ── COPY/PASTE ──
 document.addEventListener("keydown", e => {
   if ((e.ctrlKey || e.metaKey) && e.key === "c") {
     if (!selectedCardId) return;
@@ -892,15 +1163,13 @@ document.addEventListener("keydown", e => {
     document.getElementById("board-outer").classList.remove("paste-ready");
   }
 });
-
 document.getElementById("board-outer").addEventListener("click", e => {
   if (!copiedCard) return;
   const cell = e.target.closest(".day-cell");
   if (!cell) return;
   if (e.target.closest(".scard")) return;
   const newCard = { ...copiedCard, id: uid(), emp: cell.dataset.emp, startDate: cell.dataset.day, endDate: dateKey(addDays(fromKey(cell.dataset.day), daysBetween(copiedCard.startDate, copiedCard.endDate))) };
-  cards.push(newCard);
-  saveState(); renderBoard();
+  cards.push(newCard); saveState(); renderBoard();
   document.querySelectorAll(".scard.selected").forEach(s => s.classList.remove("selected"));
   selectedCardId = null;
   toast(`Pasted "${newCard.type === "off" ? "Off" : newCard.client}" for ${newCard.emp}.`);
