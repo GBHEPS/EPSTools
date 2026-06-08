@@ -1,1274 +1,1691 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EPS — Production Board</title>
-<style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EPS Project Manager v3</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f2efe8;
+      --surface: #ffffff;
+      --surface2: #f7f5f0;
+      --border: #d8d3c8;
+      --border-strong: #b0a898;
+      --text: #1a1714;
+      --text-muted: #7a7060;
+      --text-light: #a09880;
+      --green: #2d6a2d;
+      --green-light: #eaf3ea;
+      --green-border: #7ab07a;
+      --amber: #8a6000;
+      --amber-light: #fdf5e0;
+      --amber-border: #d4a820;
+      --blue: #1a4a6e;
+      --blue-light: #e8f2fa;
+      --blue-border: #5a9aca;
+      --red: #8a2020;
+      --red-light: #fdeaea;
+      --accent: #1a4a6e;
+      --mono: 'IBM Plex Mono', monospace;
+      --sans: 'IBM Plex Sans', sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
 
-:root {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f5f4f0;
-  --bg-tertiary: #eeede8;
-  --text-primary: #1a1a18;
-  --text-secondary: #5f5e5a;
-  --text-tertiary: #8e8d87;
-  --border-light: rgba(0,0,0,0.10);
-  --border-mid: rgba(0,0,0,0.18);
-  --border-strong: rgba(0,0,0,0.28);
-  --divider-color: rgba(0,0,0,0.45);
-  --green-header: #d4ebbb;
-  --green-border: #97C459;
-  --green-text: #27500A;
-  --green-bg: #EAF3DE;
-  --blue-header: #cce0f7;
-  --blue-border: #378ADD;
-  --blue-text: #0C447C;
-  --blue-bg: #E6F1FB;
-  --hold-bg: #f0efe9;
-  --drag-over-bg: #f0f7e8;
-  --drag-over-border: #639922;
-  --drag-blocked-bg: #fdecea;
-  --drag-blocked-border: #e05a4a;
-  --subsec-label-color: #3a3a37;
-  --radius-sm: 5px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-}
+    /* ── APP HEADER ── */
+    .app-header { background: var(--text); color: #fff; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    .app-header .wordmark { font-family: var(--mono); font-size: 13px; letter-spacing: 0.08em; font-weight: 600; color: #fff; }
+    .app-header .wordmark span { color: #a0c0e0; }
+    .header-nav { display: flex; align-items: center; gap: 12px; }
+    .btn-back { font-family: var(--mono); font-size: 11px; color: #a0c0e0; background: none; border: 1px solid #3a5a7a; padding: 5px 12px; border-radius: 3px; cursor: pointer; letter-spacing: 0.05em; transition: all 0.15s; display: none; }
+    .btn-back:hover { background: #3a5a7a; color: #fff; }
+    .btn-back.visible { display: block; }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  min-height: 100vh;
-}
+    /* ── VIEWS ── */
+    .view { display: none; }
+    .view.active { display: block; }
 
-header {
-  background: var(--bg-primary);
-  border-bottom: 0.5px solid var(--border-light);
-  padding: 10px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
+    /* ── LIST VIEW ── */
+    .list-container { max-width: 1000px; margin: 0 auto; padding: 28px 20px; }
+    .list-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 20px; }
+    .list-title { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); }
+    .project-count { font-family: var(--mono); font-size: 11px; color: var(--text-light); }
+    .filter-bar { display: flex; gap: 6px; margin-bottom: 16px; }
+    .filter-btn { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; padding: 5px 12px; border-radius: 3px; border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
+    .filter-btn.active, .filter-btn:hover { background: var(--text); color: #fff; border-color: var(--text); }
+    .project-table { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+    .table-head { display: grid; grid-template-columns: 55px 45px 1fr 85px 85px 75px 80px 60px 85px; padding: 8px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+    .project-row { display: grid; grid-template-columns: 55px 45px 1fr 85px 85px 75px 80px 60px 85px; padding: 11px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; align-items: center; }
+    .date-cell { font-family: var(--mono); font-size: 10px; color: var(--text-muted); }
+    .project-row:last-child { border-bottom: none; }
+    .project-row:hover { background: var(--surface2); }
+    .est-num { font-family: var(--mono); font-size: 11px; color: var(--text-muted); font-weight: 500; }
+    .client-cell .last-name { font-weight: 600; font-size: 14px; line-height: 1.1; }
+    .client-cell .full-name { font-size: 11px; color: var(--text-muted); }
+    .scope-cell { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+    .amount-cell { font-family: var(--mono); font-size: 12px; font-weight: 500; }
+    .hours-cell { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
+    .lead-cell { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--text-muted); }
+    .status-badge { display: inline-block; font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 7px; border-radius: 3px; }
+    .status-active { background: var(--blue-light); color: var(--blue); border: 1px solid var(--blue-border); }
+    .status-pre-production { background: var(--blue-light); color: var(--blue); border: 1px solid var(--blue-border); }
+    .status-production { background: var(--amber-light); color: var(--amber); border: 1px solid var(--amber-border); }
+    .status-complete { background: var(--green-light); color: var(--green); border: 1px solid var(--green-border); }
+    .status-hold { background: #f5f0f0; color: #8a5050; border: 1px solid #d4a0a0; }
+    .tally-bar { display: flex; align-items: center; justify-content: space-between; background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 10px 16px; margin-bottom: 10px; }
+    .tally-label { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+    .tally-amount { font-family: var(--mono); font-size: 20px; font-weight: 600; color: var(--text); }
+    .tally-sub { font-family: var(--mono); font-size: 10px; color: var(--text-light); margin-top: 1px; }
+    .lead-toggle { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; padding: 5px 12px; border-radius: 3px; border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); cursor: pointer; transition: all 0.15s; margin-left: 6px; }
+    .lead-toggle.on { background: #2a1a6e; color: #c0b0f0; border-color: #5a4aae; }
+    /* Sortable column headers */
+    .table-head .sortable { cursor: pointer; user-select: none; display: flex; align-items: center; gap: 4px; }
+    .table-head .sortable:hover { color: var(--text); }
+    .sort-arrow { font-size: 9px; color: var(--text-light); }
+    .sort-arrow.asc::after { content: '▲'; }
+    .sort-arrow.desc::after { content: '▼'; }
+    /* Print select mode */
+    .btn-print-select { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.08em; background: none; color: #a0c0e0; border: 1px solid #3a5a7a; padding: 5px 12px; border-radius: 3px; cursor: pointer; transition: all 0.15s; }
+    .btn-print-select:hover { background: #3a5a7a; color: #fff; }
+    .btn-print-select.active { background: var(--amber); color: #fff; border-color: var(--amber); }
+    .print-bar { display: none; background: #3d2e0a; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; border-radius: 5px; margin-bottom: 10px; }
+    .print-bar.hidden { display: none; }
+    .print-bar-left { font-family: var(--mono); font-size: 11px; color: #e0c060; }
+    .btn-print-go { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; background: var(--green); color: #fff; border: none; padding: 8px 18px; border-radius: 3px; cursor: pointer; transition: background 0.15s; }
+    .btn-print-go:hover { background: #1f4f1f; }
+    .btn-print-cancel { font-family: var(--mono); font-size: 11px; color: #a09060; background: none; border: 1px solid #6a5020; padding: 6px 14px; border-radius: 3px; cursor: pointer; margin-right: 8px; }
+    .project-row.print-mode { cursor: default; }
+    .project-row.print-mode:hover { background: var(--surface); }
+    .print-check { width: 16px; height: 16px; border: 1.5px solid var(--border-strong); border-radius: 2px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; }
+    .print-check.selected { background: var(--green); border-color: var(--green); }
+    .print-check.selected::after { content: ''; width: 8px; height: 4px; border-left: 2px solid #fff; border-bottom: 2px solid #fff; transform: rotate(-45deg) translate(1px,-1px); display: block; }
+    .project-row.print-mode .client-cell,
+    .project-row.print-mode .scope-cell,
+    .project-row.print-mode .amount-cell,
+    .project-row.print-mode .hours-cell,
+    .project-row.print-mode .lead-cell,
+    .project-row.print-mode .est-num { cursor: pointer; }
+    .lead-divider { display: grid; grid-template-columns: 55px 1fr 120px 75px 80px 60px 85px; padding: 6px 16px; background: #f0ede6; border-bottom: 1px solid var(--border); border-top: 2px solid var(--border-strong); align-items: center; }
+    .lead-divider-name { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--text); letter-spacing: 0.06em; grid-column: 1 / 3; }
+    .lead-divider-tally { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
+    .lead-divider-total { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--text); }
+    .empty-state { padding: 60px 20px; text-align: center; color: var(--text-muted); }
+    .empty-state .icon { font-size: 32px; margin-bottom: 12px; }
+    .empty-state p { font-family: var(--mono); font-size: 12px; }
+    .loading-state { padding: 40px 20px; text-align: center; font-family: var(--mono); font-size: 12px; color: var(--text-muted); }
+    .priority-badge { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; font-family: var(--mono); font-size: 11px; font-weight: 600; background: var(--amber-light); color: var(--amber); border: 1.5px solid var(--amber-border); margin-right: 4px; }
+    .btn-new-project { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.08em; background: var(--green); color: #fff; border: none; padding: 7px 16px; border-radius: 3px; cursor: pointer; transition: background 0.15s; }
+    .btn-new-project:hover { background: #1f4f1f; }
 
-header h1 {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  letter-spacing: .04em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
+    /* ── DETAIL VIEW ── */
+    .detail-container { max-width: 960px; margin: 0 auto; padding: 20px 20px 60px; }
 
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
+    .detail-header-card { background: var(--text); color: #fff; border-radius: 6px 6px 0 0; padding: 18px 24px 16px; display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #4a8a4a; }
+    .detail-client-name { font-family: var(--mono); font-size: 34px; font-weight: 600; letter-spacing: 0.04em; line-height: 1; margin-bottom: 8px; text-transform: uppercase; }
+    .detail-subtitle { font-size: 12px; color: #8aaabb; line-height: 1.6; }
+    .detail-right { text-align: right; padding-top: 2px; }
+    .detail-est { font-family: var(--mono); font-size: 11px; color: #5a7a9a; margin-bottom: 6px; letter-spacing: 0.06em; }
+    .detail-amount { font-family: var(--mono); font-size: 26px; font-weight: 600; color: #c8d8a0; }
 
-.legend {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0; margin-bottom: 14px; border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; overflow: hidden; }
+    .info-card { background: #f0ede6; border-right: 1px solid var(--border); padding: 10px 14px; }
+    .info-card:last-child { border-right: none; }
+    .info-label { font-family: var(--mono); font-size: 8px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-light); margin-bottom: 3px; }
+    .info-input { width: 100%; font-family: var(--sans); font-size: 13px; font-weight: 500; color: var(--text); background: none; border: none; outline: none; padding: 0; cursor: text; }
+    .info-input:focus { border-bottom: 1px solid var(--accent); }
+    .status-select { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; border: none; background: none; cursor: pointer; padding: 0; color: var(--text); }
 
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  color: var(--text-secondary);
-}
+    /* ── SECTIONS ── */
+    .detail-section { background: var(--surface); border: 1px solid var(--border); border-radius: 5px; margin-bottom: 10px; overflow: hidden; }
+    .section-head { display: flex; align-items: center; justify-content: space-between; padding: 7px 14px; background: #2a2724; border-bottom: 1px solid var(--border); }
+    .section-label { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #d0c8b8; }
+    .section-progress { font-family: var(--mono); font-size: 10px; color: #8a9a7a; font-weight: 600; }
 
-.legend-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 2px;
-}
+    .detail-section.zone-green { border-color: #7ab07a; }
+    .detail-section.zone-green .section-head { background: #1e3d1e; border-bottom-color: #4a7c4a; }
+    .detail-section.zone-green .section-label { color: #a0d0a0; }
+    .detail-section.zone-green > :not(.section-head) { background: #f2faf2; }
+    .detail-section.zone-amber { border-color: #c8a840; }
+    .detail-section.zone-amber .section-head { background: #3d2e0a; border-bottom-color: #8a6800; }
+    .detail-section.zone-amber .section-label { color: #e0c060; }
+    .detail-section.zone-amber > :not(.section-head) { background: #fef9ec; }
+    .detail-section.zone-blue { border-color: #5a9aca; }
+    .detail-section.zone-blue .section-head { background: #0e2236; border-bottom-color: #2a6090; }
+    .detail-section.zone-blue .section-label { color: #80b8e0; }
+    .detail-section.zone-blue > :not(.section-head) { background: #eef6fc; }
 
-.header-divider {
-  width: 0.5px;
-  height: 20px;
-  background: var(--border-light);
-}
+    /* ── CHECKLIST ── */
+    .checklist-body { padding: 8px 14px 4px; display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; }
+    .check-item { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid #eae6de; cursor: pointer; user-select: none; position: relative; }
+    .check-item:hover .check-box { border-color: var(--accent); }
+    .check-box { width: 14px; height: 14px; border: 1.5px solid var(--border-strong); border-radius: 2px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+    .check-box.checked { background: var(--green); border-color: var(--green); }
+    .check-box.checked::after { content: ''; width: 8px; height: 4px; border-left: 2px solid #fff; border-bottom: 2px solid #fff; transform: rotate(-45deg) translate(1px, -1px); display: block; }
+    .check-label { font-size: 11.5px; line-height: 1.3; color: var(--text); transition: color 0.15s; flex: 1; }
+    .check-item.done .check-label { color: var(--text-light); text-decoration: line-through; }
+    .custom-item { background: #fdf8ee; }
+    .custom-label { outline: none; }
+    .custom-label:focus { border-bottom: 1px solid var(--amber-border); }
 
-.toolbar-btn {
-  font-size: 11px;
-  font-family: inherit;
-  color: var(--text-secondary);
-  background: var(--bg-secondary);
-  border: 0.5px solid var(--border-mid);
-  border-radius: var(--radius-sm);
-  padding: 5px 10px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.toolbar-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+    /* Item action buttons (edit/delete) */
+    .item-actions { display: flex; gap: 3px; opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
+    .check-item:hover .item-actions { opacity: 1; }
+    .btn-item-action { background: none; border: 1px solid var(--border); border-radius: 2px; color: var(--text-light); width: 20px; height: 20px; cursor: pointer; font-size: 11px; line-height: 1; display: flex; align-items: center; justify-content: center; transition: all 0.12s; }
+    .btn-item-action:hover { background: var(--red-light); border-color: #d4a0a0; color: var(--red); }
+    .btn-item-edit:hover { background: var(--blue-light); border-color: var(--blue-border); color: var(--blue); }
 
-/* ── BOARD LAYOUT ── */
-.pb-wrap {
-  padding: 14px 14px 40px;
-  overflow-x: auto;
-}
+    /* Add task row */
+    .add-task-row { display: flex; gap: 6px; padding: 6px 0 4px; grid-column: span 2; }
+    .add-task-input { flex: 1; font-family: var(--sans); font-size: 12px; color: var(--text); background: var(--surface2); border: 1px dashed var(--border-strong); border-radius: 3px; padding: 5px 8px; outline: none; }
+    .add-task-input:focus { border-color: var(--accent); background: #fff; }
+    .btn-add-task { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: var(--accent); background: var(--blue-light); border: 1px solid var(--blue-border); border-radius: 3px; padding: 5px 10px; cursor: pointer; white-space: nowrap; transition: all 0.15s; }
+    .btn-add-task:hover { background: var(--accent); color: #fff; }
 
-/*
-  Grid: 7 content columns + 2 divider columns = 9 total
-  Upcoming: 4 cols (2 shop + 2 site) | DIV | In Process: 2 cols | DIV | Final: 1 col
-  Grid template: 1fr 1fr 1fr 1fr 18px 1fr 1fr 18px 0.55fr
-*/
+    /* ── HOURS TABLE (detail) ── */
+    .hours-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .hours-table th { font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #5a8a5a; padding: 7px 10px; text-align: left; border-bottom: 1px solid #c0d8c0; background: #e4f2e4; }
+    .hours-table td { padding: 6px 10px; border-bottom: 1px solid #daeada; font-size: 12px; }
+    .hours-table tr:last-child td { border-bottom: none; }
+    .hours-table .total-row td { font-family: var(--mono); font-weight: 700; background: #d0ecd0; color: #1e4a1e; }
+    .hours-num { font-family: var(--mono); }
+    .cell-edit { font-family: var(--sans); font-size: 12px; color: var(--text); background: #fff8; border: 1px solid transparent; border-radius: 2px; padding: 2px 4px; width: 100%; outline: none; }
+    .cell-edit:focus { border-color: var(--accent); background: #fff; }
+    .cell-edit.num { text-align: right; width: 70px; }
+    .total-display { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--green); }
+    .btn-del-row { background: none; border: 1px solid var(--border); border-radius: 3px; color: var(--text-muted); width: 22px; height: 22px; cursor: pointer; font-size: 13px; line-height: 1; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+    .btn-del-row:hover { background: var(--red-light); border-color: #d4a0a0; color: var(--red); }
+    .btn-add-row { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: var(--accent); background: var(--blue-light); border: 1px solid var(--blue-border); border-radius: 3px; padding: 5px 12px; cursor: pointer; margin: 8px 10px; transition: all 0.15s; }
+    .btn-add-row:hover { background: var(--accent); color: #fff; }
 
-:root {
-  --col-upcoming: 1fr;
-  --col-inprocess: 1fr;
-  --col-final: 0.55fr;
-}
+    /* ── SUPPLIES TABLE ── */
+    .supplies-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .supplies-table th { font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #2a6090; padding: 7px 10px; text-align: left; border-bottom: 1px solid #a0c8e0; background: #d8eef8; }
+    .supplies-table td { padding: 4px 6px; border-bottom: 1px solid #d0e8f4; vertical-align: middle; }
+    .supplies-table tr:last-child td { border-bottom: none; }
+    .sup-input { font-family: var(--sans); font-size: 12px; color: var(--text); background: #fff8; border: 1px solid transparent; border-radius: 2px; padding: 3px 5px; width: 100%; outline: none; }
+    .sup-input:focus { border-color: var(--blue); background: #fff; }
+    .sup-input.num { text-align: right; width: 60px; }
 
-.pb-top {
-  display: grid;
-  grid-template-columns: var(--col-upcoming) var(--col-upcoming) var(--col-upcoming) var(--col-upcoming) 18px var(--col-inprocess) var(--col-inprocess) 18px var(--col-final);
-  gap: 3px;
-  min-width: 1000px;
-}
+    /* ── MATERIALS ── */
+    .materials-body { padding: 10px 14px; font-size: 11.5px; line-height: 1.75; color: var(--text); }
+    .materials-edit { width: 100%; min-height: 80px; padding: 10px 14px; font-family: var(--sans); font-size: 12px; line-height: 1.6; color: var(--text); background: none; border: none; outline: none; resize: vertical; display: block; }
+    .materials-edit:focus { background: #fffdf0; }
 
-.pb-section {
-  text-align: center;
-  padding: 6px 4px 5px;
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: .09em;
-  border-radius: 6px 6px 0 0;
-  background: var(--bg-tertiary);
-  color: var(--text-tertiary);
-}
+    /* ── NOTES ── */
+    .editable-area { width: 100%; min-height: 80px; padding: 12px 14px; font-family: var(--sans); font-size: 12px; line-height: 1.6; color: var(--text); background: none; border: none; outline: none; resize: vertical; display: block; }
+    .editable-area::placeholder { color: var(--text-light); font-style: italic; }
+    .editable-area:focus { background: #fffdf8; }
 
-.pb-section-divider-top {
-  background: transparent;
-}
+    /* ── EDITABLE INLINE ── */
+    .editable-heading { outline: none; border-bottom: 2px solid transparent; transition: border-color 0.15s; cursor: text; }
+    .editable-heading:hover { border-bottom-color: #4a7a9a; }
+    .editable-heading:focus { border-bottom-color: #a0c0e0; }
+    .editable-inline { outline: none; border-bottom: 1px solid transparent; transition: border-color 0.15s; cursor: text; }
+    .editable-inline:hover { border-bottom-color: #4a7a9a; }
+    .editable-inline:focus { border-bottom-color: #a0c0e0; }
 
-.pb-cols {
-  display: grid;
-  grid-template-columns: var(--col-upcoming) var(--col-upcoming) var(--col-upcoming) var(--col-upcoming) 18px var(--col-inprocess) var(--col-inprocess) 18px var(--col-final);
-  gap: 3px;
-  min-width: 1000px;
-}
+    /* ── DELETE PROJECT ── */
+    .btn-delete-project { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: #c05050; background: none; border: 1px solid #c05050; padding: 5px 12px; border-radius: 3px; cursor: pointer; transition: all 0.15s; }
+    .btn-delete-project:hover { background: var(--red-light); }
 
-.pb-divider {
-  display: flex;
-  align-items: stretch;
-  justify-content: center;
-  padding: 0;
-}
+    /* ── SAVE BAR ── */
+    .save-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--text); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; z-index: 200; transform: translateY(100%); transition: transform 0.2s ease; }
+    .save-bar.visible { transform: translateY(0); }
+    .save-status { font-family: var(--mono); font-size: 11px; color: #a0b0c0; }
+    .btn-save { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; background: var(--green); color: #fff; border: none; padding: 8px 20px; border-radius: 3px; cursor: pointer; transition: background 0.15s; }
+    .btn-save:hover { background: #1f4f1f; }
+    .btn-save:disabled { background: #4a6a4a; cursor: default; }
 
-.pb-divider-line {
-  width: 2px;
-  background: var(--divider-color);
-  border-radius: 1px;
-  min-height: 100%;
-}
+    /* ── TOAST ── */
+    .toast { position: fixed; bottom: 70px; right: 24px; background: var(--green); color: #fff; font-family: var(--mono); font-size: 11px; padding: 10px 16px; border-radius: 4px; z-index: 300; opacity: 0; transform: translateY(10px); transition: all 0.2s ease; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.error { background: var(--red); }
 
-.pb-maincol {
-  background: var(--bg-primary);
-  border: 0.5px solid var(--border-light);
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
-  overflow: hidden;
-}
+    /* ── NEW PROJECT FORM ── */
+    .new-container { max-width: 820px; margin: 0 auto; padding: 28px 20px 80px; }
+    .new-page-title { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 20px; }
+    .form-section { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 12px; overflow: hidden; }
+    .form-section-head { padding: 10px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); }
+    .form-body { padding: 16px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+    .form-grid.full { grid-template-columns: 1fr; }
+    .field-group { display: flex; flex-direction: column; gap: 4px; }
+    .field-group.span2 { grid-column: span 2; }
+    .field-label { font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-light); }
+    .field-input { font-family: var(--sans); font-size: 13px; color: var(--text); background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 7px 10px; outline: none; transition: border-color 0.15s; width: 100%; }
+    .field-input:focus { border-color: var(--accent); background: #fff; }
+    select.field-input { cursor: pointer; }
+    textarea.field-input { resize: vertical; min-height: 80px; line-height: 1.5; }
+    .field-hint { font-size: 10px; color: var(--text-light); font-style: italic; }
+    .hours-form-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 10px; }
+    .hours-form-table th { font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--border); background: var(--surface2); }
+    .hours-form-table th.th-del { width: 36px; }
+    .hours-form-table td { padding: 5px 6px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .cell-input { font-family: var(--sans); font-size: 12px; color: var(--text); background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 5px 7px; width: 100%; outline: none; }
+    .cell-input:focus { border-color: var(--accent); background: #fff; }
+    .cell-input.num { text-align: right; }
+    .hours-total-display { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--green); padding: 0 6px; }
+    .hours-project-total { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 8px 0 0; border-top: 1px solid var(--border); font-family: var(--mono); font-size: 12px; color: var(--text-muted); }
+    .hours-project-total strong { font-size: 14px; color: var(--green); }
+    .form-actions { display: flex; gap: 10px; justify-content: flex-end; padding: 16px; border-top: 1px solid var(--border); }
+    .btn-cancel { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; color: var(--text-muted); background: none; border: 1px solid var(--border); padding: 8px 18px; border-radius: 3px; cursor: pointer; transition: all 0.15s; }
+    .btn-cancel:hover { background: var(--surface2); }
+    .btn-create { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; background: var(--green); color: #fff; border: none; padding: 8px 22px; border-radius: 3px; cursor: pointer; transition: background 0.15s; }
+    .btn-create:hover { background: #1f4f1f; }
+    .btn-create:disabled { background: #4a6a4a; cursor: default; }
 
-.pb-maincol-shop { border-top: 2.5px solid var(--green-border); }
-.pb-maincol-site { border-top: 2.5px solid var(--blue-border); }
-.pb-maincol-final { border-top: 2.5px solid var(--border-mid); }
+    @media print {
+      .app-header, .save-bar, .toast, .btn-back, #viewNew,
+      .item-actions, .add-task-row, .btn-add-row, .btn-delete-project,
+      .btn-new-project, .btn-print-select, .filter-bar, .lead-toggle,
+      .print-bar, .btnPrintSelect, .btn-save { display: none !important; }
+      #viewList:not(.active) { display: none !important; }
+      #viewDetail:not(.active) { display: none !important; }
 
-/* Paired upcoming columns share a header that spans both */
-.pb-pair-wrap {
-  grid-column: span 2;
-  display: flex;
-  flex-direction: column;
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
-  overflow: hidden;
-  border: 0.5px solid var(--border-light);
-}
+      /* ── List view print ── */
+      body { background: #fff; font-size: 9pt; color: #000; padding: 0; margin: 0; }
+      #viewList.active { display: block !important; }
+      .list-container { max-width: 100%; padding: 0; margin: 0; }
+      .list-title { font-family: monospace; font-size: 11pt; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6pt; display: block; }
+      .tally-bar { border: 0.5pt solid #ccc; border-radius: 2pt; padding: 6pt 10pt; margin-bottom: 6pt; }
+      .tally-label { font-size: 7pt; } .tally-amount { font-size: 14pt; } .tally-sub { font-size: 8pt; }
+      .project-table { border: 0.5pt solid #ccc; border-radius: 2pt; }
+      .table-head { background: #333 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; color: #fff !important; padding: 5pt 10pt; font-size: 7pt; }
+      .table-head .sortable { color: #fff !important; }
+      .sort-arrow { display: none; }
+      .project-row { padding: 6pt 10pt; border-bottom: 0.3pt solid #ddd; font-size: 8pt; }
+      .project-row:hover { background: #fff !important; }
+      .client-cell .last-name { font-size: 9pt; }
+      .client-cell .full-name { font-size: 7pt; }
+      .est-num { font-size: 8pt; }
+      .amount-cell { font-size: 8pt; }
+      .hours-cell { font-size: 8pt; }
+      .lead-cell { font-size: 8pt; }
+      .status-badge { font-size: 7pt; padding: 1pt 4pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .status-active, .status-pre-production { background: #e8f2fa !important; color: #1a4a6e !important; border: 0.5pt solid #5a9aca !important; }
+      .status-production { background: #fdf5e0 !important; color: #8a6000 !important; border: 0.5pt solid #d4a820 !important; }
+      .status-complete { background: #eaf3ea !important; color: #2d6a2d !important; border: 0.5pt solid #7ab07a !important; }
+      .status-hold { background: #f5f0f0 !important; color: #8a5050 !important; border: 0.5pt solid #d4a0a0 !important; }
+      .priority-badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .lead-divider { padding: 4pt 10pt; background: #f0ede6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-size: 8pt; }
+      .lead-divider-name { font-size: 9pt; font-weight: bold; }
+      .lead-divider-total { font-size: 9pt; font-weight: bold; }
 
-.pb-pair-wrap .col-header-shop,
-.pb-pair-wrap .col-header-site {
-  flex-shrink: 0;
-}
-
-.pb-pair-inner {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.pair-subsec-label {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: .05em;
-  padding: 5px 7px 4px;
-  color: var(--subsec-label-color);
-  border-bottom: 0.5px solid var(--border-mid);
-  border-top: 0.5px solid var(--border-light);
-  background: var(--bg-secondary);
-}
-
-.pair-subsec-label.hold-label {
-  background: var(--hold-bg);
-  color: var(--text-secondary);
-}
-
-.pair-dropzone-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  border-bottom: 0.5px solid var(--border-light);
-  background: var(--bg-primary);
-}
-.pair-dropzone-row.hold-row { background: var(--hold-bg); }
-.pair-dropzone-row:last-child { border-bottom: none; }
-
-.pair-dropzone-row .dropzone {
-  border-right: 0.5px solid var(--border-light);
-}
-.pair-dropzone-row .dropzone:last-child { border-right: none; }
-
-.pair-add-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  border-bottom: 0.5px solid var(--border-light);
-  background: var(--bg-primary);
-}
-.pair-add-row.hold-row { background: var(--hold-bg); }
-.pair-add-row:last-of-type { border-bottom: none; }
-.pair-add-row .add-btn {
-  width: calc(100% - 10px);
-  margin: 0 5px 5px;
-}
-.pair-add-row .add-btn:first-child {
-  border-right: none;
-}
-
-.col-header-shop {
-  font-size: 11px; font-weight: 600; text-align: center;
-  padding: 6px 4px; color: var(--green-text);
-  background: var(--green-header);
-  border-bottom: 0.5px solid var(--green-border);
-  letter-spacing: .04em; text-transform: uppercase;
-}
-.col-header-site {
-  font-size: 11px; font-weight: 600; text-align: center;
-  padding: 6px 4px; color: var(--blue-text);
-  background: var(--blue-header);
-  border-bottom: 0.5px solid var(--blue-border);
-  letter-spacing: .04em; text-transform: uppercase;
-}
-.col-header-neutral {
-  font-size: 11px; font-weight: 600; text-align: center;
-  padding: 6px 4px; color: var(--text-secondary);
-  background: var(--bg-secondary);
-  border-bottom: 0.5px solid var(--border-light);
-  letter-spacing: .04em; text-transform: uppercase;
-}
-
-.subsec { border-bottom: 0.5px solid var(--border-light); }
-.subsec:last-child { border-bottom: none; }
-
-.subsec-label {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: .05em;
-  padding: 5px 7px 4px;
-  color: var(--subsec-label-color);
-  border-bottom: 0.5px solid var(--border-mid);
-  background: var(--bg-secondary);
-}
-
-.subsec-hold { background: var(--hold-bg); }
-.subsec-hold .subsec-label {
-  background: var(--hold-bg);
-  color: var(--text-secondary);
-}
-
-.dropzone {
-  min-height: 50px;
-  padding: 5px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.subsec-hold .dropzone { min-height: 36px; }
-
-.dropzone.drag-over {
-  background: var(--drag-over-bg);
-  outline: 1.5px dashed var(--drag-over-border);
-  outline-offset: -2px;
-  border-radius: 4px;
-}
-.dropzone.drag-blocked {
-  background: var(--drag-blocked-bg);
-  outline: 1.5px dashed var(--drag-blocked-border);
-  outline-offset: -2px;
-  border-radius: 4px;
-}
-
-.final-zone {
-  min-height: 280px;
-  padding: 6px 5px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.final-zone.drag-over {
-  background: var(--drag-over-bg);
-  outline: 1.5px dashed var(--drag-over-border);
-  outline-offset: -2px;
-  border-radius: 4px;
-}
-
-/* ── CARDS ── */
-.card {
-  background: var(--bg-primary);
-  border: 0.5px solid var(--border-mid);
-  border-radius: var(--radius-sm);
-  padding: 5px 6px 4px 7px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-primary);
-  cursor: grab;
-  user-select: none;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0 4px;
-  transition: border-color 0.1s;
-}
-.card:hover { border-color: var(--border-strong); }
-.card.dragging { opacity: 0.3; }
-
-.card-body {
-  grid-column: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.card-name {
-  font-weight: 500;
-  font-size: 12px;
-  line-height: 1.3;
-}
-.card-note {
-  font-size: 10px;
-  color: var(--text-tertiary);
-  font-weight: 400;
-  line-height: 1.3;
-}
-.card-lane {
-  font-size: 10px;
-  font-weight: 500;
-  padding: 1px 5px;
-  border-radius: 3px;
-  align-self: flex-start;
-  margin-top: 3px;
-  display: inline-block;
-}
-.lane-shop { background: var(--green-bg); color: var(--green-text); }
-.lane-site { background: var(--blue-bg); color: var(--blue-text); }
-
-.card-btns {
-  grid-column: 2;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  align-items: center;
-  justify-content: flex-start;
-  padding-top: 1px;
-}
-
-.card-btn {
-  width: 20px;
-  height: 20px;
-  border-radius: 3px;
-  border: 0.5px solid var(--border-light);
-  background: var(--bg-secondary);
-  color: var(--text-tertiary);
-  font-size: 12px;
-  line-height: 1;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: inherit;
-  flex-shrink: 0;
-}
-.card-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); border-color: var(--border-mid); }
-.card-btn.del:hover { background: #fdecea; color: #c0392b; border-color: #e05a4a; }
-
-.add-btn {
-  background: none;
-  border: 0.5px dashed var(--border-light);
-  border-radius: 4px;
-  color: var(--text-tertiary);
-  font-size: 11px;
-  padding: 3px 6px;
-  cursor: pointer;
-  width: calc(100% - 10px);
-  margin: 0 5px 5px;
-  text-align: center;
-  font-family: inherit;
-}
-.add-btn:hover { color: var(--text-secondary); border-color: var(--border-mid); }
-
-/* ── MODALS ── */
-.modal-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.3);
-  z-index: 200;
-  align-items: center;
-  justify-content: center;
-}
-.modal-overlay.open { display: flex; }
-
-.modal {
-  background: var(--bg-primary);
-  border: 0.5px solid var(--border-mid);
-  border-radius: var(--radius-lg);
-  padding: 22px;
-  width: 300px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.12);
-}
-.modal h3 {
-  font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 14px;
-  color: var(--text-primary);
-}
-.modal label {
-  font-size: 11px;
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: .05em;
-  display: block;
-  margin-bottom: 4px;
-}
-.modal input {
-  width: 100%;
-  border: 0.5px solid var(--border-mid);
-  border-radius: var(--radius-sm);
-  padding: 8px 10px;
-  font-size: 13px;
-  font-family: inherit;
-  color: var(--text-primary);
-  background: var(--bg-primary);
-  margin-bottom: 12px;
-  outline: none;
-}
-.modal input:focus { border-color: var(--border-strong); }
-
-.modal-btns {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  margin-top: 4px;
-}
-.modal-btns button {
-  font-size: 13px;
-  padding: 7px 16px;
-  border-radius: var(--radius-sm);
-  border: 0.5px solid var(--border-mid);
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  cursor: pointer;
-  font-family: inherit;
-}
-.modal-btns button:hover { background: var(--bg-secondary); }
-.btn-primary {
-  background: var(--text-primary) !important;
-  color: var(--bg-primary) !important;
-  border-color: var(--text-primary) !important;
-}
-.btn-primary:hover { opacity: 0.82 !important; background: var(--text-primary) !important; }
-.btn-danger {
-  background: #c0392b !important;
-  color: #fff !important;
-  border-color: #c0392b !important;
-}
-.btn-danger:hover { opacity: 0.85 !important; }
-
-.modal-note-text {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-bottom: 14px;
-  line-height: 1.5;
-}
-.modal-note-text code {
-  font-size: 11px;
-  background: var(--bg-secondary);
-  padding: 1px 4px;
-  border-radius: 3px;
-}
-
-#toast {
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%) translateY(8px);
-  background: var(--text-primary);
-  color: var(--bg-primary);
-  font-size: 12px;
-  padding: 8px 18px;
-  border-radius: 20px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s, transform 0.2s;
-  z-index: 300;
-  white-space: nowrap;
-}
-#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-/* ── PRINT ── */
-@media print {
-  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-
-  header { display: none; }
-
-  body { background: white; }
-
-  .pb-wrap { padding: 0; overflow: visible; }
-
-  .pb-top,
-  .pb-cols {
-    min-width: 0;
-    gap: 2px;
-  }
-
-  .pb-section { font-size: 8px; padding: 4px 2px 3px; }
-
-  .pb-maincol { border-radius: 0; }
-
-  .col-header-shop,
-  .col-header-site,
-  .col-header-neutral { font-size: 9px; padding: 4px 3px; }
-
-  .subsec-label { font-size: 9px; padding: 3px 5px 2px; }
-
-  .dropzone { min-height: 24px; padding: 3px; gap: 2px; }
-  .subsec-hold .dropzone { min-height: 16px; }
-  .final-zone { min-height: 60px; padding: 3px; gap: 2px; }
-
-  .card {
-    padding: 3px 4px 2px 5px;
-    font-size: 10px;
-    border-radius: 3px;
-    gap: 0 2px;
-  }
-  .card-name { font-size: 10px; }
-  .card-note { font-size: 9px; }
-  .card-lane { font-size: 8px; padding: 0 3px; margin-top: 2px; }
-  .card-btns { display: none; }
-
-  .add-btn { display: none; }
-
-  .pb-divider-line { width: 1.5px; }
-
-  .modal-overlay { display: none !important; }
-}
-</style>
+      /* ── Detail view print (from Print Selected) — unchanged ── */
+      .detail-container { max-width: 100%; padding: 0; margin: 0; }
+      .detail-header-card { background: #1a1714 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; color: #fff !important; padding: 10pt 12pt; margin-bottom: 0; border-radius: 3pt 3pt 0 0; }
+      .detail-client-name { font-size: 20pt; margin-bottom: 3pt; }
+      .detail-subtitle { font-size: 8pt; color: #a0b0c0 !important; }
+      .detail-est { font-size: 8pt; } .detail-amount { font-size: 16pt; }
+      .info-grid { grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0; margin-bottom: 6pt; }
+      .info-card { padding: 5pt 7pt; border: 0.5pt solid #ccc; background: #f9f9f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .info-label { font-size: 7pt; } .info-input, .status-select { font-size: 9pt; }
+      .detail-section { border: 0.5pt solid #ccc; border-radius: 2pt; margin-bottom: 5pt; page-break-inside: avoid; }
+      .section-head { background: #333 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 4pt 8pt; }
+      .section-label { font-size: 8pt; color: #fff !important; } .section-progress { font-size: 8pt; color: #ccc !important; }
+      .detail-section.zone-green .section-head { background: #1e3d1e !important; }
+      .detail-section.zone-amber .section-head { background: #3d2e0a !important; }
+      .detail-section.zone-blue .section-head  { background: #0e2236 !important; }
+      .checklist-body { grid-template-columns: 1fr 1fr; padding: 5pt 8pt; gap: 0 12pt; }
+      .check-item { padding: 2pt 0; border-bottom: 0.3pt solid #eee; gap: 5pt; }
+      .check-box { width: 9pt; height: 9pt; border: 1pt solid #555; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .check-box.checked { background: #2d6a2d !important; border-color: #2d6a2d !important; }
+      .check-label { font-size: 8pt; } .check-item.done .check-label { color: #999 !important; }
+      .hours-table th { font-size: 7pt; padding: 4pt 8pt; background: #e4f2e4 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .hours-table td { padding: 4pt 8pt; font-size: 8pt; }
+      .hours-table .total-row td { background: #d0ecd0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; color: #1e4a1e !important; }
+      .supplies-table th { font-size: 7pt; padding: 4pt 8pt; background: #d8eef8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .supplies-table td { padding: 3pt 6pt; font-size: 8pt; }
+      .sup-input, .cell-edit, .materials-edit, .editable-area { border: none !important; background: transparent !important; font-size: 8pt; padding: 0; }
+      .materials-body, .editable-area, .materials-edit { padding: 6pt 8pt; font-size: 8pt; line-height: 1.5; }
+      @page { size: letter portrait; margin: 0.5in; }
+    }
+  </style>
 </head>
 <body>
 
-<header>
-  <h1>East Portland Sash &mdash; Production Board</h1>
-  <div class="header-right">
-    <div class="legend">
-      <div class="legend-item">
-        <div class="legend-dot" style="background:#97C459;"></div> Shop
-      </div>
-      <div class="legend-item">
-        <div class="legend-dot" style="background:#378ADD;"></div> Site
-      </div>
-    </div>
-    <div class="header-divider"></div>
-    <button class="toolbar-btn" id="btn-save-json">Save board</button>
-    <button class="toolbar-btn" id="btn-load-json">Restore board</button>
-    <div class="header-divider"></div>
-    <button class="toolbar-btn" id="btn-csv-template">CSV template</button>
-    <button class="toolbar-btn" id="btn-import-csv">Import CSV</button>
-    <input type="file" id="file-json" accept=".json" style="display:none">
-    <input type="file" id="file-csv" accept=".csv" style="display:none">
-  </div>
-</header>
-
-<div class="pb-wrap">
-  <div class="pb-top">
-    <div class="pb-section" style="grid-column:1/5;">Upcoming</div>
-    <div class="pb-section-divider-top"></div>
-    <div class="pb-section" style="grid-column:6/8;">In process</div>
-    <div class="pb-section-divider-top"></div>
-    <div class="pb-section" style="grid-column:9/10;">Final</div>
-  </div>
-
-  <div class="pb-cols" id="board">
-
-    <!-- UPCOMING SHOP — 2 paired columns -->
-    <div class="pb-pair-wrap" style="border-top:2.5px solid var(--green-border);">
-      <div class="col-header-shop">Shop</div>
-      <div class="pb-pair-inner">
-        <div class="pair-subsec-label">Measure / plan</div>
-        <div class="pair-dropzone-row">
-          <div class="dropzone" id="z-up-shop-measure" data-zone="up-shop-measure" data-lane="shop"></div>
-          <div class="dropzone" id="z-up-shop-measure-b" data-zone="up-shop-measure-b" data-lane="shop"></div>
-        </div>
-        <div class="pair-add-row">
-          <button class="add-btn" data-zone="up-shop-measure">+ add</button>
-          <button class="add-btn" data-zone="up-shop-measure-b">+ add</button>
-        </div>
-        <div class="pair-subsec-label">Ready</div>
-        <div class="pair-dropzone-row">
-          <div class="dropzone" id="z-up-shop-ready" data-zone="up-shop-ready" data-lane="shop"></div>
-          <div class="dropzone" id="z-up-shop-ready-b" data-zone="up-shop-ready-b" data-lane="shop"></div>
-        </div>
-        <div class="pair-add-row">
-          <button class="add-btn" data-zone="up-shop-ready">+ add</button>
-          <button class="add-btn" data-zone="up-shop-ready-b">+ add</button>
-        </div>
-        <div class="pair-subsec-label hold-label">Hold</div>
-        <div class="pair-dropzone-row hold-row">
-          <div class="dropzone" id="z-up-shop-hold" data-zone="up-shop-hold" data-lane="shop"></div>
-          <div class="dropzone" id="z-up-shop-hold-b" data-zone="up-shop-hold-b" data-lane="shop"></div>
-        </div>
-        <div class="pair-add-row hold-row">
-          <button class="add-btn" data-zone="up-shop-hold">+ add</button>
-          <button class="add-btn" data-zone="up-shop-hold-b">+ add</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- UPCOMING SITE — 2 paired columns -->
-    <div class="pb-pair-wrap" style="border-top:2.5px solid var(--blue-border);">
-      <div class="col-header-site">Site</div>
-      <div class="pb-pair-inner">
-        <div class="pair-subsec-label">Walk thru / plan</div>
-        <div class="pair-dropzone-row">
-          <div class="dropzone" id="z-up-site-walkthru" data-zone="up-site-walkthru" data-lane="site"></div>
-          <div class="dropzone" id="z-up-site-walkthru-b" data-zone="up-site-walkthru-b" data-lane="site"></div>
-        </div>
-        <div class="pair-add-row">
-          <button class="add-btn" data-zone="up-site-walkthru">+ add</button>
-          <button class="add-btn" data-zone="up-site-walkthru-b">+ add</button>
-        </div>
-        <div class="pair-subsec-label">Ready</div>
-        <div class="pair-dropzone-row">
-          <div class="dropzone" id="z-up-site-ready" data-zone="up-site-ready" data-lane="site"></div>
-          <div class="dropzone" id="z-up-site-ready-b" data-zone="up-site-ready-b" data-lane="site"></div>
-        </div>
-        <div class="pair-add-row">
-          <button class="add-btn" data-zone="up-site-ready">+ add</button>
-          <button class="add-btn" data-zone="up-site-ready-b">+ add</button>
-        </div>
-        <div class="pair-subsec-label hold-label">Hold</div>
-        <div class="pair-dropzone-row hold-row">
-          <div class="dropzone" id="z-up-site-hold" data-zone="up-site-hold" data-lane="site"></div>
-          <div class="dropzone" id="z-up-site-hold-b" data-zone="up-site-hold-b" data-lane="site"></div>
-        </div>
-        <div class="pair-add-row hold-row">
-          <button class="add-btn" data-zone="up-site-hold">+ add</button>
-          <button class="add-btn" data-zone="up-site-hold-b">+ add</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- DIVIDER 1 -->
-    <div class="pb-divider"><div class="pb-divider-line"></div></div>
-
-    <!-- IN PROCESS SHOP -->
-    <div class="pb-maincol pb-maincol-shop">
-      <div class="col-header-shop">Shop</div>
-      <div class="subsec">
-        <div class="subsec-label">On bench</div>
-        <div class="dropzone" id="z-ip-shop-bench" data-zone="ip-shop-bench" data-lane="shop"></div>
-        <button class="add-btn" data-zone="ip-shop-bench">+ add</button>
-      </div>
-      <div class="subsec">
-        <div class="subsec-label">Glazing / paint</div>
-        <div class="dropzone" id="z-ip-shop-glazing" data-zone="ip-shop-glazing" data-lane="shop"></div>
-        <button class="add-btn" data-zone="ip-shop-glazing">+ add</button>
-      </div>
-      <div class="subsec subsec-hold">
-        <div class="subsec-label">Hold</div>
-        <div class="dropzone" id="z-ip-shop-hold" data-zone="ip-shop-hold" data-lane="shop"></div>
-        <button class="add-btn" data-zone="ip-shop-hold">+ add</button>
-      </div>
-    </div>
-
-    <!-- IN PROCESS SITE -->
-    <div class="pb-maincol pb-maincol-site">
-      <div class="col-header-site">Site</div>
-      <div class="subsec">
-        <div class="subsec-label">Active</div>
-        <div class="dropzone" id="z-ip-site-active" data-zone="ip-site-active" data-lane="site"></div>
-        <button class="add-btn" data-zone="ip-site-active">+ add</button>
-      </div>
-      <div class="subsec">
-        <div class="subsec-label">Limbo</div>
-        <div class="dropzone" id="z-ip-site-limbo" data-zone="ip-site-limbo" data-lane="site"></div>
-        <button class="add-btn" data-zone="ip-site-limbo">+ add</button>
-      </div>
-      <div class="subsec subsec-hold">
-        <div class="subsec-label">Hold</div>
-        <div class="dropzone" id="z-ip-site-hold" data-zone="ip-site-hold" data-lane="site"></div>
-        <button class="add-btn" data-zone="ip-site-hold">+ add</button>
-      </div>
-    </div>
-
-    <!-- DIVIDER 2 -->
-    <div class="pb-divider"><div class="pb-divider-line"></div></div>
-
-    <!-- FINAL -->
-    <div class="pb-maincol pb-maincol-final">
-      <div class="col-header-neutral">Complete</div>
-      <div class="final-zone" id="z-final" data-zone="final" data-lane="final"></div>
-      <button class="add-btn" data-zone="final">+ add</button>
-    </div>
-
+<div class="app-header">
+  <div class="wordmark">EPS<span>/</span>PM <span style="font-size:9px;color:#5a7a9a;margin-left:4px;">v3</span></div>
+  <div class="header-nav">
+    <button class="btn-print-select" id="btnPrintSelect" onclick="togglePrintMode()">⎙ Print</button>
+    <button class="btn-back" id="btnBack" onclick="showList()">← All Projects</button>
+    <button class="btn-back" id="btnSaveTop" onclick="saveProject()" style="background:#2d6a2d;border-color:#2d6a2d;color:#fff;">Save</button>
   </div>
 </div>
 
-<!-- Add / Edit modal -->
-<div class="modal-overlay" id="modal-card">
-  <div class="modal">
-    <h3 id="modal-card-title">Add project</h3>
-    <label>Client name</label>
-    <input type="text" id="modal-name" placeholder="e.g. Shinn" autocomplete="off" />
-    <label>Note <span style="font-size:10px;text-transform:none;letter-spacing:0;">(optional)</span></label>
-    <input type="text" id="modal-note" placeholder="e.g. 4/16 start" autocomplete="off" />
-    <div class="modal-btns">
-      <button id="modal-card-cancel">Cancel</button>
-      <button id="modal-card-save" class="btn-primary">Add</button>
+<!-- LIST VIEW -->
+<div class="view active" id="viewList">
+  <div class="list-container">
+    <div class="list-header">
+      <div class="list-title">Active Projects</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="project-count" id="projectCount">—</div>
+        <button class="btn-print-select" onclick="window.print()" style="font-size:10px;padding:5px 12px;">⎙ Print List</button>
+        <button class="btn-new-project" onclick="showNewProject()">+ New Project</button>
+      </div>
+    </div>
+    <div class="filter-bar">
+      <button class="filter-btn active" id="fb-pre-production" onclick="toggleFilter('pre-production',this)">Pre-Production</button>
+      <button class="filter-btn active" id="fb-production" onclick="toggleFilter('production',this)">Production</button>
+      <button class="filter-btn" id="fb-complete" onclick="toggleFilter('complete',this)">Complete</button>
+      <button class="filter-btn" id="fb-hold" onclick="toggleFilter('hold',this)">Hold</button>
+      <button class="lead-toggle" id="leadToggle" onclick="toggleLeadGroup()">Group by Lead</button>
+    </div>
+    <div class="print-bar hidden" id="printBar">
+      <div class="print-bar-left">Select projects to print — <span id="printCount">0</span> selected</div>
+      <div>
+        <button class="btn-print-cancel" onclick="togglePrintMode()">Cancel</button>
+        <button class="btn-print-go" onclick="executePrint()">Print Selected</button>
+      </div>
+    </div>
+    <div class="tally-bar">
+      <div>
+        <div class="tally-label">Visible Contract Value</div>
+        <div class="tally-sub" id="tallyCount">—</div>
+      </div>
+      <div class="tally-amount" id="tallyAmount">—</div>
+    </div>
+    <div class="project-table">
+      <div class="table-head" id="tableHead">
+        <div class="sortable" onclick="setSort('estimateNumber',this)">Est # <span class="sort-arrow" id="sort-estimateNumber"></span></div>
+        <div class="sortable" onclick="setSort('priority',this)">Pri <span class="sort-arrow" id="sort-priority"></span></div>
+        <div class="sortable" onclick="setSort('clientLastName',this)">Project <span class="sort-arrow" id="sort-clientLastName"></span></div>
+        <div class="sortable" style="justify-content:center;text-align:center" onclick="setSort('startDate',this)">Walk/Plan <span class="sort-arrow" id="sort-startDate"></span></div>
+        <div class="sortable" style="justify-content:center;text-align:center" onclick="setSort('fabStart',this)">Fab St <span class="sort-arrow" id="sort-fabStart"></span></div>
+        <div>Remaining</div><div>Hours</div>
+        <div class="sortable" onclick="setSort('leadTech',this)">Lead <span class="sort-arrow" id="sort-leadTech"></span></div>
+        <div class="sortable" onclick="setSort('status',this)">Status <span class="sort-arrow" id="sort-status"></span></div>
+      </div>
+      <div id="projectList"><div class="loading-state">Loading projects…</div></div>
     </div>
   </div>
 </div>
 
-<!-- Delete confirm modal -->
-<div class="modal-overlay" id="modal-delete">
-  <div class="modal">
-    <h3>Remove card?</h3>
-    <p class="modal-note-text" id="modal-delete-msg">This will remove the card from the board.</p>
-    <div class="modal-btns">
-      <button id="modal-delete-cancel">Cancel</button>
-      <button id="modal-delete-confirm" class="btn-danger">Remove</button>
+<!-- DETAIL VIEW -->
+<div class="view" id="viewDetail">
+  <div class="detail-container" id="detailContent"></div>
+</div>
+
+<!-- NEW PROJECT VIEW -->
+<div class="view" id="viewNew">
+  <div class="new-container">
+    <div class="new-page-title">New Project</div>
+    <div class="form-section">
+      <div class="form-section-head">Project Identity</div>
+      <div class="form-body">
+        <div class="form-grid three">
+          <div class="field-group">
+            <label class="field-label">Estimate #</label>
+            <input class="field-input" id="f-est" type="text" placeholder="Auto (editable)" />
+            <span class="field-hint">Leave blank to auto-assign</span>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Status</label>
+            <select class="field-input" id="f-status">
+              <option value="pre-production">Pre-Production</option>
+              <option value="production">Production</option>
+              <option value="complete">Complete</option>
+              <option value="hold">Hold</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Priority #</label>
+            <input class="field-input" id="f-priority" type="number" min="1" placeholder="—" />
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-head">Client Information</div>
+      <div class="form-body">
+        <div class="form-grid">
+          <div class="field-group">
+            <label class="field-label">Project Name *</label>
+            <input class="field-input" id="f-lastname" type="text" placeholder="Shinn" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Full Name *</label>
+            <input class="field-input" id="f-fullname" type="text" placeholder="Michael Shinn" />
+          </div>
+          <div class="field-group span2">
+            <label class="field-label">Address</label>
+            <input class="field-input" id="f-address" type="text" placeholder="2944 NE 29th, Portland, OR 97212" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Phone</label>
+            <input class="field-input" id="f-phone" type="text" placeholder="555-0100" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Lead Tech (initials)</label>
+            <input class="field-input" id="f-lead" type="text" placeholder="AB" maxlength="4" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Start Date</label>
+            <input class="field-input" id="f-startdate" type="date" />
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-head">Project Details</div>
+      <div class="form-body">
+        <div class="form-grid">
+          <div class="field-group">
+            <label class="field-label">Total Amount ($) *</label>
+            <input class="field-input" id="f-amount" type="number" min="0" placeholder="21908" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Scope Summary *</label>
+            <input class="field-input" id="f-scope" type="text" placeholder="Triage ×7, Rail Prep ×7" />
+          </div>
+          <div class="field-group span2">
+            <label class="field-label">Materials Scope Summary</label>
+            <textarea class="field-input" id="f-materials" placeholder="Triage (7 openings): Sash cord…"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-head">Hours Budget</div>
+      <div class="form-body">
+        <table class="hours-form-table">
+          <thead><tr><th>Scope Type</th><th style="width:70px">Units</th><th style="width:110px">Rate (hrs/unit)</th><th style="width:80px">Total</th><th class="th-del"></th></tr></thead>
+          <tbody id="hoursTableBody"></tbody>
+        </table>
+        <button class="btn-add-row" onclick="addHoursRow()">+ Add Row</button>
+        <div class="hours-project-total">Project Total: <strong id="hoursTotalDisplay">0 hrs</strong></div>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-head">Notes</div>
+      <div class="form-body">
+        <textarea class="field-input" id="f-notes" placeholder="Initial project notes…" style="min-height:70px"></textarea>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-actions">
+        <button class="btn-cancel" onclick="showList()">Cancel</button>
+        <button class="btn-create" id="btnCreate" onclick="createProject()">Create Project</button>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- CSV info modal -->
-<div class="modal-overlay" id="modal-csv-info">
-  <div class="modal">
-    <h3>Import CSV</h3>
-    <p class="modal-note-text">
-      Importing will <strong>add</strong> cards to the existing board without clearing anything first.<br><br>
-      Required columns: <code>name</code>, <code>lane</code>, <code>zone</code>. The <code>note</code> column is optional.<br><br>
-      Download the CSV template first if you haven't already — it includes all valid zone names and examples.
-    </p>
-    <div class="modal-btns">
-      <button id="modal-csv-cancel">Cancel</button>
-      <button id="modal-csv-proceed" class="btn-primary">Choose file</button>
-    </div>
-  </div>
+<div class="save-bar" id="saveBar">
+  <div class="save-status" id="saveStatus">Unsaved changes</div>
+  <button class="btn-save" id="btnSave" onclick="saveProject()">Save Changes</button>
 </div>
+<div class="toast" id="toast"></div>
 
-<div id="toast"></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+  firebase.initializeApp({
+    apiKey: "AIzaSyBiwsuVyEormZua4fUh7rLeIAQp0BZ-y8A",
+    authDomain: "epstools-2913e.firebaseapp.com",
+    projectId: "epstools-2913e",
+  });
+  var db = firebase.firestore();
 
-<script type="module">
-const ZONE_IDS = [
-  "up-shop-measure","up-shop-measure-b",
-  "up-shop-ready","up-shop-ready-b",
-  "up-shop-hold","up-shop-hold-b",
-  "up-site-walkthru","up-site-walkthru-b",
-  "up-site-ready","up-site-ready-b",
-  "up-site-hold","up-site-hold-b",
-  "ip-shop-bench","ip-shop-glazing","ip-shop-hold",
-  "ip-site-active","ip-site-limbo","ip-site-hold",
-  "final"
-];
-
-const CSV_ZONE_RESOLVE = {
-  "measure-shop":   "up-shop-measure",
-  "ready-shop":     "up-shop-ready",
-  "hold-shop":      "up-shop-hold",
-  "walkthru-site":  "up-site-walkthru",
-  "ready-site":     "up-site-ready",
-  "hold-site":      "up-site-hold",
-  "bench-shop":     "ip-shop-bench",
-  "glazing-shop":   "ip-shop-glazing",
-  "active-site":    "ip-site-active",
-  "limbo-site":     "ip-site-limbo",
-  "final-shop":     "final",
-  "final-site":     "final",
-  "final-final":    "final",
-  "final-":         "final",
-};
-
-const defaultSeeds = {
-  "up-shop-measure": [
-    {id:"s1",name:"Shinn",note:"3/25"},
-    {id:"s2",name:"Kengla",note:"3/25"},
-    {id:"s3",name:"Kohler",note:"3/23"},
-    {id:"s4",name:"Griffin",note:""},
-    {id:"s5",name:"Adamson",note:""},
-    {id:"s6",name:"Maley",note:""},
-    {id:"s7",name:"Duquette",note:""},
-    {id:"s8",name:"Hullar",note:""},
-  ],
-  "up-site-walkthru": [
-    {id:"t1",name:"Shinn",note:""},
-    {id:"t2",name:"Hullar",note:""},
-    {id:"t3",name:"Kohler",note:""},
-    {id:"t4",name:"Kengla",note:""},
-  ],
-  "ip-shop-bench": [
-    {id:"b1",name:"Griffin",note:""},
-    {id:"b2",name:"Adamson",note:""},
-    {id:"b3",name:"Murff / Power",note:""},
-    {id:"b4",name:"Maley",note:""},
-  ],
-  "ip-site-active": [
-    {id:"a1",name:"Mirkil",note:"4/16 start"},
-  ],
-};
-ZONE_IDS.forEach(z => { if (!defaultSeeds[z]) defaultSeeds[z] = []; });
-
-function laneOf(zoneId) {
-  if (!zoneId || zoneId === "final") return "final";
-  if (zoneId.includes("shop")) return "shop";
-  return "site";
-}
-
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
-
-function toast(msg) {
-  const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.classList.add("show");
-  clearTimeout(t._to);
-  t._to = setTimeout(() => t.classList.remove("show"), 2400);
-}
-
-// ── FIREBASE ──
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyBiwsuVyEormZua4fUh7rLeIAQp0BZ-y8A",
-  authDomain: "epstools-2913e.firebaseapp.com",
-  projectId: "epstools-2913e",
-  storageBucket: "epstools-2913e.firebasestorage.app",
-  messagingSenderId: "91969549327",
-  appId: "1:91969549327:web:6eea1d04d68eb01dabdf7a"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const DOC_REF = doc(db, "boards", "production");
-
-let saveTimer = null;
-
-async function loadState() {
-  try {
-    const snap = await getDoc(DOC_REF);
-    if (snap.exists()) return snap.data();
-  } catch(e) {
-    console.warn("Firestore load failed, using defaults", e);
+  // ── HELPERS ──
+  function formatDate(val) {
+    if (!val) return '—';
+    // val is YYYY-MM-DD
+    var parts = val.split('-');
+    if (parts.length !== 3) return val;
+    return (parseInt(parts[1])) + '/' + parseInt(parts[2]);  // M/D no year for compactness
   }
-  return JSON.parse(JSON.stringify(defaultSeeds));
-}
 
-function saveState() {
-  // debounce — wait 800ms after last change before writing
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(async () => {
-    const state = {};
-    ZONE_IDS.forEach(zone => {
-      const el = document.getElementById("z-" + zone);
-      if (!el) return;
-      state[zone] = [...el.querySelectorAll(".card")].map(c => ({
-        id: c.dataset.id,
-        name: c.dataset.name,
-        note: c.dataset.note || "",
-      }));
+  // ── STATE ──
+  var _projects = [];
+  var _currentProject = null;
+  var _dirty = false;
+  var _hoursRows = [];
+  var _detailHoursRows = [];
+  var _suppliesRows = [];
+  var _manualCounter = 0;
+  var _removedStdKeys = {};  // { section: [key, ...] }
+
+  // ── CHECKLIST LABELS ──
+  var CHECKLIST_LABELS = {
+    preProject: {
+      contractSigned: 'Contract signed and deposit received',
+      siteAccessConfirmed: 'Site access confirmed with client',
+      addedToHarvest: 'Project added to Harvest',
+      hoursBudgetEntered: 'Hours budget entered in Harvest',
+      addedToStreak: 'Project added to Streak pipeline',
+      specialRequirementsDocumented: 'Special requirements documented',
+      leadTimeMaterialsOrdered: 'Lead time materials ordered',
+    },
+    production: {
+      shopWorkScheduled: 'Shop work scheduled',
+      siteWorkScheduled: 'Site work scheduled with client',
+      materialsReceivedAndStaged: 'Materials received and staged',
+      crewAssignedAndBriefed: 'Crew assigned and briefed',
+      workInProgress: 'Work in progress',
+    },
+    closeout: {
+      finalWalkthrough: 'Final walkthrough with client',
+      photosDocumented: 'Photos documented',
+      punchListCompleted: 'Punch list completed',
+      postProjectAnalysis: 'Post-project analysis completed',
+      finalInvoiceSent: 'Final invoice sent',
+      followUpScheduled: 'Follow-up scheduled',
+      paymentReceived: 'Payment received',
+    }
+  };
+
+  // ── LOAD PROJECTS ──
+  function loadProjects() {
+    db.collection('pm_projects').get().then(function(snap) {
+      _projects = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+      renderList();
+    }).catch(function(e) {
+      document.getElementById('projectList').innerHTML =
+        '<div class="empty-state"><div class="icon">⚠</div><p>Error: ' + e.message + '</p></div>';
     });
-    try {
-      await setDoc(DOC_REF, state);
-    } catch(e) {
-      console.warn("Firestore save failed", e);
-      toast("Auto-save failed — check connection.");
+  }
+
+  var _groupByLead = false;
+  var _sortCol = null;
+  var _sortDir = 'asc';
+  var _printMode = false;
+  var _printSelected = {};
+
+  window.setSort = function(col, el) {
+    if (_sortCol === col) {
+      _sortDir = _sortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      _sortCol = col;
+      _sortDir = 'asc';
     }
-  }, 800);
-}
+    // Update arrow indicators
+    document.querySelectorAll('.sort-arrow').forEach(function(a) { a.className = 'sort-arrow'; });
+    var arrow = document.getElementById('sort-' + col);
+    if (arrow) arrow.className = 'sort-arrow ' + _sortDir;
+    renderList();
+  };
 
-let dragEl = null;
-
-function refreshCard(card) {
-  const name = card.dataset.name;
-  const note = card.dataset.note;
-  const lane = card.dataset.lane;
-  card.querySelector(".card-name").textContent = name;
-  const noteEl = card.querySelector(".card-note");
-  noteEl.textContent = note || "";
-  noteEl.style.display = note ? "" : "none";
-  const laneEl = card.querySelector(".card-lane");
-  if (lane && lane !== "final") {
-    laneEl.textContent = lane;
-    laneEl.className = "card-lane lane-" + lane;
-    laneEl.style.display = "";
-  } else {
-    laneEl.style.display = "none";
-  }
-}
-
-function makeCard(item, zoneId) {
-  const lane = laneOf(zoneId);
-  const d = document.createElement("div");
-  d.className = "card";
-  d.draggable = true;
-  d.dataset.id = item.id;
-  d.dataset.name = item.name;
-  d.dataset.note = item.note || "";
-  d.dataset.lane = lane;
-
-  d.innerHTML =
-    `<div class="card-body">` +
-      `<span class="card-name"></span>` +
-      `<span class="card-note"></span>` +
-      `<span class="card-lane"></span>` +
-    `</div>` +
-    `<div class="card-btns">` +
-      `<button class="card-btn edit" title="Edit">&#9998;</button>` +
-      `<button class="card-btn del" title="Remove">&#x2715;</button>` +
-    `</div>`;
-
-  refreshCard(d);
-
-  d.querySelector(".card-btn.edit").addEventListener("click", e => {
-    e.stopPropagation();
-    openEditModal(d);
-  });
-
-  d.querySelector(".card-btn.del").addEventListener("click", e => {
-    e.stopPropagation();
-    openDeleteModal(d);
-  });
-
-  d.addEventListener("dragstart", e => {
-    dragEl = d;
-    setTimeout(() => d.classList.add("dragging"), 0);
-    e.dataTransfer.effectAllowed = "move";
-  });
-  d.addEventListener("dragend", () => {
-    d.classList.remove("dragging");
-    dragEl = null;
-    saveState();
-  });
-
-  return d;
-}
-
-function getAfter(container, y) {
-  return [...container.querySelectorAll(".card:not(.dragging)")].reduce((cl, ch) => {
-    const b = ch.getBoundingClientRect();
-    const o = y - b.top - b.height / 2;
-    return o < 0 && o > cl.offset ? { offset: o, el: ch } : cl;
-  }, { offset: -Infinity, el: null }).el;
-}
-
-function zoneAccepts(zoneEl, cardLane) {
-  const zoneLane = zoneEl.dataset.lane;
-  if (zoneLane === "final") return true;
-  return zoneLane === cardLane;
-}
-
-function initZone(el) {
-  el.addEventListener("dragover", e => {
-    if (!dragEl) return;
-    e.preventDefault();
-    const cardLane = dragEl.dataset.lane;
-    if (!zoneAccepts(el, cardLane)) {
-      el.classList.add("drag-blocked");
-      el.classList.remove("drag-over");
-      return;
+  window.togglePrintMode = function() {
+    _printMode = !_printMode;
+    _printSelected = {};
+    var btn = document.getElementById('btnPrintSelect');
+    var bar = document.getElementById('printBar');
+    if (_printMode) {
+      btn.classList.add('active');
+      btn.textContent = '⎙ Printing…';
+      bar.classList.remove('hidden');
+    } else {
+      btn.classList.remove('active');
+      btn.textContent = '⎙ Print';
+      bar.classList.add('hidden');
     }
-    el.classList.remove("drag-blocked");
-    el.classList.add("drag-over");
-    const after = getAfter(el, e.clientY);
-    after ? el.insertBefore(dragEl, after) : el.appendChild(dragEl);
-  });
-  el.addEventListener("dragleave", () => {
-    el.classList.remove("drag-over");
-    el.classList.remove("drag-blocked");
-  });
-  el.addEventListener("drop", e => {
-    e.preventDefault();
-    el.classList.remove("drag-over");
-    el.classList.remove("drag-blocked");
-  });
-}
+    renderList();
+  };
 
-document.querySelectorAll(".dropzone, .final-zone").forEach(z => initZone(z));
+  window.togglePrintSelect = function(id, el) {
+    if (_printSelected[id]) {
+      delete _printSelected[id];
+      el.classList.remove('selected');
+    } else {
+      _printSelected[id] = true;
+      el.classList.add('selected');
+    }
+    var count = Object.keys(_printSelected).length;
+    var countEl = document.getElementById('printCount');
+    if (countEl) countEl.textContent = count;
+  };
 
-let addZone = null;
-let editCard = null;
+  window.executePrint = function() {
+    var ids = Object.keys(_printSelected);
+    if (!ids.length) { showToast('No projects selected', true); return; }
 
-document.querySelectorAll(".add-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    addZone = btn.dataset.zone;
-    editCard = null;
-    document.getElementById("modal-card-title").textContent = "Add project";
-    document.getElementById("modal-card-save").textContent = "Add";
-    document.getElementById("modal-name").value = "";
-    document.getElementById("modal-note").value = "";
-    document.getElementById("modal-card").classList.add("open");
-    setTimeout(() => document.getElementById("modal-name").focus(), 50);
-  });
-});
-
-function openEditModal(card) {
-  editCard = card;
-  addZone = null;
-  document.getElementById("modal-card-title").textContent = "Edit project";
-  document.getElementById("modal-card-save").textContent = "Save";
-  document.getElementById("modal-name").value = card.dataset.name;
-  document.getElementById("modal-note").value = card.dataset.note || "";
-  document.getElementById("modal-card").classList.add("open");
-  setTimeout(() => document.getElementById("modal-name").focus(), 50);
-}
-
-document.getElementById("modal-card-cancel").addEventListener("click", () => {
-  document.getElementById("modal-card").classList.remove("open");
-});
-
-document.getElementById("modal-card-save").addEventListener("click", () => {
-  const name = document.getElementById("modal-name").value.trim();
-  if (!name) { document.getElementById("modal-name").focus(); return; }
-  const note = document.getElementById("modal-note").value.trim();
-  if (editCard) {
-    editCard.dataset.name = name;
-    editCard.dataset.note = note;
-    refreshCard(editCard);
-    saveState();
-    toast("Card updated.");
-  } else {
-    const el = document.getElementById("z-" + addZone);
-    el.appendChild(makeCard({ id: uid(), name, note }, addZone));
-    saveState();
-    toast("Card added.");
-  }
-  document.getElementById("modal-card").classList.remove("open");
-});
-
-document.getElementById("modal-name").addEventListener("keydown", e => {
-  if (e.key === "Enter") document.getElementById("modal-card-save").click();
-  if (e.key === "Escape") document.getElementById("modal-card-cancel").click();
-});
-document.getElementById("modal-note").addEventListener("keydown", e => {
-  if (e.key === "Enter") document.getElementById("modal-card-save").click();
-  if (e.key === "Escape") document.getElementById("modal-card-cancel").click();
-});
-
-document.getElementById("modal-card").addEventListener("click", e => {
-  if (e.target === document.getElementById("modal-card"))
-    document.getElementById("modal-card").classList.remove("open");
-});
-
-let deleteTarget = null;
-
-function openDeleteModal(card) {
-  deleteTarget = card;
-  document.getElementById("modal-delete-msg").textContent =
-    `Remove "${card.dataset.name}" from the board? This can't be undone.`;
-  document.getElementById("modal-delete").classList.add("open");
-}
-
-document.getElementById("modal-delete-cancel").addEventListener("click", () => {
-  document.getElementById("modal-delete").classList.remove("open");
-  deleteTarget = null;
-});
-
-document.getElementById("modal-delete-confirm").addEventListener("click", () => {
-  if (deleteTarget) { deleteTarget.remove(); saveState(); toast("Card removed."); }
-  document.getElementById("modal-delete").classList.remove("open");
-  deleteTarget = null;
-});
-
-document.getElementById("modal-delete").addEventListener("click", e => {
-  if (e.target === document.getElementById("modal-delete")) {
-    document.getElementById("modal-delete").classList.remove("open");
-    deleteTarget = null;
-  }
-});
-
-document.getElementById("btn-save-json").addEventListener("click", async () => {
-  try {
-    const snap = await getDoc(DOC_REF);
-    const state = snap.exists() ? snap.data() : {};
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "production_board_" + new Date().toISOString().slice(0,10) + ".json";
-    a.click();
-    toast("Board saved to file.");
-  } catch(e) {
-    toast("Could not download — check connection.");
-  }
-});
-
-document.getElementById("btn-load-json").addEventListener("click", () => {
-  document.getElementById("file-json").click();
-});
-
-document.getElementById("file-json").addEventListener("change", e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = async ev => {
-    try {
-      const state = JSON.parse(ev.target.result);
-      await setDoc(DOC_REF, state);
-      ZONE_IDS.forEach(zone => {
-        const el = document.getElementById("z-" + zone);
-        if (!el) return;
-        [...el.querySelectorAll(".card")].forEach(c => c.remove());
-        (state[zone] || []).forEach(item => el.appendChild(makeCard(item, zone)));
+    // Fetch all selected projects then build a print document
+    var fetches = ids.map(function(id) {
+      return db.collection('pm_projects').doc(id).get().then(function(snap) {
+        return snap.exists ? Object.assign({ id: id }, snap.data()) : null;
       });
-      toast("Board restored.");
-    } catch(err) {
-      alert("Could not read that file. Make sure it's a valid board JSON export.");
-    }
-    e.target.value = "";
+    });
+
+    Promise.all(fetches).then(function(projects) {
+      projects = projects.filter(function(p) { return p; });
+      var win = window.open('', '_blank');
+      win.document.write(buildPrintDoc(projects));
+      win.document.close();
+      win.focus();
+      setTimeout(function() { win.print(); }, 600);
+      togglePrintMode();
+    }).catch(function(e) { showToast('Print error: ' + e.message, true); });
   };
-  reader.readAsText(file);
-});
 
-document.getElementById("btn-csv-template").addEventListener("click", () => {
-  const rows = [
-    "name,note,lane,zone",
-    "Jones,,shop,measure",
-    "Jones,,site,walkthru",
-    "Smith,rush job,shop,bench",
-    "Patel,4/20 start,site,active",
-    "Davis,,shop,ready",
-    "Davis,,site,ready",
-    "Brown,,shop,glazing",
-    "Lee,,site,limbo",
-    "Clark,,shop,hold",
-    "Clark,,site,hold",
-    "Evans,,shop,final",
-    "",
-    "# ZONE REFERENCE",
-    "# measure   -> Upcoming / Shop / Measure-plan",
-    "# ready     -> Upcoming / Shop or Site / Ready  (lane determines which column)",
-    "# hold      -> Upcoming / Shop or Site / Hold   (lane determines which column)",
-    "# walkthru  -> Upcoming / Site / Walk-thru-plan",
-    "# bench     -> In Process / Shop / On bench",
-    "# glazing   -> In Process / Shop / Glazing-paint",
-    "# active    -> In Process / Site / Active",
-    "# limbo     -> In Process / Site / Limbo",
-    "# final     -> Final (accepts shop or site)",
-  ];
-  const blob = new Blob([rows.join("\n")], { type: "text/csv" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "production_board_template.csv";
-  a.click();
-  toast("CSV template downloaded.");
-});
+  function buildPrintDoc(projects) {
+    var css = document.querySelector('style').innerHTML;
 
-document.getElementById("btn-import-csv").addEventListener("click", () => {
-  document.getElementById("modal-csv-info").classList.add("open");
-});
+    function projectPrintHtml(p) {
+      var cl = p.checklist || {};
+      var pre = cl.preProject || {};
+      var prod = cl.production || {};
+      var close = cl.closeout || {};
+      var custom = cl.custom || {};
+      var removed = p.removedTasks || {};
 
-document.getElementById("modal-csv-cancel").addEventListener("click", () => {
-  document.getElementById("modal-csv-info").classList.remove("open");
-});
+      function clSection(section, data, labels) {
+        var removedKeys = removed[section] || [];
+        var stdKeys = Object.keys(labels).filter(function(k){ return removedKeys.indexOf(k)===-1; });
+        var customItems = custom[section] || [];
+        var done = stdKeys.filter(function(k){ return data[k]; }).length + customItems.filter(function(i){ return i.done; }).length;
+        var total = stdKeys.length + customItems.length;
+        var items = stdKeys.map(function(k){
+          return '<div class="check-item' + (data[k]?' done':'') + '">'
+            + '<div class="check-box' + (data[k]?' checked':'') + '"></div>'
+            + '<span class="check-label">' + labels[k] + '</span></div>';
+        }).join('') + customItems.map(function(i){
+          return '<div class="check-item custom-item' + (i.done?' done':'') + '">'
+            + '<div class="check-box' + (i.done?' checked':'') + '"></div>'
+            + '<span class="check-label">' + i.label + '</span></div>';
+        }).join('');
+        return { html: items, done: done, total: total };
+      }
 
-document.getElementById("modal-csv-proceed").addEventListener("click", () => {
-  document.getElementById("modal-csv-info").classList.remove("open");
-  document.getElementById("file-csv").click();
-});
+      var preS = clSection('preProject', pre, CHECKLIST_LABELS.preProject);
+      var proS = clSection('production', prod, CHECKLIST_LABELS.production);
+      var clS  = clSection('closeout', close, CHECKLIST_LABELS.closeout);
 
-document.getElementById("modal-csv-info").addEventListener("click", e => {
-  if (e.target === document.getElementById("modal-csv-info"))
-    document.getElementById("modal-csv-info").classList.remove("open");
-});
+      var hoursRows = (p.hoursBudget || []).map(function(h){
+        return '<tr><td>' + h.scope + '</td><td class="hours-num">' + h.units + '</td><td class="hours-num">' + h.benchmark + '</td><td class="hours-num">' + h.total + ' hrs</td></tr>';
+      }).join('');
 
-document.getElementById("file-csv").addEventListener("change", e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = ev => {
-    const lines = ev.target.result
-      .split("\n")
-      .map(l => l.trim())
-      .filter(l => l && !l.startsWith("#"));
+      var suppliesRows = (p.supplies || []).filter(function(s){ return s.item; }).map(function(s){
+        return '<tr><td>' + s.item + '</td><td>' + (s.qty||'') + '</td><td>' + (s.unit||'') + '</td><td>' + (s.notes||'') + '</td></tr>';
+      }).join('');
 
-    const headers = lines[0].toLowerCase().split(",").map(h => h.trim());
-    const iName = headers.indexOf("name");
-    const iNote = headers.indexOf("note");
-    const iLane = headers.indexOf("lane");
-    const iZone = headers.indexOf("zone");
+      var statusLabel = (p.status==='pre-production'||p.status==='active') ? 'Pre-Production'
+        : (p.status||'').charAt(0).toUpperCase()+(p.status||'').slice(1);
 
-    if (iName < 0 || iLane < 0 || iZone < 0) {
-      alert("CSV must have columns: name, lane, zone\nThe note column is optional.");
-      e.target.value = "";
+      return '<div class="detail-container" style="page-break-after:always;">'
+        + '<div class="detail-header-card">'
+        + '<div style="flex:1"><div class="detail-client-name">' + (p.clientLastName||'—') + '</div>'
+        + '<div class="detail-subtitle">' + (p.clientFullName||'') + '<br>' + (p.address||'') + ' · ' + (p.phone||'') + '</div></div>'
+        + '<div class="detail-right"><div class="detail-est">Est #' + p.estimateNumber + '</div>'
+        + '<div class="detail-amount">$' + (p.totalAmount||0).toLocaleString() + '</div></div></div>'
+
+        + '<div class="info-grid" style="grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr;">'
+        + '<div class="info-card"><div class="info-label">Status</div><div style="font-size:12px;font-weight:500">' + statusLabel + '</div></div>'
+        + '<div class="info-card"><div class="info-label">Priority</div><div style="font-size:12px;font-weight:500">' + (p.priority||'—') + '</div></div>'
+        + '<div class="info-card"><div class="info-label">Lead Tech</div><div style="font-size:12px;font-weight:500">' + (p.leadTech||'—') + '</div></div>'
+        + '<div class="info-card"><div class="info-label">Walk / Plan</div><div style="font-size:12px;font-weight:500">' + (p.startDate||'—') + '</div></div>'
+        + '<div class="info-card"><div class="info-label">Fab Start</div><div style="font-size:12px;font-weight:500">' + (p.fabStart||'—') + '</div></div>'
+        + '<div class="info-card"><div class="info-label">Resto Start</div><div style="font-size:12px;font-weight:500">' + (p.restoStart||'—') + '</div></div>'
+        + '</div>'
+
+        + '<div class="detail-section"><div class="section-head"><div class="section-label">1. Pre-Project Setup</div><div class="section-progress">' + preS.done + '/' + preS.total + '</div></div><div class="checklist-body">' + preS.html + '</div></div>'
+        + '<div class="detail-section"><div class="section-head"><div class="section-label">2. Production</div><div class="section-progress">' + proS.done + '/' + proS.total + '</div></div><div class="checklist-body">' + proS.html + '</div></div>'
+        + '<div class="detail-section"><div class="section-head"><div class="section-label">3. Completion &amp; Closeout</div><div class="section-progress">' + clS.done + '/' + clS.total + '</div></div><div class="checklist-body">' + clS.html + '</div></div>'
+
+        + '<div class="detail-section zone-green"><div class="section-head"><div class="section-label">Hours Budget</div><div class="section-progress">' + (p.hoursTotal||0) + ' hrs total</div></div>'
+        + '<table class="hours-table"><thead><tr><th>Scope</th><th>Units</th><th>Benchmark</th><th>Total</th></tr></thead><tbody>'
+        + hoursRows
+        + '<tr class="total-row"><td>Project Total</td><td></td><td></td><td class="hours-num">' + (p.hoursTotal||0) + ' hrs</td></tr>'
+        + '</tbody></table></div>'
+
+        + '<div class="detail-section zone-amber"><div class="section-head"><div class="section-label">Materials Scope Summary</div></div>'
+        + '<div class="materials-body">' + (p.materialsSummary||'—') + '</div></div>'
+
+        + (suppliesRows ? '<div class="detail-section zone-blue"><div class="section-head"><div class="section-label">Project-Specific Supplies</div></div>'
+        + '<table class="supplies-table"><thead><tr><th>Item</th><th>Qty</th><th>Unit</th><th>Notes</th></tr></thead><tbody>'
+        + suppliesRows + '</tbody></table></div>' : '')
+
+        + (p.notes ? '<div class="detail-section"><div class="section-head"><div class="section-label">Notes</div></div>'
+        + '<div class="materials-body">' + p.notes + '</div></div>' : '')
+
+        + '</div>';
+    }
+
+    return '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>'
+      + css
+      + '@media print { .detail-container { page-break-after: always; } .detail-container:last-child { page-break-after: avoid; } }'
+      + '</style></head><body>'
+      + projects.map(projectPrintHtml).join('')
+      + '</body></html>';
+  }
+
+  window.toggleLeadGroup = function() {
+    _groupByLead = !_groupByLead;
+    var btn = document.getElementById('leadToggle');
+    if (_groupByLead) btn.classList.add('on'); else btn.classList.remove('on');
+    renderList();
+  };
+
+  function renderList() {
+    var activeKeys = Object.keys(_activeFilters);
+    var projects = activeKeys.length === 0 ? _projects.slice()
+      : _projects.filter(function(p) {
+          var s = p.status === 'active' ? 'pre-production' : (p.status || 'pre-production');
+          return !!_activeFilters[s];
+        });
+
+    // Tally
+    var total = projects.reduce(function(s, p) {
+      var paid = (p.payments || []).reduce(function(ps,r){ return ps+(parseFloat(r.amount)||0); }, 0);
+      return s + Math.max(0, (p.totalAmount||0) - paid);
+    }, 0);
+    document.getElementById('tallyAmount').textContent = '$' + total.toLocaleString();
+    document.getElementById('tallyCount').textContent = projects.length + ' project' + (projects.length !== 1 ? 's' : '');
+    document.getElementById('projectCount').textContent = '';
+
+    if (!projects.length) {
+      document.getElementById('projectList').innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>No projects found.</p></div>';
       return;
     }
 
-    let added = 0, skipped = 0;
+    // Sort
+    if (_sortCol) {
+      projects.sort(function(a, b) {
+        // Numeric columns
+        if (_sortCol === 'estimateNumber') {
+          var av = parseInt(a[_sortCol])||0, bv = parseInt(b[_sortCol])||0;
+          return _sortDir === 'asc' ? av - bv : bv - av;
+        }
+        if (_sortCol === 'priority') {
+          var av = a.priority != null ? a.priority : 99999;
+          var bv = b.priority != null ? b.priority : 99999;
+          return _sortDir === 'asc' ? av - bv : bv - av;
+        }
+        // Date columns — nulls last regardless of direction
+        if (_sortCol === 'startDate' || _sortCol === 'restoStart' || _sortCol === 'fabStart' || _sortCol === 'walkthroughDate') {
+          var av = a[_sortCol] || 'zzzz';
+          var bv = b[_sortCol] || 'zzzz';
+          if (av < bv) return _sortDir === 'asc' ? -1 : 1;
+          if (av > bv) return _sortDir === 'asc' ? 1 : -1;
+          return 0;
+        }
+        var av = (a[_sortCol] || '').toString().toLowerCase();
+        var bv = (b[_sortCol] || '').toString().toLowerCase();
+        if (av < bv) return _sortDir === 'asc' ? -1 : 1;
+        if (av > bv) return _sortDir === 'asc' ? 1 : -1;
+        return 0;
+      });
+    } else {
+      projects.sort(function(a, b) {
+        var pa = a.priority || 999, pb = b.priority || 999;
+        if (pa !== pb) return pa - pb;
+        return parseInt(b.estimateNumber) - parseInt(a.estimateNumber);
+      });
+    }
 
-    lines.slice(1).forEach(line => {
-      const cols = line.split(",").map(c => c.trim().replace(/^"|"$/g, ""));
-      const name = cols[iName] || "";
-      if (!name) { skipped++; return; }
-      const note = iNote >= 0 ? (cols[iNote] || "") : "";
-      const lane = (cols[iLane] || "").toLowerCase().trim();
-      const zoneShort = (cols[iZone] || "").toLowerCase().trim();
+    function projectRowHtml(p) {
+      var status = p.status || 'pre-production';
+      var sc = 'status-' + status;
+      var sl = status === 'pre-production' || status === 'active' ? 'Pre-Production'
+             : status.charAt(0).toUpperCase() + status.slice(1);
+      var isSelected = !!_printSelected[p.id];
+      var restoStr = p.restoStart ? formatDate(p.restoStart) : '—';
+      var fabStr   = p.fabStart   ? formatDate(p.fabStart)   : '—';
+      var startStr = p.startDate  ? formatDate(p.startDate)  : '—';
+      var paid = (p.payments || []).reduce(function(s,r){ return s+(parseFloat(r.amount)||0); }, 0);
+      var remaining = (p.totalAmount||0) - paid;
+      var remainStr = '$' + remaining.toLocaleString();
+      var remainColor = remaining < (p.totalAmount||0) ? 'color:var(--green);' : '';
 
-      const key = zoneShort + "-" + lane;
-      const zoneId = CSV_ZONE_RESOLVE[key] || CSV_ZONE_RESOLVE[zoneShort + "-"];
-      if (!zoneId) { skipped++; return; }
+      if (_printMode) {
+        return '<div class="project-row print-mode" onclick="togglePrintSelect(\'' + p.id + '\',this.querySelector(\'.print-check\'))" style="grid-template-columns:30px 55px 45px 1fr 85px 85px 75px 80px 60px 85px">'
+          + '<div class="print-check' + (isSelected ? ' selected' : '') + '"></div>'
+          + '<div class="est-num">#' + p.estimateNumber + '</div>'
+          + '<div class="est-num">' + (p.priority || '—') + '</div>'
+          + '<div class="client-cell"><div class="last-name">' + (p.clientLastName || '—') + '</div><div class="full-name">' + (p.clientFullName || '') + '</div></div>'
+          + '<div class="date-cell" style="text-align:center">' + startStr + '</div>'
+          + '<div class="date-cell" style="text-align:center">' + fabStr + '</div>'
+          + '<div class="amount-cell" style="' + remainColor + '">' + remainStr + '</div>'
+          + '<div class="hours-cell">' + (p.hoursTotal || '—') + ' hrs</div>'
+          + '<div class="lead-cell">' + (p.leadTech || '—') + '</div>'
+          + '<div><span class="status-badge ' + sc + '">' + sl + '</span></div>'
+          + '</div>';
+      }
 
-      const zoneLane = laneOf(zoneId);
-      if (zoneLane !== "final" && lane !== zoneLane) { skipped++; return; }
+      return '<div class="project-row" onclick="openProject(\'' + p.id + '\')">'
+        + '<div class="est-num">#' + p.estimateNumber + '</div>'
+        + '<div class="est-num">' + (p.priority || '—') + '</div>'
+        + '<div class="client-cell"><div class="last-name">' + (p.clientLastName || '—') + '</div><div class="full-name">' + (p.clientFullName || '') + '</div></div>'
+        + '<div class="date-cell" style="text-align:center">' + startStr + '</div>'
+        + '<div class="date-cell" style="text-align:center">' + fabStr + '</div>'
+        + '<div class="amount-cell" style="' + remainColor + '">' + remainStr + '</div>'
+        + '<div class="hours-cell">' + (p.hoursTotal || '—') + ' hrs</div>'
+        + '<div class="lead-cell">' + (p.leadTech || '—') + '</div>'
+        + '<div><span class="status-badge ' + sc + '">' + sl + '</span></div>'
+        + '</div>';
+    }
 
-      const el = document.getElementById("z-" + zoneId);
-      if (!el) { skipped++; return; }
+    if (!_groupByLead) {
+      document.getElementById('projectList').innerHTML = projects.map(projectRowHtml).join('');
+      return;
+    }
 
-      el.appendChild(makeCard({ id: uid(), name, note }, zoneId));
-      added++;
+    var groups = {};
+    projects.forEach(function(p) {
+      var lead = (p.leadTech || '').trim() || '__none__';
+      if (!groups[lead]) groups[lead] = [];
+      groups[lead].push(p);
+    });
+    var leadKeys = Object.keys(groups).sort(function(a, b) {
+      if (a === '__none__') return 1;
+      if (b === '__none__') return -1;
+      return a.localeCompare(b);
+    });
+    var html = '';
+    leadKeys.forEach(function(lead) {
+      var group = groups[lead];
+      var groupTotal = group.reduce(function(s, p) { return s + (p.totalAmount || 0); }, 0);
+      var leadLabel = lead === '__none__' ? 'No Lead Assigned' : lead;
+      html += '<div class="lead-divider">'
+        + '<div class="lead-divider-name" style="grid-column:1/3">' + leadLabel + '</div>'
+        + '<div style="grid-column:3/6" class="lead-divider-tally">' + group.length + ' project' + (group.length !== 1 ? 's' : '') + '</div>'
+        + '<div style="grid-column:6/7"></div>'
+        + '<div class="lead-divider-total">$' + groupTotal.toLocaleString() + '</div>'
+        + '</div>';
+      html += group.map(projectRowHtml).join('');
+    });
+    document.getElementById('projectList').innerHTML = html;
+  }
+
+  var _activeFilters = { 'pre-production': true, 'production': true };
+
+  window.toggleFilter = function(status, btn) {
+    if (_activeFilters[status]) {
+      delete _activeFilters[status];
+      btn.classList.remove('active');
+    } else {
+      _activeFilters[status] = true;
+      btn.classList.add('active');
+    }
+    renderList();
+  };
+
+  // ── OPEN PROJECT ──
+  window.openProject = function(id) {
+    db.collection('pm_projects').doc(id).get().then(function(snap) {
+      if (!snap.exists) { showToast('Project not found', true); return; }
+      _currentProject = Object.assign({ id: id }, snap.data());
+      renderDetail(_currentProject);
+      document.getElementById('viewList').classList.remove('active');
+      document.getElementById('viewDetail').classList.add('active');
+      document.getElementById('btnBack').classList.add('visible');
+      document.getElementById('btnPrintSelect').style.display = 'none';
+      window.scrollTo(0, 0);
+    }).catch(function() { showToast('Error loading project', true); });
+  };
+
+  window.showList = function() {
+    document.getElementById('viewDetail').classList.remove('active');
+    document.getElementById('viewNew').classList.remove('active');
+    document.getElementById('viewList').classList.add('active');
+    document.getElementById('btnBack').classList.remove('visible');
+    var t = document.getElementById('btnSaveTop'); if(t) t.classList.remove('visible');
+    document.getElementById('btnPrintSelect').style.display = '';
+    if (_printMode) togglePrintMode();
+    hideSaveBar();
+    _dirty = false;
+    loadProjects();
+  };
+
+  // ── RENDER DETAIL ──
+  function renderDetail(p) {
+    var cl = p.checklist || {};
+    var pre = cl.preProject || {};
+    var prod = cl.production || {};
+    var close = cl.closeout || {};
+    var custom = cl.custom || {};
+    var removed = p.removedTasks || {};
+
+    // init detail hours from project
+    _detailHoursRows = (p.hoursBudget || []).map(function(h, i) {
+      var rate = parseFloat((h.benchmark || '').replace(/[^0-9.]/g,'')) || h.total / (h.units || 1) || 0;
+      return { id: Date.now() + i, scope: h.scope, units: h.units, rate: rate, _total: h.total, type: h.type || detectType(h.scope) };
     });
 
-    saveState();
-    toast(`Imported ${added} card${added !== 1 ? "s" : ""}${skipped ? `, ${skipped} skipped` : ""}.`);
-    e.target.value = "";
-  };
-  reader.readAsText(file);
-});
+    // init supplies rows
+    _suppliesRows = (p.supplies || []).map(function(s, i) {
+      return Object.assign({ id: Date.now() + 1000 + i }, s);
+    });
 
-// ── INIT ──
-(async () => {
-  toast("Loading board...");
-  const state = await loadState();
-  ZONE_IDS.forEach(zone => {
-    const el = document.getElementById("z-" + zone);
+    // init payment rows
+    _paymentRows = (p.payments || []).map(function(r, i) {
+      return Object.assign({ id: Date.now() + 2000 + i }, r);
+    });
+
+    _removedStdKeys = removed;
+
+    function checklistSection(section, data, labels) {
+      var removedKeys = (removed[section] || []);
+      var stdKeys = Object.keys(labels).filter(function(k) { return removedKeys.indexOf(k) === -1; });
+      var customItems = custom[section] || [];
+      var done = stdKeys.filter(function(k) { return data[k]; }).length
+               + customItems.filter(function(i) { return i.done; }).length;
+      var total = stdKeys.length + customItems.length;
+
+      var stdHtml = stdKeys.map(function(k) {
+        return '<div class="check-item' + (data[k] ? ' done' : '') + '" onclick="toggleCheck(\'' + section + '\',\'' + k + '\',this)">'
+          + '<div class="check-box' + (data[k] ? ' checked' : '') + '"></div>'
+          + '<span class="check-label">' + labels[k] + '</span>'
+          + '<span class="item-actions">'
+          + '<button class="btn-item-action btn-item-edit" onclick="event.stopPropagation();editStdItem(\'' + section + '\',\'' + k + '\')" title="Edit">✎</button>'
+          + '<button class="btn-item-action" onclick="event.stopPropagation();deleteStdItem(\'' + section + '\',\'' + k + '\')" title="Delete">×</button>'
+          + '</span></div>';
+      }).join('');
+
+      var custHtml = customItems.map(function(item, idx) {
+        return '<div class="check-item custom-item' + (item.done ? ' done' : '') + '" onclick="toggleCustomCheck(\'' + section + '\',' + idx + ',this)">'
+          + '<div class="check-box' + (item.done ? ' checked' : '') + '"></div>'
+          + '<span class="check-label">' + item.label + '</span>'
+          + '<span class="item-actions">'
+          + '<button class="btn-item-action btn-item-edit" onclick="event.stopPropagation();editCustomItem(\'' + section + '\',' + idx + ')" title="Edit">✎</button>'
+          + '<button class="btn-item-action" onclick="event.stopPropagation();deleteCustomItem(\'' + section + '\',' + idx + ')" title="Delete">×</button>'
+          + '</span></div>';
+      }).join('');
+
+      var addHtml = '<div class="add-task-row">'
+        + '<input class="add-task-input" id="add-' + section + '" type="text" placeholder="+ Add task…">'
+        + '<button class="btn-add-task" onclick="addCustomItem(\'' + section + '\')">Add</button>'
+        + '</div>';
+
+      return { html: stdHtml + custHtml + addHtml, done: done, total: total };
+    }
+
+    var preS = checklistSection('preProject', pre, CHECKLIST_LABELS.preProject);
+    var proS = checklistSection('production', prod, CHECKLIST_LABELS.production);
+    var clS  = checklistSection('closeout', close, CHECKLIST_LABELS.closeout);
+
+    var statusOptions = ['pre-production','production','complete','hold'].map(function(s) {
+      var label = s === 'pre-production' ? 'Pre-Production' : s.charAt(0).toUpperCase()+s.slice(1);
+      var current = p.status === 'active' ? 'pre-production' : (p.status || 'pre-production');
+      return '<option value="' + s + '"' + (current===s?' selected':'') + '>' + label + '</option>';
+    }).join('');
+
+    document.getElementById('detailContent').innerHTML =
+      '<div class="detail-header-card">'
+      + '<div style="flex:1;min-width:0;">'
+      + '<div class="detail-client-name"><span contenteditable="true" class="editable-heading" onblur="updateField(\'clientLastName\',this.textContent.trim())">' + (p.clientLastName||'—') + '</span></div>'
+      + '<div class="detail-subtitle">'
+      + '<span contenteditable="true" class="editable-inline" onblur="updateField(\'clientFullName\',this.textContent.trim())">' + (p.clientFullName||'') + '</span><br>'
+      + '<span contenteditable="true" class="editable-inline" onblur="updateField(\'address\',this.textContent.trim())">' + (p.address||'') + '</span>'
+      + ' <span style="color:#6080a0">·</span> '
+      + '<span contenteditable="true" class="editable-inline" onblur="updateField(\'phone\',this.textContent.trim())">' + (p.phone||'') + '</span>'
+      + '</div></div>'
+      + '<div class="detail-right">'
+      + '<div class="detail-est">Est #<span contenteditable="true" class="editable-inline" onblur="updateField(\'estimateNumber\',this.textContent.trim())">' + p.estimateNumber + '</span></div>'
+      + '<div class="detail-amount">$<span contenteditable="true" class="editable-inline" onblur="updateField(\'totalAmount\',parseFloat(this.textContent.replace(/[^0-9.]/g,\'\'))||0)">' + (p.totalAmount||0).toLocaleString() + '</span></div>'
+      + '</div></div>'
+
+      + '<div class="info-grid" style="grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr;">'
+      + '<div class="info-card"><div class="info-label">Status</div><select class="status-select" onchange="updateField(\'status\',this.value)">' + statusOptions + '</select></div>'
+      + '<div class="info-card"><div class="info-label">Priority</div><input class="info-input" type="number" min="1" placeholder="—" value="' + (p.priority||'') + '" onchange="updateField(\'priority\',this.value?parseInt(this.value):null)"></div>'
+      + '<div class="info-card"><div class="info-label">Lead Tech</div><input class="info-input" type="text" maxlength="4" placeholder="AP" value="' + (p.leadTech||'') + '" oninput="updateField(\'leadTech\',this.value.trim())"></div>'
+      + '<div class="info-card"><div class="info-label">Walk / Plan</div><input class="info-input" type="date" value="' + (p.startDate||'') + '" onchange="updateField(\'startDate\',this.value)"></div>'
+      + '<div class="info-card"><div class="info-label">Fab Start</div><input class="info-input" type="date" value="' + (p.fabStart||'') + '" onchange="updateField(\'fabStart\',this.value)"></div>'
+      + '<div class="info-card"><div class="info-label">Resto Start</div><input class="info-input" type="date" value="' + (p.restoStart||'') + '" onchange="updateField(\'restoStart\',this.value)"></div>'
+      + '</div>'
+
+      + '<div class="detail-section"><div class="section-head"><div class="section-label">1. Pre-Project Setup</div><div class="section-progress" id="prog-preProject">' + preS.done + '/' + preS.total + '</div></div><div class="checklist-body" id="cl-preProject">' + preS.html + '</div></div>'
+      + '<div class="detail-section"><div class="section-head"><div class="section-label">2. Production</div><div class="section-progress" id="prog-production">' + proS.done + '/' + proS.total + '</div></div><div class="checklist-body" id="cl-production">' + proS.html + '</div></div>'
+      + '<div class="detail-section"><div class="section-head"><div class="section-label">3. Completion &amp; Closeout</div><div class="section-progress" id="prog-closeout">' + clS.done + '/' + clS.total + '</div></div><div class="checklist-body" id="cl-closeout">' + clS.html + '</div></div>'
+
+      + '<div class="detail-section zone-green"><div class="section-head"><div class="section-label">Hours Budget</div><div class="section-progress" id="detailHoursTotal">' + (p.hoursTotal||0) + ' hrs total</div></div>'
+      + '<div id="detailHoursTableWrap"></div>'
+      + '<button class="btn-add-row" onclick="addDetailHoursRow()">+ Add Row</button></div>'
+
+      + '<div class="detail-section" style="border-color:#6a4aae;">'
+      + '<div class="section-head" style="background:#2a1a5e;border-bottom-color:#6a4aae;">'
+      + '<div class="section-label" style="color:#c0b0f0;">Scheduling</div>'
+      + '<div style="display:flex;gap:8px;">'
+      + '<button onclick="pushToScheduler()" style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.06em;background:#5a3aae;color:#fff;border:none;padding:4px 10px;border-radius:3px;cursor:pointer;">Push to Scheduler ↗</button>'
+      + '<button onclick="syncFromScheduler()" style="font-family:var(--mono);font-size:9px;letter-spacing:0.06em;background:none;color:#c0b0f0;border:1px solid #6a4aae;padding:4px 10px;border-radius:3px;cursor:pointer;">Sync Dates ↙</button>'
+      + '</div></div>'
+      + '<div id="schedulingSummaryWrap" style="padding:12px 14px;background:#f5f0ff;"></div>'
+      + '</div>'
+
+      + '<div class="detail-section zone-amber"><div class="section-head"><div class="section-label">Materials Scope Summary</div></div>'
+      + '<textarea class="materials-edit" placeholder="Materials notes…" oninput="updateField(\'materialsSummary\',this.value)">' + (p.materialsSummary||'') + '</textarea></div>'
+
+      + '<div class="detail-section zone-blue"><div class="section-head"><div class="section-label">Project-Specific Supplies</div></div>'
+      + '<div id="suppliesTableWrap"></div>'
+      + '<button class="btn-add-row" onclick="addSupplyRow()" style="margin-top:4px">+ Add Item</button></div>'
+
+      + '<div class="detail-section" style="border-color:#7ab07a;">'
+      + '<div class="section-head" style="background:#1e3d1e;border-bottom-color:#4a7c4a;">'
+      + '<div class="section-label" style="color:#a0d0a0;">Payments Received</div>'
+      + '<div style="font-family:var(--mono);font-size:10px;color:#8a9a7a;font-weight:600;" id="paymentsRemaining"></div>'
+      + '</div>'
+      + '<div id="paymentsTableWrap"></div>'
+      + '<button class="btn-add-row" onclick="addPaymentRow()" style="margin-top:4px;margin-bottom:4px;">+ Add Payment</button></div>'
+
+      + '<div class="detail-section"><div class="section-head"><div class="section-label">Notes</div></div>'
+      + '<textarea class="editable-area" placeholder="Add project notes…" oninput="updateField(\'notes\',this.value)">' + (p.notes||'') + '</textarea></div>'
+
+      + '<div style="display:flex;justify-content:space-between;padding:4px 0 16px;align-items:center;">'
+      + '<button class="btn-delete-project" onclick="deleteProject()">Delete Project</button>'
+      + '<button class="btn-save" onclick="saveProject()" style="padding:8px 20px;">Save Changes</button>'
+      + '</div>';
+
+    renderDetailHoursTable();
+    renderSuppliesTable();
+    renderPaymentsTable();
+    renderSchedulingSummary();
+  }
+
+  // ── DETAIL HOURS TABLE ──
+  function detectType(scope) {
+    var s = (scope || '').toLowerCase();
+    if (s.startsWith('fab')) return 'fab';
+    if (s.startsWith('walk') || s.startsWith('plan')) return 'walk';
+    return 'resto';
+  }
+
+  function renderDetailHoursTable() {
+    var html = '<table class="hours-table"><thead><tr>'
+      + '<th>Type</th>'
+      + '<th>Scope</th>'
+      + '<th style="width:55px">Units</th>'
+      + '<th style="width:90px">Rate (hrs/unit)</th>'
+      + '<th style="width:65px">Total</th>'
+      + '<th style="width:30px"></th>'
+      + '</tr></thead><tbody>';
+    _detailHoursRows.forEach(function(row) {
+      if (!row.type) row.type = detectType(row.scope);
+      var typeOpts = ['fab','resto','walk'].map(function(t) {
+        return '<option value="' + t + '"' + (row.type===t?' selected':'') + '>' + t.charAt(0).toUpperCase()+t.slice(1) + '</option>';
+      }).join('');
+      var typeColor = row.type==='fab' ? '#2d6a2d' : row.type==='walk' ? '#8a6000' : '#1a4a6e';
+      html += '<tr>'
+        + '<td><select style="font-family:var(--mono);font-size:10px;font-weight:600;color:' + typeColor + ';background:none;border:1px solid var(--border);border-radius:3px;padding:2px 4px;cursor:pointer;" onchange="updateDetailHours(' + row.id + ',\'type\',this.value)">' + typeOpts + '</select></td>'
+        + '<td><input class="cell-edit" type="text" value="' + row.scope + '" oninput="updateDetailHours(' + row.id + ',\'scope\',this.value)"></td>'
+        + '<td><input class="cell-edit num" type="number" min="0" value="' + row.units + '" oninput="updateDetailHours(' + row.id + ',\'units\',this.value)"></td>'
+        + '<td><input class="cell-edit num" type="number" min="0" step="0.5" value="' + row.rate + '" oninput="updateDetailHours(' + row.id + ',\'rate\',this.value)"></td>'
+        + '<td><span class="total-display" id="drow-' + row.id + '">' + (row._total||0) + ' hrs</span></td>'
+        + '<td><button class="btn-del-row" onclick="deleteDetailHoursRow(' + row.id + ')">×</button></td>'
+        + '</tr>';
+    });
+    html += '<tr class="total-row"><td></td><td>Project Total</td><td></td><td></td><td id="detailHoursTotalCell">' + calcDetailHoursTotal() + ' hrs</td><td></td></tr>';
+    html += '</tbody></table>';
+    document.getElementById('detailHoursTableWrap').innerHTML = html;
+  }
+
+  function calcDetailHoursTotal() {
+    return Math.round(_detailHoursRows.reduce(function(s,r){ return s + (r._total||0); }, 0) * 10) / 10;
+  }
+
+  window.addDetailHoursRow = function() {
+    _detailHoursRows.push({ id: Date.now(), scope: '', units: 0, rate: 0, _total: 0 });
+    renderDetailHoursTable();
+    markDirty();
+  };
+
+  window.deleteDetailHoursRow = function(id) {
+    _detailHoursRows = _detailHoursRows.filter(function(r){ return r.id !== id; });
+    renderDetailHoursTable();
+    syncDetailHoursToProject();
+    markDirty();
+  };
+
+  window.updateDetailHours = function(id, field, value) {
+    var row = _detailHoursRows.find(function(r){ return r.id === id; });
+    if (!row) return;
+    if (field === 'type') { row.type = value; renderDetailHoursTable(); }
+    else { row[field] = field === 'scope' ? value : (parseFloat(value)||0); }
+    row._total = Math.round(row.units * row.rate * 10) / 10;
+    var el = document.getElementById('drow-' + id);
+    if (el) el.textContent = row._total + ' hrs';
+    var tot = calcDetailHoursTotal();
+    var tc = document.getElementById('detailHoursTotalCell');
+    if (tc) tc.textContent = tot + ' hrs';
+    var th = document.getElementById('detailHoursTotal');
+    if (th) th.textContent = tot + ' hrs total';
+    syncDetailHoursToProject();
+    renderSchedulingSummary();
+    markDirty();
+  };
+
+  function syncDetailHoursToProject() {
+    _currentProject.hoursBudget = _detailHoursRows.map(function(r) {
+      return { scope: r.scope, units: r.units, benchmark: r.rate + ' hrs/unit', total: r._total, type: r.type || detectType(r.scope) };
+    });
+    _currentProject.hoursTotal = calcDetailHoursTotal();
+  }
+
+  // ── SCHEDULING SUMMARY ──
+  function renderSchedulingSummary() {
+    var p = _currentProject;
+    var lead = p.leadTech || '—';
+    var fabStart  = p.fabStart   || null;
+    var restoStart = p.restoStart || null;
+
+    // Derive earliest production date for walk calc
+    var dates = [fabStart, restoStart].filter(Boolean).sort();
+    var earliestProd = dates.length ? dates[0] : null;
+    var walkDate = p.startDate || (earliestProd ? subtractDays(earliestProd, 14) : null);
+
+    // Tally hours by type
+    var fabHours   = _detailHoursRows.filter(function(r){ return (r.type||detectType(r.scope))==='fab'; }).reduce(function(s,r){ return s+(r._total||0); },0);
+    var restoHours = _detailHoursRows.filter(function(r){ return (r.type||detectType(r.scope))==='resto'; }).reduce(function(s,r){ return s+(r._total||0); },0);
+    var walkHours  = 4; // flat
+
+    var adamHours    = Math.round(fabHours * 0.5 * 10)/10;
+    var floaterHours = Math.round(fabHours * 0.5 * 10)/10;
+    var adamDays     = Math.ceil(adamHours / 8);
+    var floaterDays  = Math.ceil(floaterHours / 8);
+    var restoDays    = Math.ceil(restoHours / 8);
+
+    // Calculate floater start = day after Adam ends
+    var adamEndDate = fabStart && adamDays > 0 ? addBizDays(fabStart, adamDays - 1) : null;
+    var floaterStart = adamEndDate ? addBizDays(adamEndDate, 1) : null;
+
+    function fmtD(d) { return d ? d.split('-').slice(1).map(function(x){ return parseInt(x); }).join('/') : '—'; }
+
+    var cards = [];
+    if (walkDate) cards.push({ type:'walk',  emp: lead,       start: walkDate,   days: 1,          hrs: 4 });
+    if (fabStart && adamHours > 0)    cards.push({ type:'fab',   emp: 'Adam',       start: fabStart,   days: adamDays,    hrs: adamHours });
+    if (floaterStart && floaterHours > 0) cards.push({ type:'fab',   emp: 'Floater A',  start: floaterStart, days: floaterDays, hrs: floaterHours });
+    if (restoStart && restoHours > 0) cards.push({ type:'resto', emp: lead,        start: restoStart, days: restoDays,   hrs: restoHours });
+
+    var typeColors = { walk: '#8a6000', fab: '#2d6a2d', resto: '#1a4a6e' };
+    var typeBg     = { walk: '#fdf5e0', fab: '#eaf3ea', resto: '#e8f2fa' };
+
+    var cardsHtml = cards.length ? '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px;">'
+      + '<thead><tr style="background:#ede8f8;font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:#6a4aae;">'
+      + '<th style="padding:6px 10px;text-align:left;">Type</th><th style="padding:6px 10px;text-align:left;">Assigned To</th>'
+      + '<th style="padding:6px 10px;text-align:left;">Start</th><th style="padding:6px 10px;text-align:right;">Days</th><th style="padding:6px 10px;text-align:right;">Hours</th></tr></thead><tbody>'
+      + cards.map(function(c) {
+          return '<tr style="border-bottom:1px solid #e0d8f8;">'
+            + '<td style="padding:6px 10px;font-family:var(--mono);font-size:10px;font-weight:600;color:' + typeColors[c.type] + ';background:' + typeBg[c.type] + ';">' + c.type.toUpperCase() + '</td>'
+            + '<td style="padding:6px 10px;">' + c.emp + '</td>'
+            + '<td style="padding:6px 10px;font-family:var(--mono);font-size:11px;">' + fmtD(c.start) + '</td>'
+            + '<td style="padding:6px 10px;font-family:var(--mono);font-size:11px;text-align:right;">' + c.days + 'd</td>'
+            + '<td style="padding:6px 10px;font-family:var(--mono);font-size:11px;text-align:right;">' + c.hrs + '</td>'
+            + '</tr>';
+        }).join('')
+      + '</tbody></table>' : '<div style="font-size:12px;color:#a09880;font-style:italic;padding:8px 0;">Set Fab Start and/or Resto Start dates above to generate schedule cards.</div>';
+
+    var harvestHtml = '<div style="background:#fff;border:1px solid #c8b8f0;border-radius:4px;padding:10px 14px;">'
+      + '<div style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#6a4aae;margin-bottom:8px;">Harvest Entry Summary</div>'
+      + '<table style="width:100%;border-collapse:collapse;font-size:12px;">'
+      + '<tr><td style="padding:3px 0;color:#5f5e5a;">Restoration</td><td style="font-family:var(--mono);font-weight:600;text-align:right;">' + restoHours + ' hrs</td></tr>'
+      + '<tr><td style="padding:3px 0;color:#5f5e5a;">Fabrication</td><td style="font-family:var(--mono);font-weight:600;text-align:right;">' + fabHours + ' hrs</td></tr>'
+      + '<tr><td style="padding:3px 0;color:#5f5e5a;">Walk / Plan</td><td style="font-family:var(--mono);font-weight:600;text-align:right;">4 hrs</td></tr>'
+      + '<tr style="border-top:1px solid #c8b8f0;"><td style="padding:5px 0 2px;font-weight:600;">Total</td><td style="font-family:var(--mono);font-weight:700;font-size:13px;text-align:right;">' + (restoHours + fabHours + walkHours) + ' hrs</td></tr>'
+      + '</table></div>';
+
+    document.getElementById('schedulingSummaryWrap').innerHTML = cardsHtml + harvestHtml;
+  }
+
+  function subtractDays(dateStr, n) {
+    var d = new Date(dateStr.split('-').map(Number).reduce(function(acc, v, i) { acc[i]=v; return acc; }, []));
+    var parts = dateStr.split('-').map(Number);
+    var d2 = new Date(parts[0], parts[1]-1, parts[2] - n);
+    return dateKey2(d2);
+  }
+  function dateKey2(d) {
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function addBizDays(startStr, n) {
+    var parts = startStr.split('-').map(Number);
+    var d = new Date(parts[0], parts[1]-1, parts[2]);
+    var added = 0;
+    while (added < n) { d.setDate(d.getDate()+1); var dow = d.getDay(); if (dow!==0&&dow!==6) added++; }
+    return dateKey2(d);
+  }
+
+  // ── PUSH TO SCHEDULER ──
+  window.pushToScheduler = function() {
+    var p = _currentProject;
+    if (!p.priority) { showToast('Set a Priority # first — it links to the scheduler', true); return; }
+
+    var lead      = p.leadTech || '';
+    var fabStart  = p.fabStart   || null;
+    var restoStart = p.restoStart || null;
+    var dates     = [fabStart, restoStart].filter(Boolean).sort();
+    var earliestProd = dates.length ? dates[0] : null;
+    var walkDate  = p.startDate || (earliestProd ? subtractDays(earliestProd, 14) : null);
+
+    var fabHours   = _detailHoursRows.filter(function(r){ return (r.type||detectType(r.scope))==='fab'; }).reduce(function(s,r){ return s+(r._total||0); },0);
+    var restoHours = _detailHoursRows.filter(function(r){ return (r.type||detectType(r.scope))==='resto'; }).reduce(function(s,r){ return s+(r._total||0); },0);
+    var adamHours    = Math.round(fabHours * 0.5 * 10)/10;
+    var floaterHours = Math.round(fabHours * 0.5 * 10)/10;
+    var adamDays     = Math.ceil(adamHours / 8);
+    var floaterDays  = Math.ceil(floaterHours / 8);
+    var restoDays    = Math.ceil(restoHours / 8);
+
+    var adamEndDate   = fabStart && adamDays > 0 ? addBizDays(fabStart, adamDays - 1) : null;
+    var floaterStart  = adamEndDate ? addBizDays(adamEndDate, 1) : null;
+    var floaterEnd    = floaterStart && floaterDays > 0 ? addBizDays(floaterStart, floaterDays - 1) : floaterStart;
+    var restoEnd      = restoStart && restoDays > 0 ? addBizDays(restoStart, restoDays - 1) : restoStart;
+
+    var newCards = [];
+    function mkUid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
+
+    if (walkDate && lead) {
+      newCards.push({ id: mkUid(), emp: lead, type: 'walk', client: p.clientLastName||'', desc: 'Walk/Plan', startDate: walkDate, endDate: walkDate, priorityId: p.priority });
+    }
+    if (fabStart && adamHours > 0) {
+      newCards.push({ id: mkUid(), emp: 'AB', type: 'fab', client: p.clientLastName||'', desc: 'Fabrication', startDate: fabStart, endDate: adamEndDate||fabStart, priorityId: p.priority });
+    }
+    if (floaterStart && floaterHours > 0) {
+      newCards.push({ id: mkUid(), emp: 'FA', type: 'fab', client: p.clientLastName||'', desc: 'Fabrication', startDate: floaterStart, endDate: floaterEnd||floaterStart, priorityId: p.priority });
+    }
+    if (restoStart && restoHours > 0 && lead) {
+      newCards.push({ id: mkUid(), emp: lead, type: 'resto', client: p.clientLastName||'', desc: 'Restoration', startDate: restoStart, endDate: restoEnd||restoStart, priorityId: p.priority });
+    }
+
+    if (!newCards.length) { showToast('No cards to push — add dates and hours first', true); return; }
+
+    var msg = 'Push ' + newCards.length + ' card(s) to Scheduler for #' + p.priority + ' ' + (p.clientLastName||'') + '?\n\nExisting cards for this project will not be removed.';
+    if (!window.confirm(msg)) return;
+
+    var schedRef = db.collection('boards').doc('schedule');
+    schedRef.get().then(function(snap) {
+      var existingCards = [];
+      if (snap && snap.exists) {
+        var data = snap.data();
+        existingCards = (data && data.cards) ? data.cards : [];
+      }
+      var merged = existingCards.concat(newCards);
+      return schedRef.update({ cards: merged }).catch(function() {
+        // If doc doesn't exist yet, create it
+        return schedRef.set({ cards: merged });
+      });
+    }).then(function() {
+      showToast('Pushed ' + newCards.length + ' card(s) to Scheduler ✓');
+    }).catch(function(e) {
+      showToast('Push failed: ' + e.message, true);
+      console.error('Push error:', e);
+    });
+  };
+
+  // ── SYNC FROM SCHEDULER ──
+  window.syncFromScheduler = function() {
+    var p = _currentProject;
+    if (!p.priority) { showToast('No Priority # set — cannot match scheduler cards', true); return; }
+
+    db.collection('boards').doc('schedule').get().then(function(snap) {
+      if (!snap.exists) { showToast('No schedule data found', true); return; }
+      var cards = snap.data().cards || [];
+      var linked = cards.filter(function(c) { return c.priorityId === p.priority && c.type !== 'off'; });
+      if (!linked.length) { showToast('No cards found for Priority #' + p.priority, true); return; }
+
+      var fabCards   = linked.filter(function(c){ return c.type==='fab'; });
+      var restoCards = linked.filter(function(c){ return c.type==='resto'; });
+      var walkCards  = linked.filter(function(c){ return c.type==='walk'; });
+
+      var fabStart   = fabCards.length   ? fabCards.sort(function(a,b){ return a.startDate.localeCompare(b.startDate); })[0].startDate   : null;
+      var restoStart = restoCards.length ? restoCards.sort(function(a,b){ return a.startDate.localeCompare(b.startDate); })[0].startDate : null;
+      var walkDate   = walkCards.length  ? walkCards.sort(function(a,b){ return a.startDate.localeCompare(b.startDate); })[0].startDate  : null;
+
+      var msg = 'Sync dates from Scheduler?\n';
+      if (fabStart)   msg += '\nFab Start: '   + fabStart;
+      if (restoStart) msg += '\nResto Start: ' + restoStart;
+      if (walkDate)   msg += '\nWalk/Plan: '   + walkDate;
+      if (!window.confirm(msg)) return;
+
+      if (fabStart)   { _currentProject.fabStart   = fabStart;   }
+      if (restoStart) { _currentProject.restoStart = restoStart; }
+      if (walkDate)   { _currentProject.startDate  = walkDate;   }
+      markDirty();
+      renderDetail(_currentProject);
+      showToast('Dates synced from Scheduler ✓');
+    }).catch(function(e) { showToast('Sync failed: ' + e.message, true); });
+  };
+  function renderSuppliesTable() {
+    var html = '<table class="supplies-table"><thead><tr><th>Item</th><th style="width:60px">Qty</th><th style="width:80px">Unit</th><th>Notes</th><th style="width:30px"></th></tr></thead><tbody>';
+    _suppliesRows.forEach(function(row) {
+      html += '<tr>'
+        + '<td><input class="sup-input" type="text" value="' + (row.item||'') + '" placeholder="Item description" oninput="updateSupplyRow(' + row.id + ',\'item\',this.value)"></td>'
+        + '<td><input class="sup-input num" type="number" min="0" value="' + (row.qty||'') + '" oninput="updateSupplyRow(' + row.id + ',\'qty\',this.value)"></td>'
+        + '<td><input class="sup-input" type="text" value="' + (row.unit||'') + '" placeholder="ea / ft / pkg" oninput="updateSupplyRow(' + row.id + ',\'unit\',this.value)"></td>'
+        + '<td><input class="sup-input" type="text" value="' + (row.notes||'') + '" placeholder="Notes" oninput="updateSupplyRow(' + row.id + ',\'notes\',this.value)"></td>'
+        + '<td><button class="btn-del-row" onclick="deleteSupplyRow(' + row.id + ')">×</button></td>'
+        + '</tr>';
+    });
+    if (!_suppliesRows.length) html += '<tr><td colspan="5" style="padding:10px;color:#a09880;font-style:italic;font-size:12px;">No supplies added yet.</td></tr>';
+    html += '</tbody></table>';
+    document.getElementById('suppliesTableWrap').innerHTML = html;
+  }
+
+  window.addSupplyRow = function() {
+    _suppliesRows.push({ id: Date.now(), item: '', qty: '', unit: '', notes: '' });
+    renderSuppliesTable();
+    markDirty();
+  };
+
+  window.deleteSupplyRow = function(id) {
+    _suppliesRows = _suppliesRows.filter(function(r){ return r.id !== id; });
+    renderSuppliesTable();
+    syncSupplies();
+    markDirty();
+  };
+
+  window.updateSupplyRow = function(id, field, value) {
+    var row = _suppliesRows.find(function(r){ return r.id === id; });
+    if (row) { row[field] = value; syncSupplies(); markDirty(); }
+  };
+
+  function syncSupplies() {
+    _currentProject.supplies = _suppliesRows.map(function(r) {
+      return { item: r.item, qty: r.qty, unit: r.unit, notes: r.notes };
+    });
+  }
+
+  // ── CHECKLIST INTERACTIONS ──
+  function updateProgress(section) {
+    var cl = _currentProject.checklist || {};
+    var removed = (_currentProject.removedTasks || {})[section] || [];
+    var stdKeys = Object.keys(CHECKLIST_LABELS[section] || {}).filter(function(k){ return removed.indexOf(k)===-1; });
+    var customItems = (cl.custom || {})[section] || [];
+    var done = stdKeys.filter(function(k){ return (cl[section]||{})[k]; }).length
+             + customItems.filter(function(i){ return i.done; }).length;
+    var el = document.getElementById('prog-' + section);
+    if (el) el.textContent = done + '/' + (stdKeys.length + customItems.length);
+  }
+
+  window.toggleCheck = function(section, key, el) {
+    var p = _currentProject;
+    if (!p.checklist) p.checklist = {};
+    if (!p.checklist[section]) p.checklist[section] = {};
+    var newVal = !p.checklist[section][key];
+    p.checklist[section][key] = newVal;
+    var box = el.querySelector('.check-box');
+    if (newVal) { box.classList.add('checked'); el.classList.add('done'); }
+    else { box.classList.remove('checked'); el.classList.remove('done'); }
+    updateProgress(section);
+    markDirty();
+  };
+
+  window.toggleCustomCheck = function(section, idx, el) {
+    var p = _currentProject;
+    if (!p.checklist.custom) p.checklist.custom = {};
+    if (!p.checklist.custom[section]) p.checklist.custom[section] = [];
+    var item = p.checklist.custom[section][idx];
+    if (!item) return;
+    item.done = !item.done;
+    var box = el.querySelector('.check-box');
+    if (item.done) { box.classList.add('checked'); el.classList.add('done'); }
+    else { box.classList.remove('checked'); el.classList.remove('done'); }
+    updateProgress(section);
+    markDirty();
+  };
+
+  window.addCustomItem = function(section) {
+    var input = document.getElementById('add-' + section);
+    if (!input) return;
+    var label = (input.value || '').trim();
+    if (!label) return;
+    var p = _currentProject;
+    if (!p.checklist.custom) p.checklist.custom = {};
+    if (!p.checklist.custom[section]) p.checklist.custom[section] = [];
+    p.checklist.custom[section].push({ label: label, done: false });
+    markDirty();
+    renderDetail(p);
+  };
+
+  window.editStdItem = function(section, key) {
+    var current = CHECKLIST_LABELS[section][key];
+    var newLabel = window.prompt('Edit task label:', current);
+    if (newLabel && newLabel.trim() && newLabel.trim() !== current) {
+      // Move to custom, mark as removed from std
+      if (!_currentProject.removedTasks) _currentProject.removedTasks = {};
+      if (!_currentProject.removedTasks[section]) _currentProject.removedTasks[section] = [];
+      _currentProject.removedTasks[section].push(key);
+      if (!_currentProject.checklist.custom) _currentProject.checklist.custom = {};
+      if (!_currentProject.checklist.custom[section]) _currentProject.checklist.custom[section] = [];
+      _currentProject.checklist.custom[section].unshift({ label: newLabel.trim(), done: !!(_currentProject.checklist[section]||{})[key] });
+      markDirty();
+      renderDetail(_currentProject);
+    }
+  };
+
+  window.deleteStdItem = function(section, key) {
+    if (!window.confirm('Remove "' + CHECKLIST_LABELS[section][key] + '" from this project?')) return;
+    if (!_currentProject.removedTasks) _currentProject.removedTasks = {};
+    if (!_currentProject.removedTasks[section]) _currentProject.removedTasks[section] = [];
+    if (_currentProject.removedTasks[section].indexOf(key) === -1)
+      _currentProject.removedTasks[section].push(key);
+    markDirty();
+    renderDetail(_currentProject);
+  };
+
+  window.editCustomItem = function(section, idx) {
+    var item = (_currentProject.checklist.custom || {})[section]?.[idx];
+    if (!item) return;
+    var newLabel = window.prompt('Edit task label:', item.label);
+    if (newLabel && newLabel.trim()) { item.label = newLabel.trim(); markDirty(); renderDetail(_currentProject); }
+  };
+
+  window.deleteCustomItem = function(section, idx) {
+    var items = (_currentProject.checklist.custom || {})[section];
+    if (!items) return;
+    if (!window.confirm('Remove this task?')) return;
+    items.splice(idx, 1);
+    markDirty();
+    renderDetail(_currentProject);
+  };
+
+  // ── FIELD UPDATE ──
+  window.updateField = function(field, value) {
+    _currentProject[field] = value;
+    markDirty();
+  };
+
+  // ── DELETE PROJECT ──
+  window.deleteProject = function() {
+    var p = _currentProject;
+    if (!window.confirm('Delete project "' + (p.clientLastName||p.estimateNumber) + '"?\n\nThis cannot be undone.')) return;
+    db.collection('pm_projects').doc(p.id).delete().then(function() {
+      showToast('Project deleted');
+      showList();
+    }).catch(function(e) { showToast('Delete failed: ' + e.message, true); });
+  };
+
+  // ── PAYMENTS TABLE ──
+  var _paymentRows = [];
+
+  function renderPaymentsTable() {
+    var wrap = document.getElementById('paymentsTableWrap');
+    if (!wrap) return;
+    var html = '<table class="supplies-table"><thead><tr>'
+      + '<th>Invoice #</th><th style="width:120px">Pay Date</th>'
+      + '<th style="width:110px">Amount ($)</th><th style="width:30px"></th>'
+      + '</tr></thead><tbody>';
+    _paymentRows.forEach(function(row) {
+      html += '<tr>'
+        + '<td><input class="sup-input" type="text" value="' + (row.invoiceNum||'') + '" placeholder="INV-001" oninput="updatePaymentRow(' + row.id + ',\'invoiceNum\',this.value)"></td>'
+        + '<td><input class="sup-input" type="date" value="' + (row.payDate||'') + '" oninput="updatePaymentRow(' + row.id + ',\'payDate\',this.value)"></td>'
+        + '<td><input class="sup-input num" type="number" min="0" value="' + (row.amount||'') + '" placeholder="0" oninput="updatePaymentRow(' + row.id + ',\'amount\',this.value)"></td>'
+        + '<td><button class="btn-del-row" onclick="deletePaymentRow(' + row.id + ')">×</button></td>'
+        + '</tr>';
+    });
+    if (!_paymentRows.length) html += '<tr><td colspan="4" style="padding:10px;color:#a09880;font-style:italic;font-size:12px;">No payments recorded yet.</td></tr>';
+    html += '</tbody></table>';
+    wrap.innerHTML = html;
+    updatePaymentsSummary();
+  }
+
+  function updatePaymentsSummary() {
+    var p = _currentProject;
+    var paid = _paymentRows.reduce(function(s,r){ return s+(parseFloat(r.amount)||0); }, 0);
+    var remaining = (p.totalAmount||0) - paid;
+    var el = document.getElementById('paymentsRemaining');
     if (!el) return;
-    (state[zone] || []).forEach(item => el.appendChild(makeCard(item, zone)));
-  });
-  toast("Board loaded.");
-})();
+    if (paid > 0) {
+      el.textContent = '$' + paid.toLocaleString() + ' paid · $' + remaining.toLocaleString() + ' remaining';
+      el.style.color = remaining <= 0 ? '#4aaa4a' : '#8a9a7a';
+    } else {
+      el.textContent = '$' + (p.totalAmount||0).toLocaleString() + ' outstanding';
+    }
+  }
+
+  window.addPaymentRow = function() {
+    _paymentRows.push({ id: Date.now(), invoiceNum: '', payDate: '', amount: '' });
+    renderPaymentsTable();
+    markDirty();
+  };
+
+  window.deletePaymentRow = function(id) {
+    _paymentRows = _paymentRows.filter(function(r){ return r.id !== id; });
+    renderPaymentsTable();
+    syncPayments();
+    markDirty();
+  };
+
+  window.updatePaymentRow = function(id, field, value) {
+    var row = _paymentRows.find(function(r){ return r.id === id; });
+    if (row) { row[field] = value; syncPayments(); updatePaymentsSummary(); markDirty(); }
+  };
+
+  function syncPayments() {
+    _currentProject.payments = _paymentRows.map(function(r) {
+      return { invoiceNum: r.invoiceNum, payDate: r.payDate, amount: parseFloat(r.amount)||0 };
+    });
+  }
+
+  // ── SAVE ──
+  window.saveProject = function() {
+    var p = _currentProject;
+    var btn = document.getElementById('btnSave');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    document.getElementById('saveStatus').textContent = 'Saving…';
+    syncDetailHoursToProject();
+    syncSupplies();
+    syncPayments();
+    db.collection('pm_projects').doc(p.id).set(Object.assign({}, p, { updatedAt: firebase.firestore.FieldValue.serverTimestamp() }))
+      .then(function() {
+        hideSaveBar(); _dirty = false; showToast('Saved ✓');
+      }).catch(function(e) { showToast('Save failed: ' + e.message, true); })
+      .finally(function() { btn.disabled = false; btn.textContent = 'Save Changes'; });
+  };
+
+  function markDirty() {
+    _dirty = true;
+    var b = document.getElementById('saveBar'); if(b) b.classList.add('visible');
+    var t = document.getElementById('btnSaveTop'); if(t) t.classList.add('visible');
+    document.getElementById('saveStatus').textContent = 'Unsaved changes';
+  }
+  function hideSaveBar() {
+    var b = document.getElementById('saveBar'); if(b) b.classList.remove('visible');
+    var t = document.getElementById('btnSaveTop'); if(t) t.classList.remove('visible');
+  }
+
+  // ── TOAST ──
+  window.showToast = function(msg, isError) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast' + (isError ? ' error' : '') + ' show';
+    setTimeout(function(){ t.classList.remove('show'); }, 2800);
+  };
+
+  window.addEventListener('beforeunload', function(e) { if (_dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+  // ── NEW PROJECT FORM ──
+  window.showNewProject = function() {
+    ['f-est','f-lastname','f-fullname','f-address','f-phone','f-lead','f-amount','f-scope','f-materials','f-notes'].forEach(function(id){
+      var el = document.getElementById(id); if(el) el.value = '';
+    });
+    document.getElementById('f-startdate').value = '';
+    document.getElementById('f-status').value = 'active';
+    document.getElementById('f-priority').value = '';
+    _hoursRows = [];
+    renderHoursTable();
+    addHoursRow();
+    document.getElementById('viewList').classList.remove('active');
+    document.getElementById('viewNew').classList.add('active');
+    document.getElementById('btnBack').classList.add('visible');
+    window.scrollTo(0, 0);
+  };
+
+  window.addHoursRow = function() { _hoursRows.push({ id: Date.now(), scope: '', units: '', rate: '' }); renderHoursTable(); };
+  window.removeHoursRow = function(id) { _hoursRows = _hoursRows.filter(function(r){ return r.id !== id; }); renderHoursTable(); };
+  window.updateHoursRow = function(id, field, value) { var r = _hoursRows.find(function(r){ return r.id===id; }); if(r) r[field]=value; recalcHours(); };
+
+  function recalcHours() {
+    var total = 0;
+    _hoursRows.forEach(function(row) {
+      var u = parseFloat(row.units)||0, r = parseFloat(row.rate)||0;
+      row._total = Math.round(u*r*10)/10; total += row._total;
+      var el = document.getElementById('row-total-'+row.id);
+      if(el) el.textContent = row._total > 0 ? row._total+' hrs' : '—';
+    });
+    var te = document.getElementById('hoursTotalDisplay'); if(te) te.textContent = Math.round(total*10)/10+' hrs';
+  }
+
+  function renderHoursTable() {
+    document.getElementById('hoursTableBody').innerHTML = _hoursRows.map(function(row) {
+      return '<tr>'
+        + '<td><input class="cell-input" type="text" placeholder="Site - Triage" value="'+row.scope+'" oninput="updateHoursRow('+row.id+',\'scope\',this.value)"></td>'
+        + '<td><input class="cell-input num" type="number" min="0" placeholder="0" value="'+row.units+'" oninput="updateHoursRow('+row.id+',\'units\',this.value)"></td>'
+        + '<td><input class="cell-input num" type="number" min="0" step="0.5" placeholder="0.0" value="'+row.rate+'" oninput="updateHoursRow('+row.id+',\'rate\',this.value)"></td>'
+        + '<td><span class="hours-total-display" id="row-total-'+row.id+'">'+(row._total>0?row._total+' hrs':'—')+'</span></td>'
+        + '<td><button class="btn-del-row" onclick="removeHoursRow('+row.id+')">×</button></td>'
+        + '</tr>';
+    }).join('');
+    recalcHours();
+  }
+
+  window.createProject = function() {
+    var lastName = document.getElementById('f-lastname').value.trim();
+    var fullName = document.getElementById('f-fullname').value.trim();
+    var amount = document.getElementById('f-amount').value.trim();
+    var scope = document.getElementById('f-scope').value.trim();
+    if (!lastName || !fullName || !amount || !scope) { showToast('Please fill in required fields', true); return; }
+
+    var estNum = document.getElementById('f-est').value.trim();
+    if (!estNum) { _manualCounter++; estNum = 'MANUAL-' + String(_manualCounter).padStart(3,'0'); }
+
+    db.collection('pm_projects').doc(estNum).get().then(function(existing) {
+      if (existing.exists) { showToast('Est # '+estNum+' already exists', true); return; }
+      recalcHours();
+      var hoursBudget = _hoursRows.filter(function(r){ return r.scope; }).map(function(r){
+        return { scope: r.scope, units: parseFloat(r.units)||0, benchmark: r.rate+' hrs/unit', total: r._total||0 };
+      });
+      var hoursTotal = Math.round(hoursBudget.reduce(function(s,r){ return s+r.total; },0)*10)/10;
+      var newProject = {
+        estimateNumber: estNum,
+        clientLastName: lastName, clientFullName: fullName,
+        address: document.getElementById('f-address').value.trim(),
+        phone: document.getElementById('f-phone').value.trim(),
+        leadTech: document.getElementById('f-lead').value.trim(),
+        totalAmount: parseFloat(amount)||0,
+        scopeSummary: scope,
+        materialsSummary: document.getElementById('f-materials').value.trim(),
+        notes: document.getElementById('f-notes').value.trim(),
+        supplies: [],
+        priority: document.getElementById('f-priority').value ? parseInt(document.getElementById('f-priority').value) : null,
+        status: document.getElementById('f-status').value,
+        startDate: document.getElementById('f-startdate').value || null,
+        hoursBudget: hoursBudget, hoursTotal: hoursTotal,
+        checklist: {
+          preProject: { contractSigned:false,siteAccessConfirmed:false,addedToHarvest:false,hoursBudgetEntered:false,addedToStreak:false,specialRequirementsDocumented:false,leadTimeMaterialsOrdered:false,screenMeasureScheduled:false },
+          production: { shopWorkScheduled:false,siteWorkScheduled:false,materialsReceivedAndStaged:false,crewAssignedAndBriefed:false,workInProgress:false },
+          closeout: { finalWalkthrough:false,photosDocumented:false,punchListCompleted:false,postProjectAnalysis:false,finalInvoiceSent:false,followUpScheduled:false,paymentReceived:false },
+          custom: { preProject:[], production:[], closeout:[] }
+        },
+        removedTasks: {},
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      };
+      var btn = document.getElementById('btnCreate');
+      btn.disabled = true; btn.textContent = 'Creating…';
+      db.collection('pm_projects').doc(estNum).set(newProject).then(function() {
+        showToast('Project created ✓');
+        _currentProject = Object.assign({ id: estNum }, newProject);
+        renderDetail(_currentProject);
+        document.getElementById('viewNew').classList.remove('active');
+        document.getElementById('viewDetail').classList.add('active');
+        window.scrollTo(0,0);
+      }).catch(function(e) {
+        showToast('Error: '+e.message, true);
+        btn.disabled = false; btn.textContent = 'Create Project';
+      });
+    });
+  };
+
+  // ── INIT ──
+  loadProjects();
 </script>
 </body>
 </html>
