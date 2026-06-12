@@ -1006,33 +1006,77 @@ function renderMonth() {
 function openMonthBarPicker(bar) {
   const barCards = bar.cardIds.map(id => cards.find(c => c.id === id)).filter(Boolean);
   const colors = getBarColors(bar.type);
-  const items = barCards.map(c =>
-    `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:0.5px solid var(--border-light);cursor:pointer;"
-      onclick="openEditModal('${c.id}');document.getElementById('month-bar-picker').remove()">
-      <span style="font-size:13px;">${getInitials(c.emp)} — ${c.startDate} → ${c.endDate}</span>
-      <span style="font-size:11px;font-family:monospace;color:${colors.text};background:${colors.bg};padding:2px 7px;border-radius:3px;border:0.5px solid ${colors.border};">${normalizeType(c.type)}</span>
-    </div>`
-  ).join('');
+
   const existing = document.getElementById('month-bar-picker');
   if (existing) existing.remove();
   const picker = document.createElement("div");
   picker.id = "month-bar-picker";
   picker.style.cssText = "position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);"
     + "background:var(--bg-primary);border:0.5px solid var(--border-mid);border-radius:var(--radius-lg);"
-    + "box-shadow:0 4px 24px rgba(0,0,0,0.15);z-index:250;width:360px;overflow:hidden;";
-  picker.innerHTML = `
-    <div style="padding:14px 16px;border-bottom:0.5px solid var(--border-light);display:flex;justify-content:space-between;align-items:center;">
-      <span style="font-size:13px;font-weight:500;">${bar.client} — ${bar.type} cards</span>
-      <button onclick="this.closest('#month-bar-picker').remove()" style="background:none;border:none;font-size:16px;cursor:pointer;color:var(--text-tertiary);">×</button>
-    </div>
-    ${items}
-    <div style="padding:10px 12px;">
-      <button onclick="openAddModal('AB','${bar.cardIds[0]?cards.find(c=>c.id===bar.cardIds[0])?.startDate:''}');document.getElementById('month-bar-picker').remove()"
-        style="font-size:12px;font-family:inherit;background:var(--bg-secondary);border:0.5px solid var(--border-mid);border-radius:var(--radius-sm);padding:6px 14px;cursor:pointer;width:100%;">
-        + Add another card for ${bar.client}
-      </button>
-    </div>`;
+    + "box-shadow:0 4px 24px rgba(0,0,0,0.15);z-index:250;width:380px;overflow:hidden;";
+
+  const header = document.createElement("div");
+  header.style.cssText = "padding:14px 16px;border-bottom:0.5px solid var(--border-light);display:flex;justify-content:space-between;align-items:center;";
+  header.innerHTML = `<span style="font-size:13px;font-weight:500;">${bar.client} — ${bar.type}</span>`;
+  const closeBtn = document.createElement("button");
+  closeBtn.innerHTML = "×";
+  closeBtn.style.cssText = "background:none;border:none;font-size:18px;cursor:pointer;color:var(--text-tertiary);line-height:1;padding:0;";
+  closeBtn.addEventListener("click", () => picker.remove());
+  header.appendChild(closeBtn);
+  picker.appendChild(header);
+
+  barCards.forEach(c => {
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;align-items:center;justify-content:space-between;padding:10px 14px;"
+      + "border-bottom:0.5px solid var(--border-light);cursor:pointer;transition:background 0.1s;";
+    row.addEventListener("mouseenter", () => row.style.background = "var(--bg-secondary)");
+    row.addEventListener("mouseleave", () => row.style.background = "");
+
+    const info = document.createElement("div");
+    info.style.cssText = "display:flex;flex-direction:column;gap:2px;";
+    info.innerHTML = `<span style="font-size:13px;font-weight:500;">${c.emp}</span>`
+      + `<span style="font-size:11px;font-family:monospace;color:var(--text-tertiary);">${c.startDate} → ${c.endDate}</span>`;
+
+    const badge = document.createElement("span");
+    badge.style.cssText = `font-size:11px;font-family:monospace;color:${colors.text};background:${colors.bg};`
+      + `padding:2px 8px;border-radius:3px;border:0.5px solid ${colors.border};flex-shrink:0;`;
+    badge.textContent = normalizeType(c.type);
+
+    row.appendChild(info);
+    row.appendChild(badge);
+
+    // Click → teleport to week containing this card, then open edit
+    row.addEventListener("click", () => {
+      picker.remove();
+      // Navigate to the week containing this card's start date
+      anchorMonday = getMondayOf(fromKey(c.startDate));
+      setView("2week");
+      // Open edit modal after render settles
+      setTimeout(() => openEditModal(c.id), 80);
+    });
+
+    picker.appendChild(row);
+  });
+
+  // Add another card button
+  const addBtn = document.createElement("div");
+  addBtn.style.cssText = "padding:10px 12px;";
+  const btn = document.createElement("button");
+  btn.style.cssText = "font-size:12px;font-family:inherit;background:var(--bg-secondary);border:0.5px solid var(--border-mid);"
+    + "border-radius:var(--radius-sm);padding:6px 14px;cursor:pointer;width:100%;";
+  btn.textContent = `+ Add another card for ${bar.client}`;
+  btn.addEventListener("click", () => {
+    const firstCard = barCards[0];
+    picker.remove();
+    openAddModal(getEmployees()[0], firstCard ? firstCard.startDate : dateKey(new Date()));
+    // Pre-fill client
+    setTimeout(() => { document.getElementById("modal-client").value = bar.client; }, 30);
+  });
+  addBtn.appendChild(btn);
+  picker.appendChild(addBtn);
+
   document.body.appendChild(picker);
+
   // Close on outside click
   setTimeout(() => {
     document.addEventListener("click", function close(e) {
@@ -1194,10 +1238,7 @@ function buildScardEl(card, startCol, endCol) {
     e.stopPropagation();
     if (e.target.closest(".scard-btn")) return;
     if (el._wasDragged) { el._wasDragged = false; return; }
-    document.querySelectorAll(".scard.selected").forEach(s => s.classList.remove("selected"));
-    el.classList.add("selected");
-    selectedCardId = card.id;
-    copiedCard = null;
+    openEditModal(card.id);
   });
   el.addEventListener("dblclick", e => { e.stopPropagation(); openEditModal(card.id); });
 
