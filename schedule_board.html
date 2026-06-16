@@ -84,7 +84,9 @@ header h1 { font-size: 13px; font-weight: 500; color: var(--text-secondary); let
 .job-strip-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--text-tertiary); padding: 6px 6px 0 2px; display: flex; align-items: flex-start; white-space: nowrap; overflow: hidden; }
 .job-strip-cells { grid-column: 2 / 7; position: relative; min-height: 28px; display: grid; grid-template-columns: repeat(5, 1fr); }
 .job-strip-day-col { position: relative; }
-.job-bar { position: absolute; top: 4px; height: 20px; background: var(--orange-bg); border: 0.5px solid var(--orange-border); border-radius: 3px; display: flex; align-items: center; padding: 0 6px; overflow: hidden; pointer-events: none; z-index: 2; }
+.job-bar { position: absolute; top: 4px; height: 20px; background: var(--orange-bg); border: 0.5px solid var(--orange-border); border-radius: 3px; display: flex; align-items: center; padding: 0 6px; overflow: hidden; pointer-events: auto; cursor: pointer; z-index: 2; }
+.job-bar:hover { opacity: 0.8; }
+.job-bar.selected { outline: 2px solid var(--orange-border); outline-offset: 1px; }
 .job-bar-label { font-size: 10px; font-weight: 600; color: var(--orange-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ── GRID ── */
@@ -139,6 +141,9 @@ header h1 { font-size: 13px; font-weight: 500; color: var(--text-secondary); let
 .scard-off.selected   { outline-color: var(--red-border); }
 .paste-ready .day-cell { cursor: copy; }
 .paste-ready .day-cell:hover { background: var(--fab-bg); outline: 1.5px dashed var(--fab-border); outline-offset: -2px; }
+.month-job-bar.selected { outline: 2px solid var(--orange-border); outline-offset: 1px; z-index: 10; }
+.paste-ready-month .month-day-cell { cursor: copy; }
+.paste-ready-month .month-day-cell:hover { background: var(--fab-bg); outline: 1.5px dashed var(--fab-border); outline-offset: -2px; }
 
 /* ── MINI CALENDAR ── */
 .mini-cal { display: none; background: var(--bg-primary); border: 0.5px solid var(--border-mid); border-radius: var(--radius-md); padding: 5px 6px; }
@@ -442,6 +447,8 @@ let editId = null;
 let addContext = null;
 let selectedCardId = null;
 let copiedCard = null;
+let selectedJobBar = null;
+let copiedJobBar = null;
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
 
@@ -695,6 +702,27 @@ function renderJobStrip(weekBlock, weekDates) {
       label.className = "job-bar-label";
       label.textContent = job.client;
       bar.appendChild(label);
+      bar.addEventListener("click", e => {
+        e.stopPropagation();
+        document.querySelectorAll(".scard.selected").forEach(s => s.classList.remove("selected"));
+        selectedCardId = null;
+        document.querySelectorAll(".job-bar.selected, .month-job-bar.selected").forEach(b => b.classList.remove("selected"));
+        bar.classList.add("selected");
+        copiedCard = null; copiedJobBar = null;
+        document.getElementById("board-outer").classList.remove("paste-ready");
+        document.getElementById("month-outer").classList.remove("paste-ready-month");
+        // Build selectedJobBar from matching cards in this week
+        const weekStart = dateKey(weekDates[0]);
+        const weekEnd   = dateKey(weekDates[4]);
+        const matchingCards = cards.filter(c => c.client === job.client && c.type !== 'off' && c.startDate <= weekEnd && c.endDate >= weekStart);
+        const primaryType  = matchingCards.length ? normalizeType(matchingCards[0].type) : 'fab';
+        const emps         = [...new Set(matchingCards.map(c => c.emp))];
+        const cardIds      = matchingCards.map(c => c.id);
+        const desc         = matchingCards.map(c => c.desc).find(d => d) || '';
+        const priorityId   = matchingCards.map(c => c.priorityId).find(p => p) || null;
+        selectedJobBar = { client: job.client, type: primaryType, emps, cardIds, startDate: job.startDate, endDate: job.endDate, desc, priorityId };
+        toast(`"${job.client}" selected — Ctrl+C to copy, Ctrl+E to edit.`);
+      });
       stripCells.appendChild(bar);
     });
   });
@@ -792,6 +820,7 @@ function renderMonth() {
       cell.className = "month-day-cell"
         + (!inMonth ? " other-month" : "")
         + (isToday(d) ? " is-today" : "");
+      cell.dataset.day = dateKey(d);
       const num = document.createElement("div");
       num.className = "month-day-num";
       num.textContent = d.getDate();
@@ -948,12 +977,17 @@ function renderMonth() {
             el.style.pointerEvents = "auto";
 
             if (!hasMoved) {
-              // Pure click — open edit
-              if (bar.cardIds.length === 1) {
-                openEditModal(bar.cardIds[0]);
-              } else {
-                openMonthBarPicker(bar);
-              }
+              // Pure click — select the bar
+              document.querySelectorAll(".scard.selected").forEach(s => s.classList.remove("selected"));
+              selectedCardId = null;
+              document.querySelectorAll(".job-bar.selected, .month-job-bar.selected").forEach(b => b.classList.remove("selected"));
+              el.classList.add("selected");
+              copiedCard = null; copiedJobBar = null;
+              document.getElementById("board-outer").classList.remove("paste-ready");
+              document.getElementById("month-outer").classList.remove("paste-ready-month");
+              const empArr = bar.emps ? bar.emps.split(' ').filter(Boolean) : [];
+              selectedJobBar = { client: bar.client, type: bar.type, emps: empArr, cardIds: [...bar.cardIds], startDate: bar.startDate, endDate: bar.endDate, desc: '', priorityId: bar.priorityId };
+              toast(`"${bar.client}" selected — Ctrl+C to copy, Ctrl+E to edit.`);
               return;
             }
 
@@ -1610,12 +1644,37 @@ document.addEventListener("keydown", e => {
   const inInput = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
 
   if ((e.ctrlKey || e.metaKey) && e.key === "c") {
+    if (selectedJobBar) {
+      copiedJobBar = { ...selectedJobBar };
+      copiedCard = null;
+      document.getElementById("board-outer").classList.add("paste-ready");
+      document.getElementById("month-outer").classList.add("paste-ready-month");
+      toast(`"${selectedJobBar.client}" copied — click a cell to paste.`);
+      return;
+    }
     if (!selectedCardId) return;
     const card = cards.find(c => c.id === selectedCardId);
     if (!card) return;
     copiedCard = {...card};
+    copiedJobBar = null;
     document.getElementById("board-outer").classList.add("paste-ready");
     toast("Card copied — click a cell to paste.");
+    return;
+  }
+
+  if ((e.ctrlKey || e.metaKey) && e.key === "e") {
+    if (!selectedJobBar) return;
+    if (selectedJobBar.cardIds.length === 1) {
+      openEditModal(selectedJobBar.cardIds[0]);
+    } else if (selectedJobBar.cardIds.length > 1) {
+      const barObj = cards.filter(c => selectedJobBar.cardIds.includes(c.id)).reduce((b, c) => {
+        b.cardIds.push(c.id);
+        if (c.startDate < b.startDate) b.startDate = c.startDate;
+        if (c.endDate   > b.endDate)   b.endDate   = c.endDate;
+        return b;
+      }, { client: selectedJobBar.client, type: selectedJobBar.type, emps: selectedJobBar.emps.join(' '), cardIds: [], startDate: selectedJobBar.startDate, endDate: selectedJobBar.endDate, priorityId: selectedJobBar.priorityId, key: selectedJobBar.client + '||' + selectedJobBar.type });
+      openMonthBarPicker(barObj);
+    }
     return;
   }
 
@@ -1634,8 +1693,11 @@ document.addEventListener("keydown", e => {
     const picker = document.getElementById("month-bar-picker");
     if (picker) { picker.remove(); return; }
     selectedCardId = null; copiedCard = null;
+    selectedJobBar = null; copiedJobBar = null;
     document.querySelectorAll(".scard.selected").forEach(s => s.classList.remove("selected"));
+    document.querySelectorAll(".job-bar.selected, .month-job-bar.selected").forEach(b => b.classList.remove("selected"));
     document.getElementById("board-outer").classList.remove("paste-ready");
+    document.getElementById("month-outer").classList.remove("paste-ready-month");
     return;
   }
 
@@ -1675,15 +1737,56 @@ document.addEventListener("keydown", e => {
   }
 });
 document.getElementById("board-outer").addEventListener("click", e => {
-  if (!copiedCard) return;
   const cell = e.target.closest(".day-cell");
   if (!cell) return;
   if (e.target.closest(".scard")) return;
+  if (e.target.closest(".job-bar")) return;
+
+  if (copiedJobBar) {
+    const emp = cell.dataset.emp;
+    const dur = daysBetween(copiedJobBar.startDate, copiedJobBar.endDate);
+    const newCard = {
+      id: uid(), emp, type: copiedJobBar.type, client: copiedJobBar.client,
+      desc: copiedJobBar.desc || '', startDate: cell.dataset.day,
+      endDate: dateKey(addDays(fromKey(cell.dataset.day), dur)),
+      priorityId: copiedJobBar.priorityId || null
+    };
+    cards.push(newCard);
+    saveState(); renderBoard();
+    toast(`Pasted "${newCard.client}" for ${emp}.`);
+    return;
+  }
+
+  if (!copiedCard) return;
   const newCard = { ...copiedCard, id: uid(), emp: cell.dataset.emp, startDate: cell.dataset.day, endDate: dateKey(addDays(fromKey(cell.dataset.day), daysBetween(copiedCard.startDate, copiedCard.endDate))) };
   cards.push(newCard); saveState(); renderBoard();
   document.querySelectorAll(".scard.selected").forEach(s => s.classList.remove("selected"));
   selectedCardId = null;
   toast(`Pasted "${newCard.type === "off" ? "Off" : newCard.client}" for ${newCard.emp}.`);
+});
+
+// ── MONTH PASTE ──
+document.getElementById("month-outer").addEventListener("click", e => {
+  if (!copiedJobBar) return;
+  if (e.target.closest(".month-job-bar")) return;
+  const cell = e.target.closest(".month-day-cell");
+  if (!cell || !cell.dataset.day) return;
+  const clickDate = cell.dataset.day;
+  const dur = daysBetween(copiedJobBar.startDate, copiedJobBar.endDate);
+  copiedJobBar.emps.forEach(emp => {
+    cards.push({
+      id: uid(), emp, type: copiedJobBar.type, client: copiedJobBar.client,
+      desc: copiedJobBar.desc || '',
+      startDate: clickDate,
+      endDate: dateKey(addDays(fromKey(clickDate), dur)),
+      priorityId: copiedJobBar.priorityId || null
+    });
+  });
+  saveState(); renderMonth();
+  toast(`Pasted "${copiedJobBar.client}" for ${copiedJobBar.emps.join(', ')}.`);
+  copiedJobBar = null; selectedJobBar = null;
+  document.querySelectorAll(".month-job-bar.selected").forEach(b => b.classList.remove("selected"));
+  document.getElementById("month-outer").classList.remove("paste-ready-month");
 });
 
 // ── INIT ──
