@@ -1238,7 +1238,12 @@ function buildScardEl(card, startCol, endCol) {
     e.stopPropagation();
     if (e.target.closest(".scard-btn")) return;
     if (el._wasDragged) { el._wasDragged = false; return; }
-    openEditModal(card.id);
+    // Single click = select (enables Cmd/Ctrl+C to copy)
+    document.querySelectorAll(".scard.selected").forEach(s => s.classList.remove("selected"));
+    el.classList.add("selected");
+    selectedCardId = card.id;
+    copiedCard = null;
+    document.getElementById("board-outer").classList.remove("paste-ready");
   });
   el.addEventListener("dblclick", e => { e.stopPropagation(); openEditModal(card.id); });
 
