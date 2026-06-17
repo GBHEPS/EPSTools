@@ -1188,7 +1188,7 @@ function renderBoard() {
         cell.className = "day-cell" + (isLast ? " emp-row-last" : "") + (isToday(date) ? " is-today" : "");
         cell.dataset.emp = emp;
         cell.dataset.day = dk;
-        cell.addEventListener("click", e => { if (e.target.closest(".scard")) return; if (copiedCard) return; openAddModal(emp, dk); });
+        cell.addEventListener("click", e => { if (e.target.closest(".scard")) return; if (copiedCard || copiedJobBar) return; openAddModal(emp, dk); });
         cells.push({el: cell, dk});
         grid.appendChild(cell);
       });
@@ -1279,14 +1279,8 @@ function buildScardEl(card, startCol, endCol) {
     e.stopPropagation();
     if (e.target.closest(".scard-btn")) return;
     if (el._wasDragged) { el._wasDragged = false; return; }
-    // Single click = select (enables Cmd/Ctrl+C to copy)
-    document.querySelectorAll(".scard.selected").forEach(s => s.classList.remove("selected"));
-    el.classList.add("selected");
-    selectedCardId = card.id;
-    copiedCard = null;
-    document.getElementById("board-outer").classList.remove("paste-ready");
+    openEditModal(card.id);
   });
-  el.addEventListener("dblclick", e => { e.stopPropagation(); openEditModal(card.id); });
 
   // Mouse drag for week view
   el.addEventListener("mousedown", e => {
