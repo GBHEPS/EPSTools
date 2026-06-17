@@ -164,9 +164,9 @@ header h1 { font-size: 13px; font-weight: 500; color: var(--text-secondary); let
 .month-header-row { display: grid; grid-template-columns: repeat(5, 1fr); border-bottom: 1px solid var(--border-mid); background: var(--bg-tertiary); }
 .month-col-header { padding: 6px 4px 5px; text-align: center; border-right: 0.5px solid var(--border-light); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--text-tertiary); }
 .month-col-header:last-child { border-right: none; }
-.month-week-row { display: grid; grid-template-columns: repeat(5, 1fr); border-bottom: 0.5px solid var(--border-light); min-height: 80px; position: relative; }
+.month-week-row { display: grid; grid-template-columns: repeat(5, 1fr); border-bottom: 1px solid var(--border-mid); min-height: 80px; position: relative; }
 .month-week-row:last-child { border-bottom: none; }
-.month-day-cell { border-right: 0.5px solid var(--border-light); padding: 4px 5px 24px; position: relative; min-height: 80px; }
+.month-day-cell { border-right: 1px solid var(--border-mid); padding: 4px 5px 24px; position: relative; min-height: 80px; }
 .month-day-cell:last-child { border-right: none; }
 .month-day-cell.other-month .month-day-num { color: var(--text-tertiary); opacity: 0.4; }
 .month-day-cell.is-today { background: var(--today-bg); }
@@ -739,7 +739,7 @@ function getMonthWeeks(year, month) {
     const week = [];
     for (let i = 0; i < 7; i++) { week.push(new Date(cursor)); cursor = addDays(cursor, 1); }
     weeks.push(week);
-    if (cursor > lastDay && weeks.length >= 4) break;
+    if (cursor > lastDay && weeks.length >= 6) break;
   }
   return weeks;
 }
@@ -985,8 +985,12 @@ function renderMonth() {
               copiedCard = null; copiedJobBar = null;
               document.getElementById("board-outer").classList.remove("paste-ready");
               document.getElementById("month-outer").classList.remove("paste-ready-month");
-              const empArr = bar.emps ? bar.emps.split(' ').filter(Boolean) : [];
-              selectedJobBar = { client: bar.client, type: bar.type, emps: empArr, cardIds: [...bar.cardIds], startDate: bar.startDate, endDate: bar.endDate, desc: '', priorityId: bar.priorityId };
+              // Use actual emp values from cards, not display initials
+              const actualEmps = [...new Set(bar.cardIds.map(id => {
+                const c = cards.find(x => x.id === id);
+                return c ? c.emp : null;
+              }).filter(Boolean))];
+              selectedJobBar = { client: bar.client, type: bar.type, emps: actualEmps, cardIds: [...bar.cardIds], startDate: bar.startDate, endDate: bar.endDate, desc: '', priorityId: bar.priorityId };
               toast(`"${bar.client}" selected — Ctrl+C to copy, Ctrl+E to edit.`);
               return;
             }
