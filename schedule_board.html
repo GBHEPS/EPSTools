@@ -640,17 +640,36 @@ function renderMiniCal() {
 function getJobsForWeek(weekDates) {
   const weekStart = dateKey(weekDates[0]);
   const weekEnd   = dateKey(weekDates[4]);
-  const jobMap = {};
+  // Group by client, respecting legend type filter
+  const groups = {};
   cards.forEach(c => {
     if (c.type === "off" || !c.client) return;
     if (c.endDate < weekStart || c.startDate > weekEnd) return;
-    if (!jobMap[c.client]) { jobMap[c.client] = { client: c.client, startDate: c.startDate, endDate: c.endDate }; }
-    else {
-      if (c.startDate < jobMap[c.client].startDate) jobMap[c.client].startDate = c.startDate;
-      if (c.endDate   > jobMap[c.client].endDate)   jobMap[c.client].endDate   = c.endDate;
-    }
+    if (!monthTypeFilters.has(normalizeType(c.type))) return;
+    if (!groups[c.client]) groups[c.client] = [];
+    groups[c.client].push(c);
   });
-  return Object.values(jobMap);
+  // Interval-merge per client with 5-day gap tolerance (merges weekends, not week+ gaps)
+  const jobs = [];
+  Object.entries(groups).forEach(([client, grpCards]) => {
+    grpCards.sort((a, b) => a.startDate.localeCompare(b.startDate));
+    let job = null;
+    grpCards.forEach(c => {
+      if (!job) {
+        job = { client, startDate: c.startDate, endDate: c.endDate };
+      } else {
+        const gapLimit = dateKey(addDays(fromKey(job.endDate), 5));
+        if (c.startDate <= gapLimit) {
+          if (c.endDate > job.endDate) job.endDate = c.endDate;
+        } else {
+          jobs.push(job);
+          job = { client, startDate: c.startDate, endDate: c.endDate };
+        }
+      }
+    });
+    if (job) jobs.push(job);
+  });
+  return jobs;
 }
 
 function jobColRange(job, weekDates) {
@@ -771,35 +790,43 @@ function getBarColors(type) {
 
 // Build consolidated bars: one per (client, normalizedType) spanning all cards of that type
 function getMonthBars(year, month) {
-  // Expand window slightly to catch bars starting end of prev month or ending start of next
   const windowStart = dateKey(new Date(year, month, 1));
-  const windowEnd   = dateKey(new Date(year, month + 1, 14)); // look 2 weeks into next month
-  const prevEnd     = dateKey(new Date(year, month, 0));       // last day of prev month
-  const barMap = {};
+  const windowEnd   = dateKey(new Date(year, month + 1, 14));
+  // Group by client+type, applying legend filter
+  const groups = {};
   cards.forEach(c => {
     if (c.type === 'off' || !c.client) return;
-    // Include if card overlaps with this month OR starts in prev month and ends in this month's view
     if (c.endDate < windowStart || c.startDate > windowEnd) return;
     const type = normalizeType(c.type);
-    if (!monthTypeFilters.has(type)) return; // legend filter
-    const key  = c.client + '||' + type;
-    if (!barMap[key]) {
-      barMap[key] = {
-        key, client: c.client, type,
-        priorityId: c.priorityId || null,
-        startDate: c.startDate, endDate: c.endDate,
-        emps: new Set(), cardIds: []
-      };
-    }
-    const b = barMap[key];
-    if (c.startDate < b.startDate) b.startDate = c.startDate;
-    if (c.endDate   > b.endDate)   b.endDate   = c.endDate;
-    b.emps.add(getInitials(c.emp));
-    b.cardIds.push(c.id);
+    if (!monthTypeFilters.has(type)) return;
+    const key = c.client + '||' + type;
+    if (!groups[key]) groups[key] = { client: c.client, type, priorityId: c.priorityId || null, cards: [] };
+    groups[key].cards.push(c);
   });
-  return Object.values(barMap)
-    .map(b => ({ ...b, emps: Array.from(b.emps).join(' ') }))
-    .sort((a,b) => a.startDate.localeCompare(b.startDate));
+  // Interval-merge per group with 5-day gap tolerance (merges weekends, splits week+ gaps)
+  const allBars = [];
+  Object.entries(groups).forEach(([baseKey, grp]) => {
+    grp.cards.sort((a, b) => a.startDate.localeCompare(b.startDate));
+    let bar = null, barIdx = 0;
+    grp.cards.forEach(c => {
+      if (!bar) {
+        bar = { key: baseKey + '~0', client: grp.client, type: grp.type, priorityId: grp.priorityId, startDate: c.startDate, endDate: c.endDate, emps: new Set([getInitials(c.emp)]), cardIds: [c.id] };
+      } else {
+        const gapLimit = dateKey(addDays(fromKey(bar.endDate), 5));
+        if (c.startDate <= gapLimit) {
+          if (c.endDate > bar.endDate) bar.endDate = c.endDate;
+          bar.emps.add(getInitials(c.emp));
+          bar.cardIds.push(c.id);
+        } else {
+          allBars.push({ ...bar, emps: Array.from(bar.emps).join(' ') });
+          barIdx++;
+          bar = { key: baseKey + '~' + barIdx, client: grp.client, type: grp.type, priorityId: grp.priorityId, startDate: c.startDate, endDate: c.endDate, emps: new Set([getInitials(c.emp)]), cardIds: [c.id] };
+        }
+      }
+    });
+    if (bar) allBars.push({ ...bar, emps: Array.from(bar.emps).join(' ') });
+  });
+  return allBars.sort((a, b) => a.startDate.localeCompare(b.startDate));
 }
 
 let _monthDragBar = null;
@@ -1155,7 +1182,10 @@ function getWeekDates(monday) { return Array.from({length:5}, (_,i) => addDays(m
 function cardsForEmpWeek(emp, weekDates) {
   const weekStart = dateKey(weekDates[0]);
   const weekEnd   = dateKey(weekDates[4]);
-  return cards.filter(c => c.emp === emp && c.startDate <= weekEnd && c.endDate >= weekStart);
+  return cards.filter(c => {
+    if (c.emp !== emp || c.startDate > weekEnd || c.endDate < weekStart) return false;
+    return monthTypeFilters.has(normalizeType(c.type));
+  });
 }
 
 function renderBoard() {
@@ -1293,16 +1323,35 @@ function buildScardEl(card, startCol, endCol) {
   if (card.type === "off") {
     el.innerHTML = `<span class="scard-name">Off</span>${spanLabel ? `<span class="scard-span">${spanLabel}</span>` : ""}<div class="scard-btns"><button class="scard-btn edit-btn" title="Edit">&#9998;</button><button class="scard-btn del-btn" title="Remove">&#x2715;</button></div>`;
   } else {
-    el.innerHTML = `<span class="scard-name">${priorityTag}${card.client || ""}</span>${card.desc ? `<span class="scard-desc">${card.desc}</span>` : ""}${spanLabel ? `<span class="scard-span">${spanLabel}</span>` : ""}<div class="scard-btns"><button class="scard-btn edit-btn" title="Edit">&#9998;</button><button class="scard-btn del-btn" title="Remove">&#x2715;</button></div>`;
+    el.innerHTML = `<span class="scard-name">${priorityTag}${card.client || ""}</span>${card.desc ? `<span class="scard-desc">${card.desc}</span>` : ""}${spanLabel ? `<span class="scard-span">${spanLabel}</span>` : ""}<div class="scard-btns"><button class="scard-btn copy-btn" title="Copy">&#x29C9;</button><button class="scard-btn edit-btn" title="Edit">&#9998;</button><button class="scard-btn del-btn" title="Remove">&#x2715;</button></div>`;
   }
 
   el.querySelector(".edit-btn").addEventListener("click", e => { e.stopPropagation(); openEditModal(card.id); });
   el.querySelector(".del-btn").addEventListener("click",  e => { e.stopPropagation(); openDeleteModal(card.id); });
+  const copyBtnEl = el.querySelector(".copy-btn");
+  if (copyBtnEl) {
+    copyBtnEl.addEventListener("click", e => {
+      e.stopPropagation();
+      copiedCard = { ...card };
+      copiedJobBar = null;
+      document.getElementById("board-outer").classList.add("paste-ready");
+      document.getElementById("month-outer").classList.remove("paste-ready-month");
+      toast(`"${card.client}" copied — click a cell to paste.`);
+    });
+  }
 
   el.addEventListener("click", e => {
     e.stopPropagation();
     if (e.target.closest(".scard-btn")) return;
     if (el._wasDragged) { el._wasDragged = false; return; }
+    // In paste mode: paste to this cell instead of opening edit
+    if (copiedCard || copiedJobBar) {
+      const cell = el.closest(".day-cell");
+      if (cell && cell.dataset.emp && cell.dataset.day) {
+        pasteToBoardCell(cell.dataset.emp, cell.dataset.day);
+      }
+      return;
+    }
     openEditModal(card.id);
   });
 
@@ -1421,6 +1470,7 @@ document.querySelectorAll(".legend-btn").forEach(btn => {
     if (monthTypeFilters.has(t)) { monthTypeFilters.delete(t); btn.classList.remove("active"); }
     else                         { monthTypeFilters.add(t);    btn.classList.add("active"); }
     if (currentView === "month") renderMonth();
+    else if (currentView === "2week") renderBoard();
   });
 });
 
@@ -1771,33 +1821,35 @@ document.addEventListener("keydown", e => {
   }
 });
 document.getElementById("board-outer").addEventListener("click", e => {
+  if (!copiedCard && !copiedJobBar) return;
   const cell = e.target.closest(".day-cell");
-  if (!cell) return;
-  if (e.target.closest(".scard")) return;
-  if (e.target.closest(".job-bar")) return;
+  if (!cell || !cell.dataset.emp || !cell.dataset.day) return;
+  if (e.target.closest(".job-bar")) return; // clicking a job-strip bar doesn't paste
+  pasteToBoardCell(cell.dataset.emp, cell.dataset.day);
+});
 
+// ── PASTE HELPER ──
+function pasteToBoardCell(emp, dayKey) {
   if (copiedJobBar) {
-    const emp = cell.dataset.emp;
     const dur = daysBetween(copiedJobBar.startDate, copiedJobBar.endDate);
-    const newCard = {
-      id: uid(), emp, type: copiedJobBar.type, client: copiedJobBar.client,
-      desc: copiedJobBar.desc || '', startDate: cell.dataset.day,
-      endDate: dateKey(addDays(fromKey(cell.dataset.day), dur)),
-      priorityId: copiedJobBar.priorityId || null
-    };
-    cards.push(newCard);
+    cards.push({ id: uid(), emp, type: copiedJobBar.type, client: copiedJobBar.client, desc: copiedJobBar.desc || '', startDate: dayKey, endDate: dateKey(addDays(fromKey(dayKey), dur)), priorityId: copiedJobBar.priorityId || null });
     saveState(); renderBoard();
-    toast(`Pasted "${newCard.client}" for ${emp}.`);
+    toast(`Pasted "${copiedJobBar.client}" for ${emp}.`);
+    copiedJobBar = null; selectedJobBar = null;
+    document.querySelectorAll(".job-bar.selected, .month-job-bar.selected").forEach(b => b.classList.remove("selected"));
+    document.getElementById("board-outer").classList.remove("paste-ready");
+    document.getElementById("month-outer").classList.remove("paste-ready-month");
     return;
   }
-
-  if (!copiedCard) return;
-  const newCard = { ...copiedCard, id: uid(), emp: cell.dataset.emp, startDate: cell.dataset.day, endDate: dateKey(addDays(fromKey(cell.dataset.day), daysBetween(copiedCard.startDate, copiedCard.endDate))) };
-  cards.push(newCard); saveState(); renderBoard();
-  document.querySelectorAll(".scard.selected").forEach(s => s.classList.remove("selected"));
-  selectedCardId = null;
-  toast(`Pasted "${newCard.type === "off" ? "Off" : newCard.client}" for ${newCard.emp}.`);
-});
+  if (copiedCard) {
+    const newCard = { ...copiedCard, id: uid(), emp, startDate: dayKey, endDate: dateKey(addDays(fromKey(dayKey), daysBetween(copiedCard.startDate, copiedCard.endDate))) };
+    cards.push(newCard); saveState(); renderBoard();
+    document.querySelectorAll(".scard.selected").forEach(s => s.classList.remove("selected"));
+    selectedCardId = null;
+    toast(`Pasted "${newCard.type === "off" ? "Off" : newCard.client}" for ${newCard.emp}.`);
+    // Keep copiedCard active so user can paste multiple copies
+  }
+}
 
 // ── MONTH PASTE ──
 document.getElementById("month-outer").addEventListener("click", e => {
