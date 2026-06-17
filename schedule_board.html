@@ -581,6 +581,15 @@ function renderMiniCal() {
     const grid = document.createElement("div");
     grid.className = "mini-cal-grid";
 
+    // Day-of-week headers
+    ["M","T","W","T","F"].forEach(lbl => {
+      const h = document.createElement("div");
+      h.className = "mini-cal-day";
+      h.style.cssText = "color:var(--text-tertiary);font-weight:700;font-size:7px;pointer-events:none;";
+      h.textContent = lbl;
+      grid.appendChild(h);
+    });
+
     // Get Mon-Fri for 4 weeks starting from first Monday of month
     const firstDay = new Date(year, month, 1);
     const startMon = getMondayOf(firstDay);
@@ -735,11 +744,10 @@ function getMonthWeeks(year, month) {
   const monday   = getMondayOf(firstDay);
   const weeks    = [];
   let cursor     = new Date(monday);
-  while (cursor <= lastDay || weeks.length === 0) {
+  while (weeks.length < 6) {
     const week = [];
     for (let i = 0; i < 7; i++) { week.push(new Date(cursor)); cursor = addDays(cursor, 1); }
     weeks.push(week);
-    if (cursor > lastDay && weeks.length >= 6) break;
   }
   return weeks;
 }
@@ -868,28 +876,23 @@ function renderMonth() {
       if (!allCells.length) return;
       const rowRect = weekRow.getBoundingClientRect();
 
-      placements.forEach(({ bar, startCol, endCol, rowIdx, continuesLeft, continuesRight }) => {
+      placements.forEach(({ bar, startCol, endCol, rowIdx }) => {
         const startCell = allCells[startCol];
         const endCell   = allCells[endCol];
         if (!startCell || !endCell) return;
 
         const startRect = startCell.getBoundingClientRect();
         const endRect   = endCell.getBoundingClientRect();
-        // Bars continuing from prev week start at left edge; continuing to next week end at right edge
-        const left  = continuesLeft  ? 0 : startRect.left - rowRect.left + 3;
-        const right = continuesRight ? rowRect.right - rowRect.left : endRect.right - rowRect.left - 3;
+        const left  = startRect.left - rowRect.left + 3;
+        const right = endRect.right  - rowRect.left - 3;
         const width = right - left;
         const top   = barTopOffset + rowIdx * (barH + barGap);
         const colors = getBarColors(bar.type);
 
         const el = document.createElement("div");
         el.className = "month-job-bar";
-        // Flatten corners on continuation edges
-        const borderRadius = `${continuesLeft ? '0' : '3px'} ${continuesRight ? '0' : '3px'} ${continuesRight ? '0' : '3px'} ${continuesLeft ? '0' : '3px'}`;
         el.style.cssText = `left:${left}px;width:${width}px;top:${top}px;height:${barH}px;`
-          + `background:${colors.bg};border-color:${colors.border};cursor:grab;border-radius:${borderRadius};`
-          + (continuesLeft  ? 'border-left:none;' : '')
-          + (continuesRight ? 'border-right:none;' : '');
+          + `background:${colors.bg};border-color:${colors.border};cursor:grab;border-radius:3px;`;
         el.draggable = false;
         el.dataset.barKey = bar.key;
 
