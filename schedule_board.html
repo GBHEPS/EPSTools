@@ -62,9 +62,12 @@ header h1 { font-size: 13px; font-weight: 500; color: var(--text-secondary); let
 .view-toggle-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
 .view-toggle-btn.active { background: var(--text-primary); color: var(--bg-primary); }
 
-.legend { display: flex; gap: 10px; align-items: center; }
-.legend-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-secondary); }
-.legend-dot { width: 9px; height: 9px; border-radius: 2px; }
+.legend { display: flex; gap: 6px; align-items: center; }
+.legend-btn { padding: 3px 10px; border-radius: 10px; border: 0.5px solid; font-size: 10px; font-family: inherit; cursor: pointer; font-weight: 600; transition: opacity 0.15s; }
+.legend-btn:not(.active) { opacity: 0.28; filter: grayscale(0.4); }
+.month-bar-del { flex-shrink: 0; background: none; border: none; font-size: 9px; cursor: pointer; padding: 0 0 0 4px; opacity: 0; color: inherit; line-height: 1; transition: opacity 0.1s; }
+.month-job-bar:hover .month-bar-del { opacity: 0.55; }
+.month-bar-del:hover { opacity: 1 !important; }
 
 .nav-wrap { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px 0; }
 .nav-week-label { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
@@ -268,12 +271,12 @@ header h1 { font-size: 13px; font-weight: 500; color: var(--text-secondary); let
   <!-- Spacer -->
   <div style="flex:1;"></div>
 
-  <!-- Legend -->
+  <!-- Legend / month type filters -->
   <div class="legend" style="flex-shrink:0;">
-    <div class="legend-item"><div class="legend-dot" style="background:var(--walk-border);"></div> Walk</div>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--fab-border);"></div> Fab</div>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--resto-border);"></div> Resto</div>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--red-border);"></div> Off</div>
+    <button class="legend-btn active" data-type="walk"  style="background:var(--walk-bg);border-color:var(--walk-border);color:var(--walk-text);">Walk</button>
+    <button class="legend-btn active" data-type="fab"   style="background:var(--fab-bg);border-color:var(--fab-border);color:var(--fab-text);">Fab</button>
+    <button class="legend-btn active" data-type="resto" style="background:var(--resto-bg);border-color:var(--resto-border);color:var(--resto-text);">Resto</button>
+    <button class="legend-btn active" data-type="off"   style="background:var(--red-bg);border-color:var(--red-border);color:var(--red-text);">Off</button>
   </div>
 
   <div class="header-divider"></div>
@@ -413,6 +416,8 @@ let currentView = "2week";
 let showJobStrip = true;
 const now = new Date();
 let monthAnchor = { year: now.getFullYear(), month: now.getMonth() };
+let monthTypeFilters = new Set(['walk', 'fab', 'resto', 'off']);
+let _weekAnchorOverride = false;
 
 // ── DATE UTILS ──
 function getMondayOf(date) {
@@ -525,7 +530,12 @@ function setView(view) {
   if (view === "month") {
     monthAnchor = { year: anchorMonday.getFullYear(), month: anchorMonday.getMonth() };
   } else {
-    anchorMonday = getMondayOf(new Date(monthAnchor.year, monthAnchor.month, 1));
+    if (_weekAnchorOverride) {
+      _weekAnchorOverride = false; // anchor was set explicitly — use it
+    } else if (anchorMonday.getFullYear() !== monthAnchor.year || anchorMonday.getMonth() !== monthAnchor.month) {
+      anchorMonday = getMondayOf(new Date(monthAnchor.year, monthAnchor.month, 1)); // month changed — go to first week
+    }
+    // else: same month — keep anchorMonday sticky
   }
   document.getElementById("btn-view-2week").classList.toggle("active", view === "2week");
   document.getElementById("btn-view-month").classList.toggle("active", view === "month");
@@ -612,6 +622,7 @@ function renderMiniCal() {
         const clickDate = new Date(cursor);
         d.addEventListener("click", () => {
           anchorMonday = getMondayOf(clickDate);
+          _weekAnchorOverride = true;
           if (currentView !== "2week") setView("2week");
           else { renderBoard(); renderMiniCal(); saveState(); }
         });
@@ -770,6 +781,7 @@ function getMonthBars(year, month) {
     // Include if card overlaps with this month OR starts in prev month and ends in this month's view
     if (c.endDate < windowStart || c.startDate > windowEnd) return;
     const type = normalizeType(c.type);
+    if (!monthTypeFilters.has(type)) return; // legend filter
     const key  = c.client + '||' + type;
     if (!barMap[key]) {
       barMap[key] = {
@@ -902,12 +914,23 @@ function renderMonth() {
         const barDesc = bar.cardIds.map(id => cards.find(c => c.id === id)).filter(Boolean).map(c => c.desc).find(d => d) || '';
         const label = document.createElement("span");
         label.className = "month-job-bar-name";
-        label.style.cssText = `color:${colors.text};font-size:11px;font-weight:600;`
-          + `white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`
-          + `padding:0 6px;width:100%;display:block;line-height:${barH}px;`;
+        label.style.cssText = `color:${colors.text};font-size:11px;font-weight:600;`;
         const descPart = barDesc ? ` — ${barDesc}` : '';
         label.textContent = `${priorityTag}${bar.client}${bar.emps ? ' · ' + bar.emps : ''}${descPart}`;
         el.appendChild(label);
+
+        const delBtn = document.createElement("button");
+        delBtn.className = "month-bar-del";
+        delBtn.innerHTML = "&#x2715;";
+        delBtn.title = "Remove job";
+        delBtn.addEventListener("click", e => {
+          e.stopPropagation();
+          const ids = new Set(bar.cardIds);
+          cards = cards.filter(c => !ids.has(c.id));
+          saveState(); renderMonth();
+          toast(`"${bar.client}" removed.`);
+        });
+        el.appendChild(delBtn);
 
         // Unified click + drag — no preventDefault so text selection isn't blocked
         el.addEventListener("mousedown", e => {
@@ -1091,6 +1114,7 @@ function openMonthBarPicker(bar) {
       picker.remove();
       // Navigate to the week containing this card's start date
       anchorMonday = getMondayOf(fromKey(c.startDate));
+      _weekAnchorOverride = true;
       setView("2week");
       // Open edit modal after render settles
       setTimeout(() => openEditModal(c.id), 80);
@@ -1390,6 +1414,15 @@ function setType(t) {
   document.getElementById("desc-row").style.display     = isOff ? "none" : "";
 }
 document.querySelectorAll(".type-btn").forEach(btn => { btn.addEventListener("click", () => setType(btn.dataset.type)); });
+
+document.querySelectorAll(".legend-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const t = btn.dataset.type;
+    if (monthTypeFilters.has(t)) { monthTypeFilters.delete(t); btn.classList.remove("active"); }
+    else                         { monthTypeFilters.add(t);    btn.classList.add("active"); }
+    if (currentView === "month") renderMonth();
+  });
+});
 
 // ── CLIENT DATALIST ──
 function populateClientDatalist() {
