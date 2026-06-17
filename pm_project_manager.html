@@ -546,6 +546,7 @@
   var _hoursRows = [];
   var _detailHoursRows = [];
   var _suppliesRows = [];
+  var _schedulingRows = [];
   var _manualCounter = 0;
   var _removedStdKeys = {};  // { section: [key, ...] }
 
@@ -559,6 +560,7 @@
       addedToStreak: 'Project added to Streak pipeline',
       specialRequirementsDocumented: 'Special requirements documented',
       leadTimeMaterialsOrdered: 'Lead time materials ordered',
+      sharePhotos: 'Share photos',
     },
     production: {
       shopWorkScheduled: 'Shop work scheduled',
@@ -957,6 +959,12 @@
       return Object.assign({ id: Date.now() + 2000 + i }, r);
     });
 
+    // init scheduling rows from stored data (auto-calc happens in renderSchedulingSummary if empty)
+    _schedulingRows = (p.schedulingCards && p.schedulingCards.length) ?
+      p.schedulingCards.map(function(c, i) {
+        return Object.assign({ id: Date.now() + 3000 + i }, c);
+      }) : [];
+
     _removedStdKeys = removed;
 
     function checklistSection(section, data, labels) {
@@ -1029,10 +1037,6 @@
       + '<div class="info-card"><div class="info-label">Resto Start</div><input class="info-input" type="date" value="' + (p.restoStart||'') + '" onchange="updateField(\'restoStart\',this.value)"></div>'
       + '</div>'
 
-      + '<div class="detail-section"><div class="section-head"><div class="section-label">1. Pre-Project Setup</div><div class="section-progress" id="prog-preProject">' + preS.done + '/' + preS.total + '</div></div><div class="checklist-body" id="cl-preProject">' + preS.html + '</div></div>'
-      + '<div class="detail-section"><div class="section-head"><div class="section-label">2. Production</div><div class="section-progress" id="prog-production">' + proS.done + '/' + proS.total + '</div></div><div class="checklist-body" id="cl-production">' + proS.html + '</div></div>'
-      + '<div class="detail-section"><div class="section-head"><div class="section-label">3. Completion &amp; Closeout</div><div class="section-progress" id="prog-closeout">' + clS.done + '/' + clS.total + '</div></div><div class="checklist-body" id="cl-closeout">' + clS.html + '</div></div>'
-
       + '<div class="detail-section zone-green"><div class="section-head"><div class="section-label">Hours Budget</div><div class="section-progress" id="detailHoursTotal">' + (p.hoursTotal||0) + ' hrs total</div></div>'
       + '<div id="detailHoursTableWrap"></div>'
       + '<button class="btn-add-row" onclick="addDetailHoursRow()">+ Add Row</button></div>'
@@ -1064,6 +1068,10 @@
 
       + '<div class="detail-section"><div class="section-head"><div class="section-label">Notes</div></div>'
       + '<textarea class="editable-area" placeholder="Add project notes…" oninput="updateField(\'notes\',this.value)">' + (p.notes||'') + '</textarea></div>'
+
+      + '<div class="detail-section"><div class="section-head"><div class="section-label">1. Pre-Project Setup</div><div class="section-progress" id="prog-preProject">' + preS.done + '/' + preS.total + '</div></div><div class="checklist-body" id="cl-preProject">' + preS.html + '</div></div>'
+      + '<div class="detail-section"><div class="section-head"><div class="section-label">2. Production</div><div class="section-progress" id="prog-production">' + proS.done + '/' + proS.total + '</div></div><div class="checklist-body" id="cl-production">' + proS.html + '</div></div>'
+      + '<div class="detail-section"><div class="section-head"><div class="section-label">3. Completion &amp; Closeout</div><div class="section-progress" id="prog-closeout">' + clS.done + '/' + clS.total + '</div></div><div class="checklist-body" id="cl-closeout">' + clS.html + '</div></div>'
 
       + '<div style="display:flex;justify-content:space-between;padding:4px 0 16px;align-items:center;">'
       + '<button class="btn-delete-project" onclick="deleteProject()">Delete Project</button>'
@@ -1156,69 +1164,131 @@
   }
 
   // ── SCHEDULING SUMMARY ──
-  function renderSchedulingSummary() {
+  function autoCalcSchedulingRows() {
     var p = _currentProject;
-    var lead = p.leadTech || '—';
-    var fabStart  = p.fabStart   || null;
+    var lead = p.leadTech || '';
+    var fabStart   = p.fabStart   || null;
     var restoStart = p.restoStart || null;
-
-    // Derive earliest production date for walk calc
     var dates = [fabStart, restoStart].filter(Boolean).sort();
     var earliestProd = dates.length ? dates[0] : null;
     var walkDate = p.startDate || (earliestProd ? subtractDays(earliestProd, 14) : null);
 
-    // Tally hours by type
     var fabHours   = _detailHoursRows.filter(function(r){ return (r.type||detectType(r.scope))==='fab'; }).reduce(function(s,r){ return s+(r._total||0); },0);
     var restoHours = _detailHoursRows.filter(function(r){ return (r.type||detectType(r.scope))==='resto'; }).reduce(function(s,r){ return s+(r._total||0); },0);
-    var walkHours  = 4; // flat
 
-    var adamHours    = Math.round(fabHours * 0.5 * 10)/10;
-    var floaterHours = Math.round(fabHours * 0.5 * 10)/10;
+    var adamHours    = Math.round(fabHours * 0.5 * 10) / 10;
+    var floaterHours = Math.round(fabHours * 0.5 * 10) / 10;
     var adamDays     = Math.ceil(adamHours / 8);
     var floaterDays  = Math.ceil(floaterHours / 8);
     var restoDays    = Math.ceil(restoHours / 8);
-
-    // Calculate floater start = day after Adam ends
-    var adamEndDate = fabStart && adamDays > 0 ? addBizDays(fabStart, adamDays - 1) : null;
+    var adamEndDate  = fabStart && adamDays > 0 ? addBizDays(fabStart, adamDays - 1) : null;
     var floaterStart = adamEndDate ? addBizDays(adamEndDate, 1) : null;
 
-    function fmtD(d) { return d ? d.split('-').slice(1).map(function(x){ return parseInt(x); }).join('/') : '—'; }
+    var rows = [];
+    var base = Date.now() + 3000;
+    if (walkDate) rows.push({ id: base++, type: 'walk', emp: lead, start: walkDate, days: 1, hrs: 4 });
+    if (fabStart && adamHours > 0) rows.push({ id: base++, type: 'fab', emp: 'Adam', start: fabStart, days: adamDays, hrs: adamHours });
+    if (floaterStart && floaterHours > 0) rows.push({ id: base++, type: 'fab', emp: 'Floater A', start: floaterStart, days: floaterDays, hrs: floaterHours });
+    if (restoStart && restoHours > 0) rows.push({ id: base++, type: 'resto', emp: lead, start: restoStart, days: restoDays, hrs: restoHours });
+    return rows;
+  }
 
-    var cards = [];
-    if (walkDate) cards.push({ type:'walk',  emp: lead,       start: walkDate,   days: 1,          hrs: 4 });
-    if (fabStart && adamHours > 0)    cards.push({ type:'fab',   emp: 'Adam',       start: fabStart,   days: adamDays,    hrs: adamHours });
-    if (floaterStart && floaterHours > 0) cards.push({ type:'fab',   emp: 'Floater A',  start: floaterStart, days: floaterDays, hrs: floaterHours });
-    if (restoStart && restoHours > 0) cards.push({ type:'resto', emp: lead,        start: restoStart, days: restoDays,   hrs: restoHours });
+  function syncSchedulingToProject() {
+    _currentProject.schedulingCards = _schedulingRows.map(function(r) {
+      return { type: r.type, emp: r.emp, start: r.start, days: parseInt(r.days) || 1, hrs: parseFloat(r.hrs) || 0 };
+    });
+  }
 
-    var typeColors = { walk: '#8a6000', fab: '#2d6a2d', resto: '#1a4a6e' };
-    var typeBg     = { walk: '#fdf5e0', fab: '#eaf3ea', resto: '#e8f2fa' };
+  function renderSchedulingSummary() {
+    // Auto-populate if no rows yet (first time viewing this project)
+    if (!_schedulingRows.length) {
+      _schedulingRows = autoCalcSchedulingRows();
+      syncSchedulingToProject();
+    }
 
-    var cardsHtml = cards.length ? '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px;">'
+    var typeColors = { walk: '#8a6000', fab: '#2d6a2d', resto: '#1a4a6e', off: '#8a0000' };
+    var typeBg     = { walk: '#fdf5e0', fab: '#eaf3ea', resto: '#e8f2fa', off: '#fff0f0' };
+
+    var rowsHtml = _schedulingRows.map(function(row) {
+      var rowTypeOpts = ['walk','fab','resto','off'].map(function(t) {
+        return '<option value="' + t + '"' + (row.type === t ? ' selected' : '') + '>' + t.toUpperCase() + '</option>';
+      }).join('');
+      var tColor = typeColors[row.type] || '#333';
+      var tBg    = typeBg[row.type]    || '#fff';
+      return '<tr style="border-bottom:1px solid #e0d8f8;">'
+        + '<td style="padding:4px 6px;"><select style="font-family:var(--mono);font-size:9px;font-weight:600;color:' + tColor + ';background:' + tBg + ';border:1px solid #c8b8f0;border-radius:3px;padding:2px 3px;cursor:pointer;width:62px;" onchange="updateSchedRow(' + row.id + ',\'type\',this.value)">' + rowTypeOpts + '</select></td>'
+        + '<td style="padding:4px 6px;"><input type="text" value="' + (row.emp || '') + '" style="font-size:11px;border:1px solid #c8b8f0;border-radius:3px;padding:2px 4px;width:76px;" oninput="updateSchedRow(' + row.id + ',\'emp\',this.value)"></td>'
+        + '<td style="padding:4px 6px;"><input type="date" value="' + (row.start || '') + '" style="font-family:var(--mono);font-size:10px;border:1px solid #c8b8f0;border-radius:3px;padding:2px 3px;width:110px;" onchange="updateSchedRow(' + row.id + ',\'start\',this.value)"></td>'
+        + '<td style="padding:4px 6px;text-align:right;"><input type="number" min="1" value="' + (row.days || 1) + '" style="font-family:var(--mono);font-size:11px;border:1px solid #c8b8f0;border-radius:3px;padding:2px 3px;width:42px;text-align:right;" oninput="updateSchedRow(' + row.id + ',\'days\',this.value)"></td>'
+        + '<td style="padding:4px 6px;text-align:right;"><input type="number" min="0" step="0.5" value="' + (row.hrs || 0) + '" style="font-family:var(--mono);font-size:11px;border:1px solid #c8b8f0;border-radius:3px;padding:2px 3px;width:46px;text-align:right;" oninput="updateSchedRow(' + row.id + ',\'hrs\',this.value)"></td>'
+        + '<td style="padding:4px 6px;text-align:center;"><button style="background:none;border:none;color:#b08090;font-size:14px;cursor:pointer;padding:0 4px;line-height:1;" onclick="deleteSchedRow(' + row.id + ')">×</button></td>'
+        + '</tr>';
+    }).join('');
+
+    var tableHtml = '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px;">'
       + '<thead><tr style="background:#ede8f8;font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:#6a4aae;">'
-      + '<th style="padding:6px 10px;text-align:left;">Type</th><th style="padding:6px 10px;text-align:left;">Assigned To</th>'
-      + '<th style="padding:6px 10px;text-align:left;">Start</th><th style="padding:6px 10px;text-align:right;">Days</th><th style="padding:6px 10px;text-align:right;">Hours</th></tr></thead><tbody>'
-      + cards.map(function(c) {
-          return '<tr style="border-bottom:1px solid #e0d8f8;">'
-            + '<td style="padding:6px 10px;font-family:var(--mono);font-size:10px;font-weight:600;color:' + typeColors[c.type] + ';background:' + typeBg[c.type] + ';">' + c.type.toUpperCase() + '</td>'
-            + '<td style="padding:6px 10px;">' + c.emp + '</td>'
-            + '<td style="padding:6px 10px;font-family:var(--mono);font-size:11px;">' + fmtD(c.start) + '</td>'
-            + '<td style="padding:6px 10px;font-family:var(--mono);font-size:11px;text-align:right;">' + c.days + 'd</td>'
-            + '<td style="padding:6px 10px;font-family:var(--mono);font-size:11px;text-align:right;">' + c.hrs + '</td>'
-            + '</tr>';
-        }).join('')
-      + '</tbody></table>' : '<div style="font-size:12px;color:#a09880;font-style:italic;padding:8px 0;">Set Fab Start and/or Resto Start dates above to generate schedule cards.</div>';
+      + '<th style="padding:6px 6px;text-align:left;width:70px;">Type</th>'
+      + '<th style="padding:6px 6px;text-align:left;">Assigned To</th>'
+      + '<th style="padding:6px 6px;text-align:left;">Start</th>'
+      + '<th style="padding:6px 6px;text-align:right;width:52px;">Days</th>'
+      + '<th style="padding:6px 6px;text-align:right;width:56px;">Hours</th>'
+      + '<th style="width:30px;"></th>'
+      + '</tr></thead><tbody>'
+      + (rowsHtml || '<tr><td colspan="6" style="padding:10px;font-style:italic;color:#a09880;font-size:11px;">No rows yet — click Add Row or Recalc.</td></tr>')
+      + '</tbody></table>'
+      + '<div style="display:flex;gap:8px;margin-bottom:12px;">'
+      + '<button onclick="addSchedRow()" style="font-family:var(--mono);font-size:9px;font-weight:600;background:#ede8f8;color:#6a4aae;border:1px solid #c8b8f0;padding:4px 10px;border-radius:3px;cursor:pointer;">+ Add Row</button>'
+      + '<button onclick="recalcSchedRows()" style="font-family:var(--mono);font-size:9px;background:none;color:#a090d0;border:1px solid #6a4aae;padding:4px 10px;border-radius:3px;cursor:pointer;">↺ Recalc from Hours</button>'
+      + '</div>';
+
+    var restoHrs = _schedulingRows.filter(function(r){ return r.type==='resto'; }).reduce(function(s,r){ return s+(parseFloat(r.hrs)||0); },0);
+    var fabHrs   = _schedulingRows.filter(function(r){ return r.type==='fab'; }).reduce(function(s,r){ return s+(parseFloat(r.hrs)||0); },0);
+    var walkHrs  = _schedulingRows.filter(function(r){ return r.type==='walk'; }).reduce(function(s,r){ return s+(parseFloat(r.hrs)||0); },0);
 
     var harvestHtml = '<div style="background:#fff;border:1px solid #c8b8f0;border-radius:4px;padding:10px 14px;">'
       + '<div style="font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#6a4aae;margin-bottom:8px;">Harvest Entry Summary</div>'
       + '<table style="width:100%;border-collapse:collapse;font-size:12px;">'
-      + '<tr><td style="padding:3px 0;color:#5f5e5a;">Restoration</td><td style="font-family:var(--mono);font-weight:600;text-align:right;">' + restoHours + ' hrs</td></tr>'
-      + '<tr><td style="padding:3px 0;color:#5f5e5a;">Fabrication</td><td style="font-family:var(--mono);font-weight:600;text-align:right;">' + fabHours + ' hrs</td></tr>'
-      + '<tr><td style="padding:3px 0;color:#5f5e5a;">Walk / Plan</td><td style="font-family:var(--mono);font-weight:600;text-align:right;">4 hrs</td></tr>'
-      + '<tr style="border-top:1px solid #c8b8f0;"><td style="padding:5px 0 2px;font-weight:600;">Total</td><td style="font-family:var(--mono);font-weight:700;font-size:13px;text-align:right;">' + (restoHours + fabHours + walkHours) + ' hrs</td></tr>'
+      + '<tr><td style="padding:3px 0;color:#5f5e5a;">Restoration</td><td style="font-family:var(--mono);font-weight:600;text-align:right;">' + restoHrs + ' hrs</td></tr>'
+      + '<tr><td style="padding:3px 0;color:#5f5e5a;">Fabrication</td><td style="font-family:var(--mono);font-weight:600;text-align:right;">' + fabHrs + ' hrs</td></tr>'
+      + '<tr><td style="padding:3px 0;color:#5f5e5a;">Walk / Plan</td><td style="font-family:var(--mono);font-weight:600;text-align:right;">' + walkHrs + ' hrs</td></tr>'
+      + '<tr style="border-top:1px solid #c8b8f0;"><td style="padding:5px 0 2px;font-weight:600;">Total</td><td style="font-family:var(--mono);font-weight:700;font-size:13px;text-align:right;">' + (restoHrs + fabHrs + walkHrs) + ' hrs</td></tr>'
       + '</table></div>';
 
-    document.getElementById('schedulingSummaryWrap').innerHTML = cardsHtml + harvestHtml;
+    document.getElementById('schedulingSummaryWrap').innerHTML = tableHtml + harvestHtml;
   }
+
+  window.addSchedRow = function() {
+    _schedulingRows.push({ id: Date.now(), type: 'fab', emp: '', start: '', days: 1, hrs: 0 });
+    syncSchedulingToProject();
+    renderSchedulingSummary();
+    markDirty();
+  };
+
+  window.deleteSchedRow = function(id) {
+    _schedulingRows = _schedulingRows.filter(function(r){ return r.id !== id; });
+    syncSchedulingToProject();
+    renderSchedulingSummary();
+    markDirty();
+  };
+
+  window.updateSchedRow = function(id, field, value) {
+    var row = _schedulingRows.find(function(r){ return r.id === id; });
+    if (!row) return;
+    if (field === 'days') row[field] = parseInt(value) || 1;
+    else if (field === 'hrs') row[field] = parseFloat(value) || 0;
+    else row[field] = value;
+    syncSchedulingToProject();
+    if (field === 'type') renderSchedulingSummary(); // re-render to update select color
+    markDirty();
+  };
+
+  window.recalcSchedRows = function() {
+    if (!window.confirm('Replace schedule rows with auto-calculated values from Hours Budget?')) return;
+    _schedulingRows = autoCalcSchedulingRows();
+    syncSchedulingToProject();
+    renderSchedulingSummary();
+    markDirty();
+  };
 
   function subtractDays(dateStr, n) {
     var d = new Date(dateStr.split('-').map(Number).reduce(function(acc, v, i) { acc[i]=v; return acc; }, []));
@@ -1242,43 +1312,21 @@
     var p = _currentProject;
     if (!p.priority) { showToast('Set a Priority # first — it links to the scheduler', true); return; }
 
-    var lead      = p.leadTech || '';
-    var fabStart  = p.fabStart   || null;
-    var restoStart = p.restoStart || null;
-    var dates     = [fabStart, restoStart].filter(Boolean).sort();
-    var earliestProd = dates.length ? dates[0] : null;
-    var walkDate  = p.startDate || (earliestProd ? subtractDays(earliestProd, 14) : null);
-
-    var fabHours   = _detailHoursRows.filter(function(r){ return (r.type||detectType(r.scope))==='fab'; }).reduce(function(s,r){ return s+(r._total||0); },0);
-    var restoHours = _detailHoursRows.filter(function(r){ return (r.type||detectType(r.scope))==='resto'; }).reduce(function(s,r){ return s+(r._total||0); },0);
-    var adamHours    = Math.round(fabHours * 0.5 * 10)/10;
-    var floaterHours = Math.round(fabHours * 0.5 * 10)/10;
-    var adamDays     = Math.ceil(adamHours / 8);
-    var floaterDays  = Math.ceil(floaterHours / 8);
-    var restoDays    = Math.ceil(restoHours / 8);
-
-    var adamEndDate   = fabStart && adamDays > 0 ? addBizDays(fabStart, adamDays - 1) : null;
-    var floaterStart  = adamEndDate ? addBizDays(adamEndDate, 1) : null;
-    var floaterEnd    = floaterStart && floaterDays > 0 ? addBizDays(floaterStart, floaterDays - 1) : floaterStart;
-    var restoEnd      = restoStart && restoDays > 0 ? addBizDays(restoStart, restoDays - 1) : restoStart;
-
-    var newCards = [];
+    var descMap = { walk: 'Walk/Plan', fab: 'Fabrication', resto: 'Restoration', off: 'Time Off' };
+    // Map full names to scheduler emp abbreviations for known staff
+    var empAbbrev = { 'Adam': 'AB', 'Floater A': 'FA', 'Floater B': 'FB' };
     function mkUid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
 
-    if (walkDate && lead) {
-      newCards.push({ id: mkUid(), emp: lead, type: 'walk', client: p.clientLastName||'', desc: 'Walk/Plan', startDate: walkDate, endDate: walkDate, priorityId: p.priority });
-    }
-    if (fabStart && adamHours > 0) {
-      newCards.push({ id: mkUid(), emp: 'AB', type: 'fab', client: p.clientLastName||'', desc: 'Fabrication', startDate: fabStart, endDate: adamEndDate||fabStart, priorityId: p.priority });
-    }
-    if (floaterStart && floaterHours > 0) {
-      newCards.push({ id: mkUid(), emp: 'FA', type: 'fab', client: p.clientLastName||'', desc: 'Fabrication', startDate: floaterStart, endDate: floaterEnd||floaterStart, priorityId: p.priority });
-    }
-    if (restoStart && restoHours > 0 && lead) {
-      newCards.push({ id: mkUid(), emp: lead, type: 'resto', client: p.clientLastName||'', desc: 'Restoration', startDate: restoStart, endDate: restoEnd||restoStart, priorityId: p.priority });
-    }
+    var newCards = [];
+    _schedulingRows.forEach(function(r) {
+      if (!r.start || !r.emp) return;
+      var days = Math.max(parseInt(r.days) || 1, 1);
+      var endDate = addBizDays(r.start, days - 1);
+      var emp = empAbbrev[r.emp] || r.emp;
+      newCards.push({ id: mkUid(), emp: emp, type: r.type, client: p.clientLastName||'', desc: descMap[r.type]||r.type, startDate: r.start, endDate: endDate, priorityId: p.priority });
+    });
 
-    if (!newCards.length) { showToast('No cards to push — add dates and hours first', true); return; }
+    if (!newCards.length) { showToast('No cards to push — fill in rows in the Scheduling section first', true); return; }
 
     var msg = 'Push ' + newCards.length + ' card(s) to Scheduler for #' + p.priority + ' ' + (p.clientLastName||'') + '?\n\nExisting cards for this project will not be removed.';
     if (!window.confirm(msg)) return;
@@ -1557,6 +1605,7 @@
     syncDetailHoursToProject();
     syncSupplies();
     syncPayments();
+    syncSchedulingToProject();
     db.collection('pm_projects').doc(p.id).set(Object.assign({}, p, { updatedAt: firebase.firestore.FieldValue.serverTimestamp() }))
       .then(function() {
         hideSaveBar(); _dirty = false; showToast('Saved ✓');
@@ -1663,7 +1712,7 @@
         startDate: document.getElementById('f-startdate').value || null,
         hoursBudget: hoursBudget, hoursTotal: hoursTotal,
         checklist: {
-          preProject: { contractSigned:false,siteAccessConfirmed:false,addedToHarvest:false,hoursBudgetEntered:false,addedToStreak:false,specialRequirementsDocumented:false,leadTimeMaterialsOrdered:false,screenMeasureScheduled:false },
+          preProject: { contractSigned:false,siteAccessConfirmed:false,addedToHarvest:false,hoursBudgetEntered:false,addedToStreak:false,specialRequirementsDocumented:false,leadTimeMaterialsOrdered:false,screenMeasureScheduled:false,sharePhotos:false },
           production: { shopWorkScheduled:false,siteWorkScheduled:false,materialsReceivedAndStaged:false,crewAssignedAndBriefed:false,workInProgress:false },
           closeout: { finalWalkthrough:false,photosDocumented:false,punchListCompleted:false,postProjectAnalysis:false,finalInvoiceSent:false,followUpScheduled:false,paymentReceived:false },
           custom: { preProject:[], production:[], closeout:[] }
