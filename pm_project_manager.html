@@ -1206,12 +1206,13 @@
       syncSchedulingToProject();
     }
 
-    var typeColors = { walk: '#8a6000', fab: '#2d6a2d', resto: '#1a4a6e', off: '#8a0000' };
-    var typeBg     = { walk: '#fdf5e0', fab: '#eaf3ea', resto: '#e8f2fa', off: '#fff0f0' };
+    var typeColors = { walk: '#8a6000', fab: '#2d6a2d', paint: '#1a5010', resto: '#1a4a6e', off: '#8a0000' };
+    var typeBg     = { walk: '#fdf5e0', fab: '#eaf3ea', paint: '#bdd9a0', resto: '#e8f2fa', off: '#fff0f0' };
+    var typeLabel  = { walk: 'Walk', fab: 'Shop Fab', paint: 'Paint/Install', resto: 'Resto', off: 'Off' };
 
     var rowsHtml = _schedulingRows.map(function(row) {
-      var rowTypeOpts = ['walk','fab','resto','off'].map(function(t) {
-        return '<option value="' + t + '"' + (row.type === t ? ' selected' : '') + '>' + t.toUpperCase() + '</option>';
+      var rowTypeOpts = ['walk','fab','paint','resto','off'].map(function(t) {
+        return '<option value="' + t + '"' + (row.type === t ? ' selected' : '') + '>' + (typeLabel[t] || t.toUpperCase()) + '</option>';
       }).join('');
       var tColor = typeColors[row.type] || '#333';
       var tBg    = typeBg[row.type]    || '#fff';
@@ -1312,7 +1313,7 @@
     var p = _currentProject;
     if (!p.priority) { showToast('Set a Priority # first — it links to the scheduler', true); return; }
 
-    var descMap = { walk: 'Walk/Plan', fab: 'Fabrication', resto: 'Restoration', off: 'Time Off' };
+    var descMap = { walk: 'Walk/Plan', fab: 'Shop Fabrication', paint: 'Paint/Install', resto: 'Restoration', off: 'Time Off' };
     // Map full names to scheduler emp abbreviations for known staff
     var empAbbrev = { 'Adam': 'AB', 'Floater A': 'FA', 'Floater B': 'FB' };
     function mkUid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,5); }

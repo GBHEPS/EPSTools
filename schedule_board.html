@@ -21,10 +21,14 @@
   --walk-bg: #FFF0DC;
   --walk-border: #E89020;
   --walk-text: #7A4A00;
-  /* Fab = green */
+  /* Fab = light green */
   --fab-bg: #EAF3DE;
   --fab-border: #97C459;
   --fab-text: #27500A;
+  /* Paint/Install = darker green (fab subtype) */
+  --paint-bg: #BDD9A0;
+  --paint-border: #4A8A22;
+  --paint-text: #1A3808;
   /* Resto = blue */
   --resto-bg: #E6F1FB;
   --resto-border: #378ADD;
@@ -121,6 +125,7 @@ header h1 { font-size: 13px; font-weight: 500; color: var(--text-secondary); let
 /* New types */
 .scard-walk  { background: var(--walk-bg);  border: 0.5px solid var(--walk-border);  color: var(--walk-text); }
 .scard-fab   { background: var(--fab-bg);   border: 0.5px solid var(--fab-border);   color: var(--fab-text); }
+.scard-paint { background: var(--paint-bg); border: 0.5px solid var(--paint-border); color: var(--paint-text); }
 .scard-resto { background: var(--resto-bg); border: 0.5px solid var(--resto-border); color: var(--resto-text); }
 .scard-off   { background: var(--red-bg);   border: 0.5px solid var(--red-border);   color: var(--red-text); }
 /* Legacy fallbacks — old shop/site cards still render with color */
@@ -134,12 +139,14 @@ header h1 { font-size: 13px; font-weight: 500; color: var(--text-secondary); let
 .scard-btn   { width: 16px; height: 16px; border-radius: 2px; border: none; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-family: inherit; line-height: 1; }
 .scard-walk  .scard-btn, .scard-shop .scard-btn { background: rgba(39,80,10,0.14);   color: var(--fab-text); }
 .scard-fab   .scard-btn  { background: rgba(39,80,10,0.14);   color: var(--fab-text); }
+.scard-paint .scard-btn  { background: rgba(29,56,8,0.18);    color: var(--paint-text); }
 .scard-resto .scard-btn, .scard-site .scard-btn { background: rgba(12,68,124,0.14);  color: var(--resto-text); }
 .scard-off   .scard-btn  { background: rgba(121,31,31,0.14);  color: var(--red-text); }
 .scard-btn:hover { opacity: 0.65; }
 .scard.selected { outline: 2px solid var(--text-primary); outline-offset: 1px; }
 .scard-walk.selected  { outline-color: var(--walk-border); }
 .scard-fab.selected, .scard-shop.selected  { outline-color: var(--fab-border); }
+.scard-paint.selected { outline-color: var(--paint-border); }
 .scard-resto.selected, .scard-site.selected { outline-color: var(--resto-border); }
 .scard-off.selected   { outline-color: var(--red-border); }
 .paste-ready .day-cell { cursor: copy; }
@@ -200,6 +207,7 @@ header h1 { font-size: 13px; font-weight: 500; color: var(--text-secondary); let
 .type-btn { flex: 1; padding: 7px 4px; border-radius: var(--radius-sm); border: 0.5px solid var(--border-mid); background: var(--bg-secondary); font-size: 12px; font-family: inherit; cursor: pointer; font-weight: 500; color: var(--text-secondary); }
 .type-btn.active-walk  { background: var(--walk-bg);  color: var(--walk-text);  border-color: var(--walk-border); }
 .type-btn.active-fab   { background: var(--fab-bg);   color: var(--fab-text);   border-color: var(--fab-border); }
+.type-btn.active-paint { background: var(--paint-bg); color: var(--paint-text); border-color: var(--paint-border); }
 .type-btn.active-resto { background: var(--resto-bg); color: var(--resto-text); border-color: var(--resto-border); }
 .type-btn.active-off   { background: var(--red-bg);   color: var(--red-text);   border-color: var(--red-border); }
 .modal-note-text { font-size: 12px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.5; }
@@ -310,7 +318,8 @@ header h1 { font-size: 13px; font-weight: 500; color: var(--text-secondary); let
     <select id="modal-emp" style="width:100%;border:0.5px solid var(--border-mid);border-radius:var(--radius-sm);padding:8px 10px;font-size:13px;font-family:inherit;color:var(--text-primary);background:var(--bg-primary);outline:none;margin-bottom:2px;"></select>
     <label>Type</label>
     <div class="type-btns">
-      <button class="type-btn active-fab" data-type="fab"   id="tbtn-fab">Fab</button>
+      <button class="type-btn active-fab" data-type="fab"   id="tbtn-fab">Shop Fab</button>
+      <button class="type-btn"            data-type="paint" id="tbtn-paint">Paint/Install</button>
       <button class="type-btn"            data-type="resto" id="tbtn-resto">Resto</button>
       <button class="type-btn"            data-type="walk"  id="tbtn-walk">Walk</button>
       <button class="type-btn"            data-type="off"   id="tbtn-off">Off</button>
@@ -406,6 +415,12 @@ function getEmployees() { return [...FIXED_EMPLOYEES, ...floaterNames]; }
 
 // Normalize legacy card types
 function normalizeType(t) {
+  if (t === 'shop' || t === 'paint') return 'fab'; // paint is a fab subtype for filter/legend purposes
+  if (t === 'site') return 'resto';
+  return t || 'fab';
+}
+// For rendering/grouping: preserves 'paint' as distinct from 'fab', maps only legacy shop/site
+function displayType(t) {
   if (t === 'shop') return 'fab';
   if (t === 'site') return 'resto';
   return t || 'fab';
@@ -784,6 +799,7 @@ function getMonthWeeks(year, month) {
 
 function getBarColors(type) {
   if (type === 'fab')   return { bg: 'var(--fab-bg)',   border: 'var(--fab-border)',   text: 'var(--fab-text)' };
+  if (type === 'paint') return { bg: 'var(--paint-bg)', border: 'var(--paint-border)', text: 'var(--paint-text)' };
   if (type === 'resto') return { bg: 'var(--resto-bg)', border: 'var(--resto-border)', text: 'var(--resto-text)' };
   return { bg: 'var(--walk-bg)', border: 'var(--walk-border)', text: 'var(--walk-text)' };
 }
@@ -797,10 +813,11 @@ function getMonthBars(year, month) {
   cards.forEach(c => {
     if (c.type === 'off' || !c.client) return;
     if (c.endDate < windowStart || c.startDate > windowEnd) return;
-    const type = normalizeType(c.type);
-    if (!monthTypeFilters.has(type)) return;
-    const key = c.client + '||' + type;
-    if (!groups[key]) groups[key] = { client: c.client, type, priorityId: c.priorityId || null, cards: [] };
+    const normType = normalizeType(c.type);  // fab/resto/walk (paint→fab for filter)
+    if (!monthTypeFilters.has(normType)) return;
+    const dispType = displayType(c.type);    // preserves 'paint' distinct from 'fab'
+    const key = c.client + '||' + dispType;
+    if (!groups[key]) groups[key] = { client: c.client, type: dispType, priorityId: c.priorityId || null, cards: [] };
     groups[key].cards.push(c);
   });
   // Interval-merge per group with 5-day gap tolerance (merges weekends, splits week+ gaps)
@@ -1307,10 +1324,10 @@ function renderBoard() {
 }
 
 function buildScardEl(card, startCol, endCol) {
-  // Normalize legacy types for CSS class
-  const displayType = normalizeType(card.type);
+  // Use displayType for CSS class (preserves 'paint' distinct from fab)
+  const cssType = displayType(card.type);
   const el = document.createElement("div");
-  el.className = "scard scard-" + displayType;
+  el.className = "scard scard-" + cssType;
   el.draggable = false;
   el.dataset.id = card.id;
   el.dataset.startcol = startCol;
@@ -1454,7 +1471,7 @@ function buildScardEl(card, startCol, endCol) {
 let activeType = "fab";
 function setType(t) {
   activeType = t;
-  ["fab","resto","walk","off"].forEach(type => {
+  ["fab","paint","resto","walk","off"].forEach(type => {
     document.getElementById("tbtn-" + type).className = "type-btn" + (type === t ? " active-" + type : "");
   });
   const isOff = t === "off";
@@ -1514,7 +1531,7 @@ function openEditModal(id) {
   const modalEl = document.getElementById("modal-card");
   modalEl.dataset.editId = id;
   document.getElementById("modal-card-title").textContent = `Edit assignment`;
-  setType(normalizeType(card.type));
+  setType(displayType(card.type));
   if (card.client && !prodClients.includes(card.client)) {
     prodClients.push(card.client); prodClients.sort();
   }
