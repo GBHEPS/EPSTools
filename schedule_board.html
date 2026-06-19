@@ -801,6 +801,7 @@ function getBarColors(type) {
   if (type === 'fab')   return { bg: 'var(--fab-bg)',   border: 'var(--fab-border)',   text: 'var(--fab-text)' };
   if (type === 'paint') return { bg: 'var(--paint-bg)', border: 'var(--paint-border)', text: 'var(--paint-text)' };
   if (type === 'resto') return { bg: 'var(--resto-bg)', border: 'var(--resto-border)', text: 'var(--resto-text)' };
+  if (type === 'off')   return { bg: 'var(--red-bg)',   border: 'var(--red-border)',   text: 'var(--red-text)' };
   return { bg: 'var(--walk-bg)', border: 'var(--walk-border)', text: 'var(--walk-text)' };
 }
 
@@ -808,16 +809,24 @@ function getBarColors(type) {
 function getMonthBars(year, month) {
   const windowStart = dateKey(new Date(year, month, 1));
   const windowEnd   = dateKey(new Date(year, month + 1, 14));
-  // Group by client+type, applying legend filter
+  // Group by client+type (or emp for off events), applying legend filter
   const groups = {};
   cards.forEach(c => {
-    if (c.type === 'off' || !c.client) return;
     if (c.endDate < windowStart || c.startDate > windowEnd) return;
+    if (c.type === 'off') {
+      if (!monthTypeFilters.has('off')) return;
+      // Group off cards by employee — each employee gets their own bar
+      const key = 'OFF||' + c.emp;
+      if (!groups[key]) groups[key] = { client: '', type: 'off', priorityId: null, cards: [], offEmp: c.emp };
+      groups[key].cards.push(c);
+      return;
+    }
+    if (!c.client) return;
     const normType = normalizeType(c.type);  // fab/resto/walk (paint→fab for filter)
     if (!monthTypeFilters.has(normType)) return;
     const dispType = displayType(c.type);    // preserves 'paint' distinct from 'fab'
     const key = c.client + '||' + dispType;
-    if (!groups[key]) groups[key] = { client: c.client, type: dispType, priorityId: c.priorityId || null, cards: [] };
+    if (!groups[key]) groups[key] = { client: c.client, type: dispType, priorityId: c.priorityId || null, cards: [], offEmp: null };
     groups[key].cards.push(c);
   });
   // Interval-merge per group with 5-day gap tolerance (merges weekends, splits week+ gaps)
@@ -827,7 +836,7 @@ function getMonthBars(year, month) {
     let bar = null, barIdx = 0;
     grp.cards.forEach(c => {
       if (!bar) {
-        bar = { key: baseKey + '~0', client: grp.client, type: grp.type, priorityId: grp.priorityId, startDate: c.startDate, endDate: c.endDate, emps: new Set([getInitials(c.emp)]), cardIds: [c.id] };
+        bar = { key: baseKey + '~0', client: grp.client, type: grp.type, priorityId: grp.priorityId, offEmp: grp.offEmp || null, startDate: c.startDate, endDate: c.endDate, emps: new Set([getInitials(c.emp)]), cardIds: [c.id] };
       } else {
         const gapLimit = dateKey(addDays(fromKey(bar.endDate), 5));
         if (c.startDate <= gapLimit) {
@@ -837,7 +846,7 @@ function getMonthBars(year, month) {
         } else {
           allBars.push({ ...bar, emps: Array.from(bar.emps).join(' ') });
           barIdx++;
-          bar = { key: baseKey + '~' + barIdx, client: grp.client, type: grp.type, priorityId: grp.priorityId, startDate: c.startDate, endDate: c.endDate, emps: new Set([getInitials(c.emp)]), cardIds: [c.id] };
+          bar = { key: baseKey + '~' + barIdx, client: grp.client, type: grp.type, priorityId: grp.priorityId, offEmp: grp.offEmp || null, startDate: c.startDate, endDate: c.endDate, emps: new Set([getInitials(c.emp)]), cardIds: [c.id] };
         }
       }
     });
@@ -952,27 +961,30 @@ function renderMonth() {
         el.draggable = false;
         el.dataset.barKey = bar.key;
 
-        // Label: priority + client · initials · desc
+        // Label: off events show "Off · [initials]"; others show priority + client · initials · desc
         const priorityTag = bar.priorityId ? `#${bar.priorityId} ` : '';
-        // Get desc from first card that has one
         const barDesc = bar.cardIds.map(id => cards.find(c => c.id === id)).filter(Boolean).map(c => c.desc).find(d => d) || '';
         const label = document.createElement("span");
         label.className = "month-job-bar-name";
         label.style.cssText = `color:${colors.text};font-size:11px;font-weight:600;`;
-        const descPart = barDesc ? ` — ${barDesc}` : '';
-        label.textContent = `${priorityTag}${bar.client}${bar.emps ? ' · ' + bar.emps : ''}${descPart}`;
+        if (bar.type === 'off') {
+          label.textContent = `Off · ${getInitials(bar.offEmp)}`;
+        } else {
+          const descPart = barDesc ? ` — ${barDesc}` : '';
+          label.textContent = `${priorityTag}${bar.client}${bar.emps ? ' · ' + bar.emps : ''}${descPart}`;
+        }
         el.appendChild(label);
 
         const delBtn = document.createElement("button");
         delBtn.className = "month-bar-del";
         delBtn.innerHTML = "&#x2715;";
-        delBtn.title = "Remove job";
+        delBtn.title = bar.type === 'off' ? "Remove off time" : "Remove job";
         delBtn.addEventListener("click", e => {
           e.stopPropagation();
           const ids = new Set(bar.cardIds);
           cards = cards.filter(c => !ids.has(c.id));
           saveState(); renderMonth();
-          toast(`"${bar.client}" removed.`);
+          toast(bar.type === 'off' ? `Off time removed.` : `"${bar.client}" removed.`);
         });
         el.appendChild(delBtn);
 
@@ -1061,7 +1073,8 @@ function renderMonth() {
                 return c ? c.emp : null;
               }).filter(Boolean))];
               selectedJobBar = { client: bar.client, type: bar.type, emps: actualEmps, cardIds: [...bar.cardIds], startDate: bar.startDate, endDate: bar.endDate, desc: '', priorityId: bar.priorityId };
-              toast(`"${bar.client}" selected — Ctrl+C to copy, Ctrl+E to edit.`);
+              const selLabel = bar.type === 'off' ? `Off · ${getInitials(bar.offEmp)}` : `"${bar.client}"`;
+              toast(`${selLabel} selected — Ctrl+C to copy, Ctrl+E to edit.`);
               return;
             }
 
@@ -1107,7 +1120,7 @@ function renderMonth() {
 
             saveState();
             renderMonth();
-            toast(`${bar.client} ${dayShift > 0 ? '+' : ''}${dayShift}d`);
+            toast(`${bar.type === 'off' ? 'Off · ' + getInitials(bar.offEmp) : bar.client} ${dayShift > 0 ? '+' : ''}${dayShift}d`);
           }
 
           document.addEventListener("mousemove", onMove);
