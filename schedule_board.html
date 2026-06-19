@@ -1083,7 +1083,9 @@ function renderMonth() {
             const dropDate = addDays(startMon, weekIdx * 7 + colIdx);
 
             // Grab-point-relative shift: drop position minus grab position
-            const dayShift = Math.round((fromKey(dateKey(dropDate)) - fromKey(grabDate)) / 86400000);
+            // Validate grabDate in case grab-cell detection picked up the wrong cell
+            const safeGrabDate = /^\d{4}-\d{2}-\d{2}$/.test(grabDate) ? grabDate : bar.startDate;
+            const dayShift = Math.round((fromKey(dateKey(dropDate)) - fromKey(safeGrabDate)) / 86400000);
 
             if (dayShift === 0) { renderMonth(); return; }
 
@@ -1093,6 +1095,16 @@ function renderMonth() {
               card.startDate = dateKey(addDays(fromKey(start), dayShift));
               card.endDate   = dateKey(addDays(fromKey(end),   dayShift));
             });
+
+            // If cards moved out of the current month view, update the anchor to follow them
+            const anyCard = cards.find(c => origDates.some(o => o.id === c.id));
+            if (anyCard) {
+              const movedDate = fromKey(anyCard.startDate);
+              if (movedDate.getFullYear() !== monthAnchor.year || movedDate.getMonth() !== monthAnchor.month) {
+                monthAnchor = { year: movedDate.getFullYear(), month: movedDate.getMonth() };
+              }
+            }
+
             saveState();
             renderMonth();
             toast(`${bar.client} ${dayShift > 0 ? '+' : ''}${dayShift}d`);
@@ -1449,14 +1461,25 @@ function buildScardEl(card, startCol, endCol) {
       if (!dropDate || !emp) { renderBoard(); return; }
 
       // Shift = drop position minus grab position (grab-point-relative)
-      const shift = Math.round((fromKey(dropDate) - fromKey(grabDate)) / 86400000);
+      // Validate grabDate — fall back to card.startDate if detection produced a bad value
+      const safeGrabDate = /^\d{4}-\d{2}-\d{2}$/.test(grabDate) ? grabDate : card.startDate;
+      const shift = Math.round((fromKey(dropDate) - fromKey(safeGrabDate)) / 86400000);
       if (shift === 0 && emp === card.emp) { renderBoard(); return; }
 
       el._wasDragged = true;
-      const dur = daysBetween(card.startDate, card.endDate);
+      const prevStart = card.startDate;
       card.emp = emp;
       card.startDate = dateKey(addDays(fromKey(card.startDate), shift));
       card.endDate   = dateKey(addDays(fromKey(card.endDate),   shift));
+
+      // If the card moved outside the current 2-week view, navigate to it
+      const viewStart = dateKey(anchorMonday);
+      const viewEnd   = dateKey(addDays(anchorMonday, 11));
+      if (card.endDate < viewStart || card.startDate > viewEnd) {
+        anchorMonday = getMondayOf(fromKey(card.startDate));
+        toast(`"${card.client || 'Card'}" moved to ${fmt(fromKey(card.startDate))} — navigated to show it.`);
+      }
+
       saveState();
       renderBoard();
     }
