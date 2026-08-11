@@ -382,6 +382,7 @@
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import { getFirestore, collection, doc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, writeBatch } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBiwsuVyEormZua4fUh7rLeIAQp0BZ-y8A",
@@ -393,6 +394,27 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+    const auth = getAuth(app);
+(function(){
+  var DOMAIN = "@eastportlandsash.com";
+  function ok(u){ return u && u.email && u.email.toLowerCase().endsWith(DOMAIN); }
+  function wire(){
+    var gate=document.getElementById('eps-auth-gate'), msg=document.getElementById('eps-auth-msg'), btn=document.getElementById('eps-auth-btn');
+    if(!gate) return;
+    onAuthStateChanged(auth, function(user){
+      if(ok(user)){ gate.style.display='none'; }
+      else if(user){ msg.textContent='That account ('+user.email+') is not an East Portland Sash account. Sign in with your @eastportlandsash.com login.'; gate.style.display='flex'; signOut(auth); }
+      else { gate.style.display='flex'; }
+    });
+    btn.onclick=function(){
+      signInWithPopup(auth, new GoogleAuthProvider()).then(function(res){
+        if(ok(res.user)){ location.reload(); }
+        else { msg.textContent='That account is not an East Portland Sash account.'; signOut(auth); }
+      }).catch(function(e){ msg.textContent='Sign-in failed: '+((e&&e.message)||e); });
+    };
+  }
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', wire); } else { wire(); }
+})();
 
 let catalog = [], batches = [], activeBatchId = null, currentTab = 'orderpad';
 let colMap = { active:0, sku:1, category:2, subcategory:3, name:4, unit:5, vendor:6, vendor_sku:7, notes:8 };
@@ -1683,6 +1705,13 @@ bootstrap();
       <button class="btn btn-primary" onclick="saveEditBatch()">Save</button>
     </div>
   </div>
+</div>
+
+<!-- EPS auth gate — added 2026-08-11. Signed-in @eastportlandsash.com only. -->
+<div id="eps-auth-gate" style="position:fixed;inset:0;z-index:99999;background:#f4efe6;color:#2a2418;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:system-ui,-apple-system,sans-serif;gap:18px;text-align:center;padding:24px;">
+  <div style="font-size:22px;font-weight:700;">East Portland Sash &mdash; Tools</div>
+  <div id="eps-auth-msg" style="max-width:380px;line-height:1.5;color:#6b6357;">Sign in with your East Portland Sash account to load your data.</div>
+  <button id="eps-auth-btn" style="font-size:15px;padding:11px 22px;border:0;border-radius:6px;background:#a95225;color:#fff;cursor:pointer;">Sign in with Google</button>
 </div>
 </body>
 </html>
