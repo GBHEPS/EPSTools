@@ -522,6 +522,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
   firebase.initializeApp({
     apiKey: "AIzaSyBiwsuVyEormZua4fUh7rLeIAQp0BZ-y8A",
@@ -529,6 +530,7 @@
     projectId: "epstools-2913e",
   });
   var db = firebase.firestore();
+  var auth = firebase.auth();
 
   // ── HELPERS ──
   function formatDate(val) {
@@ -1739,6 +1741,33 @@
 
   // ── INIT ──
   loadProjects();
+</script>
+
+<!-- EPS auth gate — added 2026-08-10. Signed-in @eastportlandsash.com only. -->
+<div id="eps-auth-gate" style="position:fixed;inset:0;z-index:99999;background:#f4efe6;color:#2a2418;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:system-ui,-apple-system,sans-serif;gap:18px;text-align:center;padding:24px;">
+  <div style="font-size:22px;font-weight:700;">East Portland Sash &mdash; Tools</div>
+  <div id="eps-auth-msg" style="max-width:380px;line-height:1.5;color:#6b6357;">Sign in with your East Portland Sash account to load your data.</div>
+  <button id="eps-auth-btn" style="font-size:15px;padding:11px 22px;border:0;border-radius:6px;background:#a95225;color:#fff;cursor:pointer;">Sign in with Google</button>
+</div>
+<script>
+(function(){
+  var DOMAIN = "@eastportlandsash.com";
+  var gate = document.getElementById('eps-auth-gate');
+  var msg  = document.getElementById('eps-auth-msg');
+  var btn  = document.getElementById('eps-auth-btn');
+  function ok(u){ return u && u.email && u.email.toLowerCase().endsWith(DOMAIN); }
+  auth.onAuthStateChanged(function(user){
+    if (ok(user)) { gate.style.display = 'none'; }
+    else if (user) { msg.textContent = 'That account (' + user.email + ') is not an East Portland Sash account. Sign in with your @eastportlandsash.com login.'; gate.style.display = 'flex'; auth.signOut(); }
+    else { gate.style.display = 'flex'; }
+  });
+  btn.onclick = function(){
+    auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).then(function(res){
+      if (ok(res.user)) { location.reload(); }
+      else { msg.textContent = 'That account is not an East Portland Sash account.'; auth.signOut(); }
+    }).catch(function(e){ msg.textContent = 'Sign-in failed: ' + ((e && e.message) || e); });
+  };
+})();
 </script>
 </body>
 </html>
