@@ -2764,12 +2764,16 @@ async function deleteProject(docId, rowEl) {
 //  INIT
 // ════════════════════════════════════════════════
 
-(async () => {
+// Wait for sign-in before the first Firestore read (2026-08-25)
+let _epsLoaded = false;
+auth.onAuthStateChanged(async (u) => {
+  if (_epsLoaded || !u || !/@eastportlandsash\.com$/i.test(u.email || '')) return;
+  _epsLoaded = true;
   toast('Loading database...');
   await loadDB();
   renderAll();
   toast('Ready');
-})();
+});
 </script>
 
 <!-- EPS auth gate — added 2026-08-11. Signed-in @eastportlandsash.com only. -->

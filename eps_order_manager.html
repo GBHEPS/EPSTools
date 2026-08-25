@@ -1689,7 +1689,13 @@ document.getElementById('new-batch-name').addEventListener('keydown',e=>{if(e.ke
 
 function esc(str){return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-bootstrap();
+// Wait for sign-in before the first Firestore read (2026-08-25)
+let _epsLoaded = false;
+onAuthStateChanged(auth, (u) => {
+  if (_epsLoaded || !u || !/@eastportlandsash\.com$/i.test(u.email || '')) return;
+  _epsLoaded = true;
+  bootstrap();
+});
 </script>
 <div id="copy-toast" class="copy-toast">Copied to clipboard</div>
 

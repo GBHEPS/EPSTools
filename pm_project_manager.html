@@ -1739,8 +1739,13 @@
     });
   };
 
-  // ── INIT ──
-  loadProjects();
+  // ── INIT ── wait for sign-in before the first Firestore read (2026-08-25)
+  var _epsLoaded = false;
+  auth.onAuthStateChanged(function(u){
+    if (_epsLoaded || !u || !/@eastportlandsash\.com$/i.test(u.email || '')) return;
+    _epsLoaded = true;
+    loadProjects();
+  });
 </script>
 
 <!-- EPS auth gate — added 2026-08-10. Signed-in @eastportlandsash.com only. -->

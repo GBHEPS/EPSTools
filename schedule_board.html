@@ -1733,13 +1733,17 @@ document.getElementById("board-outer").addEventListener("click", e => {
 });
 
 // ── INIT ──
-(async () => {
+// Wait for sign-in before the first Firestore read (2026-08-25)
+let _epsLoaded = false;
+onAuthStateChanged(auth, async (u) => {
+  if (_epsLoaded || !u || !/@eastportlandsash\.com$/i.test(u.email || '')) return;
+  _epsLoaded = true;
   toast("Loading schedule...");
   await loadState();
   renderBoard();
   renderMiniCal();
   toast("Schedule loaded.");
-})();
+});
 
 window.addEventListener("resize", () => { clearTimeout(window._resizeTo); window._resizeTo = setTimeout(renderBoard, 120); });
 </script>
