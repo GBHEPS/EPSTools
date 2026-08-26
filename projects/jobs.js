@@ -64,9 +64,13 @@ let _nextId = 1;
 const uid = () => _nextId++;
 
 // ── Entry points (index.html calls these) ────────────────────────────
-export function mountJobs(el) {
+let active = false;   // true only while the Jobs tab is the one on screen
+export function unmountJobs() { active = false; }
+export function mountJobs(el, opts = {}) {
+  active = true;
   if (root !== el) { root = el; wireEvents(); }
-  showList();
+  // Another tab (Board, Schedule) can ask for one job straight away.
+  if (opts.jobId) openJob(opts.jobId); else showList();
 }
 export function jobsHasUnsaved() { return dirty; }
 
@@ -180,7 +184,7 @@ function renderDashboard() {
   const d = dash;
   if (!d) { el.style.display = "none"; return; }
   const cells = (d.leadTimes || []).map((l) => `
-    <div class="os-cell lead" data-act="lead-cell" title="Open the schedule">
+    <div class="os-cell lead" data-act="lead-cell" data-key="${esc(l.key)}" title="See what leads up to this opening">
       <div class="os-k">Lead · ${esc(l.label)}</div>
       <div class="os-v">${esc(l.say)}</div>
       <div class="os-s">week of ${esc(l.week)} · ~${esc(l.weeksOut)} wk</div>
@@ -918,6 +922,7 @@ async function createFromForm() {
 function wireEvents() {
   // Clicks: anything with data-act. Header buttons live outside <main>, so listen on document.
   document.addEventListener("click", (e) => {
+    if (!active) return;   // another tab owns the screen; its own handler deals with it
     const el = e.target.closest("[data-act]"); if (!el) return;
     const id = el.dataset.id, num = parseInt(id, 10), sec = el.dataset.section;
     // Buttons inside a check-item must not also toggle the item.
@@ -933,7 +938,7 @@ function wireEvents() {
       case "print-list": window.print(); break;
       case "print-select": togglePrintSelect(id, el); break;
       case "open": openJob(id); break;
-      case "lead-cell": document.dispatchEvent(new CustomEvent("eps:navigate", { detail: { tab: "schedule" } })); break;
+      case "lead-cell": document.dispatchEvent(new CustomEvent("eps:navigate", { detail: { tab: "schedule", view: "forecast", focus: el.dataset.key } })); break;
       case "new-job": showNewForm(); break;
       case "back": backToList(); break;
       // detail
@@ -977,12 +982,13 @@ function wireEvents() {
       updateField(el.dataset.field, el);
     }
   };
-  root.addEventListener("input", onEdit);
-  root.addEventListener("change", (e) => { if (e.target.tagName === "SELECT" || e.target.type === "date") onEdit(e); });
+  root.addEventListener("input", (e) => { if (active) onEdit(e); });
+  root.addEventListener("change", (e) => { if (active && (e.target.tagName === "SELECT" || e.target.type === "date")) onEdit(e); });
   // contenteditable header fields commit when focus leaves them
-  root.addEventListener("focusout", (e) => { if (e.target.isContentEditable && e.target.dataset.field && job) updateField(e.target.dataset.field, e.target); });
+  root.addEventListener("focusout", (e) => { if (active && e.target.isContentEditable && e.target.dataset.field && job) updateField(e.target.dataset.field, e.target); });
   // Enter in the "+ Add task" box adds it; Enter in a header field ends the edit
   root.addEventListener("keydown", (e) => {
+    if (!active) return;
     if (e.key !== "Enter") return;
     if (e.target.classList.contains("add-task-input")) { e.preventDefault(); addCustom(e.target.dataset.section); }
     else if (e.target.isContentEditable) { e.preventDefault(); e.target.blur(); }

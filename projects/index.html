@@ -39,7 +39,13 @@
 
 <script type="module">
   import { onAuthChange, isEpsUser, signIn, signOutUser } from "./data.js";
-  import { mountJobs, jobsHasUnsaved } from "./jobs.js";
+  import { mountJobs, unmountJobs, jobsHasUnsaved } from "./jobs.js";
+  // Board and Schedule load lazily so a problem in one tab never blocks the others.
+  const lazy = {
+    board:    () => import("./board.js").then((m) => ({ mount: m.mountBoard,    unsaved: m.boardHasUnsaved })),
+    schedule: () => import("./schedule.js").then((m) => ({ mount: m.mountSchedule, unsaved: m.scheduleHasUnsaved })),
+  };
+  const loaded = {};
 
   // ── Sign-in gate ──
   const gate = document.getElementById("eps-auth-gate");
@@ -65,18 +71,26 @@
   const tabs = document.getElementById("tabs");
   let current = null;
 
-  function showTab(name) {
-    if (name === current) return;
-    // Leaving the Jobs tab with unsaved edits deserves a warning.
-    if (current === "jobs" && jobsHasUnsaved() && !confirm("You have unsaved changes. Leave anyway?")) return;
+  async function showTab(name, opts = {}) {
+    if (name === current && !opts.jobId && !opts.view) return;
+    // Leaving a tab with unsaved edits deserves a warning.
+    const unsaved = current === "jobs" ? jobsHasUnsaved() : (loaded[current] ? loaded[current].unsaved() : false);
+    if (current && current !== name && unsaved && !confirm("You have unsaved changes. Leave anyway?")) return;
+    if (current === "jobs" && name !== "jobs") unmountJobs();
     current = name;
     tabs.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === name));
     document.getElementById("headerNav").innerHTML = "";
     document.getElementById("saveBar").classList.remove("visible");
 
-    if (name === "jobs") { mountJobs(view); return; }
-    const label = name === "board" ? "Board" : "Schedule";
-    view.innerHTML = `<div class="placeholder"><div class="placeholder-title">${label}</div><p>coming next</p></div>`;
+    if (name === "jobs") { mountJobs(view, opts); return; }
+    view.innerHTML = `<div class="placeholder"><p>Loading…</p></div>`;
+    try {
+      loaded[name] = loaded[name] || await lazy[name]();
+      loaded[name].mount(view, opts);
+    } catch (e) {
+      const label = name === "board" ? "Board" : "Schedule";
+      view.innerHTML = `<div class="placeholder"><div class="placeholder-title">${label}</div><p>coming next</p><p style="font-size:11px;color:#a09880">${(e && e.message) || e}</p></div>`;
+    }
   }
 
   tabs.addEventListener("click", (e) => {
@@ -84,7 +98,7 @@
     if (t) showTab(t.dataset.tab);
   });
   // Other modules ask for a tab by dispatching this event (e.g. a lead-time cell).
-  document.addEventListener("eps:navigate", (e) => showTab(e.detail.tab));
+  document.addEventListener("eps:navigate", (e) => showTab(e.detail.tab, e.detail));
 
   showTab("jobs");
 </script>

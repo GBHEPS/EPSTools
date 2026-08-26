@@ -1,0 +1,673 @@
+// schedule.js — the Schedule tab: two views on the same page.
+//
+//   Forecast  the OS schedule board (boards/dashboard: lanes × weeks), read-only.
+//   Crew      the two-week crew board (boards/schedule cards), editable.
+//
+// Same conventions as jobs.js: views are HTML strings rendered into <main>,
+// one delegated click listener reads data-act, every user string goes
+// through esc(), and every Firestore read goes through data.js (which waits
+// for sign-in). All data-act names here are prefixed "sch-" so they never
+// collide with the jobs.js listener, which also sits on document.
+
+import { db, whenSignedIn, loadDashboard, saveScheduleCards, loadJobs } from "./data.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+
+// ── Constants ────────────────────────────────────────────────────────
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const TYPES = { fab: "Shop Fab", paint: "Paint/Install", resto: "Resto", walk: "Walk", off: "Off" };
+const LEGEND = [["walk", "Walk"], ["fab", "Fab"], ["resto", "Resto"], ["off", "Off"]];
+const SAVE_DELAY = 600;
+const CARD_H = 44, CARD_GAP = 3, CELL_MIN_H = 80;
+
+// ── State ────────────────────────────────────────────────────────────
+let root = null;                 // the <main> we render into
+let wired = false;
+let view = "crew";               // "forecast" | "crew"
+let focus = null;                // "small" | "restoration" | "fab" | null
+let loaded = false, loading = null;
+
+let dash = null;                 // boards/dashboard
+let jobs = [];                   // pm_projects, every status
+let crew = [];                   // settings/crew members (active, in order)
+let cards = [];                  // boards/schedule cards — the thing we edit
+let prodClients = [];            // legacy autocomplete names, kept for the old board
+
+let anchorMonday = mondayOf(new Date());
+let typeFilters = new Set(["walk", "fab", "resto", "off"]);
+let showJobStrip = true;
+
+let hoverCardId = null;          // card under the mouse (Cmd/Ctrl+C copies it)
+let copiedCard = null;           // a card waiting to be pasted
+let selectedJobBar = null;       // a job-strip bar the user clicked
+let copiedJobBar = null;
+
+let modal = null;                // { id|null, emp, type, ... } while the card modal is open
+let deleteId = null;
+
+let dragEndedAt = 0;             // a drop re-renders the board; the click that follows must not open anything
+
+let saveTimer = null;
+let savePending = false;         // true from the first edit until the write lands
+
+// ── Entry points (index.html calls these) ────────────────────────────
+
+/** Mount the tab. opts: { view: "forecast"|"crew", focus: "small"|"restoration"|"fab" } */
+export function mountSchedule(viewEl, opts = {}) {
+  root = viewEl;
+  if (!wired) { wireEvents(); wired = true; }
+  if (opts.view === "forecast" || opts.view === "crew") view = opts.view;
+  else if (opts.focus) view = "forecast";
+  focus = opts.focus || null;
+  // Re-read on every mount (the Jobs tab may have pushed cards) unless an edit is still saving.
+  if (!savePending) { loaded = false; loading = null; }
+  root.innerHTML = `<div id="schedWrap" class="sched-wrap"><div class="loading-state">Loading schedule…</div></div>`;
+  setHeaderNav("");
+  ensureLoaded().then(render).catch((e) => {
+    root.innerHTML = `<div class="empty-state"><div class="icon">⚠</div><p>${esc(e.message || String(e))}</p></div>`;
+  });
+}
+
+/** True while a debounced save is still waiting or in flight. */
+export function scheduleHasUnsaved() { return savePending; }
+
+window.addEventListener("beforeunload", (e) => { if (savePending) { e.preventDefault(); e.returnValue = ""; } });
+
+// ── Small helpers ────────────────────────────────────────────────────
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+const $ = (id) => document.getElementById(id);
+function toast(msg, isError) {
+  const t = $("toast"); if (!t) return;
+  t.textContent = msg;
+  t.className = "toast" + (isError ? " error" : "") + " show";
+  clearTimeout(t._to); t._to = setTimeout(() => t.classList.remove("show"), 2800);
+}
+function setHeaderNav(html) { const h = $("headerNav"); if (h) h.innerHTML = html; }
+function isMounted() { return !!(root && root.isConnected && root.querySelector("#schedWrap")); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
+
+// dates: the board thinks in "YYYY-MM-DD" keys and local Date objects
+function mondayOf(date) { const d = new Date(date); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + (d.getDay() === 0 ? -6 : 1 - d.getDay())); return d; }
+function addDays(date, n) { const d = new Date(date); d.setDate(d.getDate() + n); return d; }
+function key(date) { return date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0") + "-" + String(date.getDate()).padStart(2, "0"); }
+function fromKey(k) { const [y, m, d] = String(k).split("-").map(Number); return new Date(y, m - 1, d); }
+function fmt(date) { return (date.getMonth() + 1) + "/" + date.getDate(); }
+function isToday(date) { return key(date) === key(new Date()); }
+function daysBetween(a, b) { return Math.round((fromKey(b) - fromKey(a)) / 86400000); }
+function addBizDays(k, n) { let d = fromKey(k), added = 0; while (added < n) { d = addDays(d, 1); if (d.getDay() % 6) added++; } return key(d); }
+function weekDates(monday) { return Array.from({ length: 5 }, (_, i) => addDays(monday, i)); }
+
+/** Legacy shop→fab, site→resto; paint folds into fab for the legend filter. */
+function filterType(t) { return (t === "shop" || t === "paint") ? "fab" : t === "site" ? "resto" : (t || "fab"); }
+function displayType(t) { return t === "shop" ? "fab" : t === "site" ? "resto" : (t || "fab"); }
+
+function statusOf(p) { return p.status === "active" ? "pre-production" : (p.status || "pre-production"); }
+function liveJobs() {
+  return jobs.filter((p) => ["pre-production", "production"].includes(statusOf(p)))
+    .sort((a, b) => String(a.clientLastName || "").localeCompare(String(b.clientLastName || "")));
+}
+function jobById(id) { return id ? jobs.find((j) => j.id === id) : null; }
+function jobByLastName(name) {
+  const n = String(name || "").trim().toLowerCase(); if (!n) return null;
+  return liveJobs().find((j) => String(j.clientLastName || "").trim().toLowerCase() === n) || null;
+}
+
+// ── Loading ──────────────────────────────────────────────────────────
+async function ensureLoaded() {
+  if (loaded) return;
+  if (!loading) loading = (async () => {
+    const [d, j, c, s] = await Promise.all([loadDashboard(), loadJobs(), loadCrew(), loadScheduleDoc()]);
+    dash = d; jobs = j; crew = c; cards = s.cards; prodClients = s.prodClients;
+    loaded = true;
+  })();
+  await loading;
+}
+
+/** settings/crew → active members, in stored order. Falls back to whoever holds cards. */
+async function loadCrew() {
+  await whenSignedIn();
+  try {
+    const snap = await getDoc(doc(db, "settings", "crew"));
+    const members = snap.exists() ? (snap.data().members || []) : [];
+    return members.filter((m) => m && m.active !== false && m.initials).map((m) => ({ initials: String(m.initials), name: String(m.name || m.initials), role: String(m.role || "") }));
+  } catch (e) { console.warn("settings/crew", e); return []; }
+}
+
+/** The whole boards/schedule doc (we need prodClients as well as cards). */
+async function loadScheduleDoc() {
+  await whenSignedIn();
+  const snap = await getDoc(doc(db, "boards", "schedule"));
+  const s = snap.exists() ? snap.data() : {};
+  return { cards: Array.isArray(s.cards) ? s.cards : [], prodClients: Array.isArray(s.prodClients) ? s.prodClients : [] };
+}
+
+/** Row order for the board: the roster, then anyone else holding a card in this window. */
+function rowEmps() {
+  const list = crew.map((m) => m.initials);
+  const start = key(anchorMonday), end = key(addDays(anchorMonday, 11));
+  cards.forEach((c) => { if (c.emp && !list.includes(c.emp) && c.endDate >= start && c.startDate <= end) list.push(c.emp); });
+  return list;
+}
+function empName(initials) { const m = crew.find((x) => x.initials === initials); return m ? m.name : initials; }
+
+// ── Saving ───────────────────────────────────────────────────────────
+function scheduleSave() {
+  savePending = true;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    try {
+      await saveScheduleCards(cards);
+      savePending = false;
+      // step 4: write dates back to the job here (earliest fab/resto/walk card per jobId → pm_projects)
+    } catch (e) {
+      console.warn("schedule save failed", e);
+      toast("Save failed — check connection. " + (e.message || ""), true);
+    }
+  }, SAVE_DELAY);
+}
+
+// ═════════════════════════════════════════════════════════════════════
+// RENDER
+// ═════════════════════════════════════════════════════════════════════
+
+function render() {
+  if (!isMounted()) return;
+  const wrap = $("schedWrap"); if (!wrap) return;
+  const sw = (v, label) => `<button class="sch-view-btn${view === v ? " active" : ""}" data-act="sch-view" data-view="${v}">${label}</button>`;
+  const left = `<div class="sch-switch">${sw("forecast", "Forecast")}${sw("crew", "Crew")}</div>`;
+  if (view === "forecast") {
+    setHeaderNav(left + `<span class="sch-stamp">board as of ${esc(dash?.leadTimesAsOf || "?")} · today ${esc(dash?.today || key(new Date()))}</span>`);
+    wrap.innerHTML = renderForecast();
+  } else {
+    const label = fmt(anchorMonday) + " – " + fmt(addDays(anchorMonday, 11));
+    setHeaderNav(left + `
+      <div class="sch-nav">
+        <button class="btn-header" data-act="sch-prev" title="Previous week (←)">◀</button>
+        <span class="sch-week-label">${esc(label)}</span>
+        <button class="btn-header" data-act="sch-next" title="Next week (→)">▶</button>
+        <button class="btn-header" data-act="sch-today">Today</button>
+      </div>
+      <button class="btn-header" data-act="sch-print">⎙ Print</button>`);
+    wrap.innerHTML = renderCrew();
+    wrap.classList.toggle("paste-ready", !!(copiedCard || copiedJobBar));
+  }
+}
+
+// ── Forecast: lanes × weeks, from boards/dashboard ───────────────────
+function renderForecast() {
+  const d = dash || {};
+  const bars = d.timeline || [], marks = d.leadMarkers || [];
+  const focusLead = (d.leadTimes || []).find((l) => l.key === focus);
+  const title = focusLead ? `What's ahead of a new ${esc(focusLead.label.toLowerCase())} job — lands week of ${esc(focusLead.week)}` : "Schedule board";
+  const note = `Forecast comes from the OS schedule board (shared/SCHEDULE.md), as of ${esc(d.leadTimesAsOf || "?")}. Drag-to-anchor comes in step 4.`;
+  if (!bars.length) {
+    return `<div class="sch-panel"><div class="sch-panel-head"><b>${title}</b></div>
+      <div class="sch-empty">No timeline yet — ask the OS to run the schedule check.</div><div class="sch-note">${note}</div></div>`;
+  }
+  const day = 86400000, at = (s) => new Date(s + "T00:00:00");
+  const today = at(d.today || key(new Date())); const t0 = mondayOf(today);
+  const ends = bars.map((b) => at(b.start).getTime() + b.weeks * 7 * day).concat(marks.map((m) => at(m.start).getTime() + 14 * day));
+  const nWeeks = Math.max(8, Math.ceil((Math.max(...ends) - t0) / (7 * day)) + 1);
+  const L = 120, W = 64, rowH = 22, laneGap = 10, top = 22;
+  const cap = d.capacity || {};
+  const lanes = [
+    ["restoration", "Restoration" + (cap.restoration ? " · " + cap.restoration + " h/wk" : "")],
+    ["fabrication", "Fabrication" + (cap.fabrication ? " · " + cap.fabrication + " h/wk" : "")],
+    ["filler", "Onesie-twosie · 1/wk"],
+  ];
+  // pack bars into rows within each lane so overlaps don't stack on top of each other
+  const laneRows = {}, laneY = {}; let y = top;
+  lanes.forEach(([k]) => {
+    const rows = [];
+    bars.filter((b) => b.lane === k).sort((a, b) => (a.start < b.start ? -1 : 1)).forEach((b) => {
+      const s = at(b.start).getTime(), e = s + b.weeks * 7 * day;
+      const row = rows.find((r) => r.end <= s);
+      if (row) { row.end = e; row.items.push(b); } else rows.push({ end: e, items: [b] });
+    });
+    if (!rows.length) rows.push({ end: 0, items: [] });
+    laneRows[k] = rows; laneY[k] = y; y += rows.length * rowH + laneGap;
+  });
+  const H = y + 18, Wt = L + nWeeks * W + 10;
+  const x = (s) => L + ((at(s) - t0) / (7 * day)) * W;
+  const svg = [`<svg class="sch-tl-svg" width="${Wt}" height="${H}" viewBox="0 0 ${Wt} ${H}">`];
+  for (let i = 0; i < nWeeks; i++) {
+    const wd = new Date(t0.getTime() + i * 7 * day);
+    svg.push(`<line class="${wd.getDate() <= 7 ? "month" : "grid"}" x1="${L + i * W}" y1="${top - 6}" x2="${L + i * W}" y2="${H - 14}"/>`);
+    svg.push(`<text class="wk" x="${L + i * W + 3}" y="${top - 9}">${wd.getMonth() + 1}/${wd.getDate()}</text>`);
+  }
+  lanes.forEach(([k, label]) => {
+    const y0 = laneY[k];
+    svg.push(`<text class="lane-label" x="0" y="${y0 + 14}">${esc(label)}</text>`);
+    laneRows[k].forEach((row, ri) => row.items.forEach((b) => {
+      const bx = x(b.start), bw = Math.max(b.weeks * W - 3, 10), by = y0 + ri * rowH + 3;
+      const cls = "bar " + b.lane + (b.anchored ? " anchored" : "") + (b.blocked ? " blocked" : "");
+      const tip = `${b.label} — ${b.hours} h, ${b.weeks} wk from ${b.start}${b.commitment ? " (" + b.commitment + ")" : ""}${b.blocked ? "\nBlocked: " + b.blocked : ""}\nClick to open the job`;
+      svg.push(`<g class="tl-bar" data-act="sch-open-job" data-slug="${esc(b.slug || "")}" data-label="${esc(b.label || "")}"><title>${esc(tip)}</title>`);
+      svg.push(`<rect class="${cls}" x="${bx}" y="${by}" width="${bw}" height="${rowH - 6}"/>`);
+      svg.push(`<text class="bar-label" x="${bx + 4}" y="${by + 12}">${esc(b.label)}${bw > 70 ? " · " + esc(b.hours) + "h" : ""}</text></g>`);
+    }));
+  });
+  const tx = L + ((today - t0) / (7 * day)) * W;
+  svg.push(`<line class="today" x1="${tx}" y1="${top - 6}" x2="${tx}" y2="${H - 14}"/>`);
+  marks.forEach((m) => {
+    const mx = x(m.start), my = laneY[m.lane] ?? top, hot = m.key === focus;
+    svg.push(`<g class="tl-mark${hot ? " hot" : ""}" opacity="${hot ? 1 : 0.45}"><title>${esc("New " + m.desc + " would start week of " + m.start)}</title>`);
+    svg.push(`<polygon class="marker" points="${mx},${my - 2} ${mx + 7},${my + 5} ${mx},${my + 12}"/>`);
+    svg.push(`<text class="marker-label" x="${mx + 10}" y="${my + 9}">${hot ? "next opening" : ""}</text></g>`);
+  });
+  svg.push("</svg>");
+  const legend = `<div class="sch-legend">
+    <span><i style="background:#c9dcc9;border-color:#7ab07a"></i>restoration</span>
+    <span><i style="background:#cfe0ee;border-color:#7aa6c9"></i>fabrication</span>
+    <span><i style="background:#ede2c4;border-color:#d4a820"></i>onesie-twosie</span>
+    <span><i style="border-width:2px;border-color:#555"></i>date in writing</span>
+    <span><i style="border-style:dashed;border-color:#555"></i>blocked</span>
+    <span style="color:#c0392b">┆ today</span><span style="color:var(--green)">▶ next opening</span></div>`;
+  return `<div class="sch-panel">
+    <div class="sch-panel-head"><b>${title}</b><span>board as of ${esc(d.leadTimesAsOf || "?")} · today ${esc(d.today || "")}</span></div>
+    <div class="sch-tl-scroll">${svg.join("")}</div>${legend}
+    <div class="sch-note">${note}</div></div>`;
+}
+
+/** A timeline bar's slug → a pm_projects id, by osFolder then by last name. */
+function resolveJobId(slug, label) {
+  const s = String(slug || "").toLowerCase();
+  if (s) {
+    const byFolder = jobs.find((j) => { const f = String(j.osFolder || "").toLowerCase().replace(/\/+$/, ""); return f && (f === s || f.endsWith("/" + s) || f.split("/").pop() === s); });
+    if (byFolder) return byFolder.id;
+  }
+  const last = (s.split("-")[0] || String(label || "").split(/[\s,(]/)[0]).toLowerCase();
+  const pool = liveJobs().concat(jobs);
+  const byName = last && pool.find((j) => String(j.clientLastName || "").trim().toLowerCase() === last);
+  return byName ? byName.id : null;
+}
+
+// ── Crew: two weeks × roster ─────────────────────────────────────────
+function renderCrew() {
+  const chips = LEGEND.map(([t, label]) => `<button class="sch-chip sch-chip-${t}${typeFilters.has(t) ? " active" : ""}" data-act="sch-filter" data-type="${t}">${label}</button>`).join("");
+  const strip = `<div class="sch-strip">
+      ${renderMiniCal()}
+      <div class="sch-strip-space"></div>
+      <div class="sch-chips">${chips}</div>
+      <button class="sch-tool" data-act="sch-toggle-jobs">${showJobStrip ? "Hide jobs" : "Show jobs"}</button>
+      <span class="sch-keys">V ←→ · ⌘C copy</span>
+    </div>`;
+  const emps = rowEmps();
+  const weeks = [["Week 1", weekDates(anchorMonday)], ["Week 2", weekDates(addDays(anchorMonday, 7))]];
+  const body = emps.length
+    ? weeks.map(([label, dates]) => renderWeek(label, dates, emps)).join("")
+    : `<div class="sch-empty">No crew on file — the OS writes the roster to settings/crew from eps/scheduling.yaml.</div>`;
+  return strip + `<div class="sch-board">${body}</div>${renderModals()}`;
+}
+
+function renderMiniCal() {
+  const winStart = key(anchorMonday), winEnd = key(addDays(anchorMonday, 11));
+  const w1 = anchorMonday, w2 = addDays(anchorMonday, 11);
+  const months = [[w1.getFullYear(), w1.getMonth()]];
+  if (w2.getMonth() !== w1.getMonth() || w2.getFullYear() !== w1.getFullYear()) months.push([w2.getFullYear(), w2.getMonth()]);
+  return `<div class="sch-minical">` + months.map(([yr, mo]) => {
+    const start = mondayOf(new Date(yr, mo, 1));
+    let cells = ["M", "T", "W", "T", "F"].map((l) => `<div class="mc-day mc-hdr">${l}</div>`).join("");
+    for (let w = 0; w < 5; w++) for (let dd = 0; dd < 5; dd++) {
+      const c = addDays(start, w * 7 + dd); const k = key(c);
+      if (w === 4 && c.getMonth() !== mo) continue;
+      cells += `<div class="mc-day${c.getMonth() !== mo ? " other" : ""}${isToday(c) ? " today" : ""}${k >= winStart && k <= winEnd ? " in" : ""}" data-act="sch-goto" data-day="${k}">${c.getDate()}</div>`;
+    }
+    return `<div><div class="mc-title">${MONTHS[mo]} ${yr}</div><div class="mc-grid">${cells}</div></div>`;
+  }).join("") + `</div>`;
+}
+
+function cardsForEmpWeek(emp, dates) {
+  const ws = key(dates[0]), we = key(dates[4]);
+  return cards.filter((c) => c.emp === emp && c.startDate <= we && c.endDate >= ws && typeFilters.has(filterType(c.type)));
+}
+
+function renderWeek(label, dates, emps) {
+  const ws = key(dates[0]), we = key(dates[4]);
+  const head = `<div class="sch-corner"></div>` + dates.map((d, i) =>
+    `<div class="sch-dayhead${isToday(d) ? " is-today" : ""}"><div class="dn">${DAYS[i]}</div><div class="dd">${fmt(d)}</div></div>`).join("");
+  const rows = emps.map((emp, ei) => {
+    const last = ei === emps.length - 1;
+    const stack = [0, 0, 0, 0, 0], cardHtml = [[], [], [], [], []];
+    cardsForEmpWeek(emp, dates).forEach((card) => {
+      const vs = card.startDate < ws ? ws : card.startDate, ve = card.endDate > we ? we : card.endDate;
+      let s = dates.findIndex((d) => key(d) === vs), e = dates.findIndex((d) => key(d) === ve);
+      if (s < 0) s = 0; if (e < 0) e = 4; if (e < s) e = s;
+      const top = 4 + Math.max(...stack.slice(s, e + 1));
+      cardHtml[s].push(renderCard(card, s, e, top));
+      for (let c = s; c <= e; c++) stack[c] = top - 4 + CARD_H + CARD_GAP;
+    });
+    const cells = dates.map((d, i) => {
+      const minH = Math.max(CELL_MIN_H, stack[i] + 8);
+      return `<div class="sch-cell${isToday(d) ? " is-today" : ""}${last ? " last" : ""}" data-act="sch-cell" data-emp="${esc(emp)}" data-day="${key(d)}" style="min-height:${minH}px">${cardHtml[i].join("")}</div>`;
+    }).join("");
+    return `<div class="sch-rowlabel${last ? " last" : ""}" title="${esc(empName(emp))}">${esc(emp)}</div>${cells}`;
+  }).join("");
+  return `<div class="sch-week"><div class="sch-weeklabel">${label}</div>${renderJobStrip(dates)}<div class="sch-grid">${head}${rows}</div></div>`;
+}
+
+function renderCard(card, s, e, top) {
+  const t = displayType(card.type), n = e - s + 1;
+  const dur = daysBetween(card.startDate, card.endDate);
+  const span = dur > 0 ? `<span class="scard-span">${dur + 1}d</span>` : "";
+  const style = `top:${top}px;width:calc(${n * 100}% - ${8 + (n - 1)}px)`;
+  const btns = (t === "off" ? "" : `<button class="scard-btn" data-act="sch-copy" title="Copy">⧉</button>`)
+    + `<button class="scard-btn" data-act="sch-edit" title="Edit">✎</button><button class="scard-btn" data-act="sch-del" title="Remove">✕</button>`;
+  const name = t === "off" ? "Off" : `${card.priorityId ? "#" + esc(card.priorityId) + " " : ""}${esc(card.client || "")}`;
+  const desc = t !== "off" && card.desc ? `<span class="scard-desc">${esc(card.desc)}</span>` : "";
+  return `<div class="scard scard-${t}" data-id="${esc(card.id)}" style="${style}" title="${esc(empName(card.emp))} · ${esc(TYPES[t] || t)} · ${esc(card.startDate)} → ${esc(card.endDate)}">
+    <span class="scard-name">${name}</span>${desc}${span}<div class="scard-btns">${btns}</div></div>`;
+}
+
+/** Group this week's client cards into one bar per client (5-day gap tolerance). */
+function jobsForWeek(dates) {
+  const ws = key(dates[0]), we = key(dates[4]), groups = {};
+  cards.forEach((c) => {
+    if (c.type === "off" || !c.client || c.endDate < ws || c.startDate > we || !typeFilters.has(filterType(c.type))) return;
+    (groups[c.client] = groups[c.client] || []).push(c);
+  });
+  const out = [];
+  Object.entries(groups).forEach(([client, list]) => {
+    list.sort((a, b) => a.startDate.localeCompare(b.startDate));
+    let job = null;
+    list.forEach((c) => {
+      if (job && c.startDate <= key(addDays(fromKey(job.endDate), 5))) { if (c.endDate > job.endDate) job.endDate = c.endDate; }
+      else { if (job) out.push(job); job = { client, startDate: c.startDate, endDate: c.endDate }; }
+    });
+    if (job) out.push(job);
+  });
+  return out.sort((a, b) => a.startDate.localeCompare(b.startDate));
+}
+
+function renderJobStrip(dates) {
+  if (!showJobStrip) return "";
+  const list = jobsForWeek(dates); if (!list.length) return "";
+  const ws = key(dates[0]), we = key(dates[4]), rows = [];
+  const bars = list.map((job) => {
+    const cs = job.startDate < ws ? ws : job.startDate, ce = job.endDate > we ? we : job.endDate;
+    let s = -1, e = -1;
+    dates.forEach((d, i) => { const k = key(d); if (s < 0 && k >= cs) s = i; if (k <= ce) e = i; });
+    if (s < 0) s = 0; if (e < 0) e = 4;
+    let r = rows.findIndex((end) => end < s); if (r < 0) { r = rows.length; rows.push(e); } else rows[r] = e;
+    const sel = selectedJobBar && selectedJobBar.client === job.client && selectedJobBar.startDate === job.startDate;
+    return `<div class="sch-jobbar${sel ? " selected" : ""}" style="grid-column:${s + 1} / ${e + 2};grid-row:${r + 1}" data-act="sch-jobbar" data-client="${esc(job.client)}" data-start="${job.startDate}" data-end="${job.endDate}"><span>${esc(job.client)}</span></div>`;
+  }).join("");
+  return `<div class="sch-jobstrip"><div class="sch-jobstrip-label">Jobs</div><div class="sch-jobstrip-cells">${bars}</div></div>`;
+}
+
+// ── Modals ───────────────────────────────────────────────────────────
+function renderModals() {
+  return `<div class="sch-overlay" id="schModalCard" data-act="sch-overlay"><div class="sch-modal" id="schModalCardBox"></div></div>
+    <div class="sch-overlay" id="schModalDel" data-act="sch-overlay"><div class="sch-modal">
+      <h3>Remove assignment?</h3><p class="sch-modal-text" id="schDelMsg"></p>
+      <div class="sch-modal-btns"><button data-act="sch-del-cancel">Cancel</button><button class="danger" data-act="sch-del-confirm">Remove</button></div></div></div>`;
+}
+
+function openCardModal(card, ctx) {
+  modal = card
+    ? { id: card.id, emp: card.emp, type: displayType(card.type), client: card.client || "", desc: card.desc || "", start: card.startDate, end: card.endDate, jobId: card.jobId || null, priorityId: card.priorityId || null }
+    : { id: null, emp: ctx.emp, type: "fab", client: "", desc: "", start: ctx.day, end: ctx.day, jobId: null, priorityId: null };
+  const emps = rowEmps(); if (modal.emp && !emps.includes(modal.emp)) emps.push(modal.emp);
+  const empOpts = emps.map((e) => `<option value="${esc(e)}"${e === modal.emp ? " selected" : ""}>${esc(e)}${empName(e) !== e ? " — " + esc(empName(e)) : ""}</option>`).join("");
+  const typeBtns = Object.entries(TYPES).map(([t, label]) => `<button class="sch-type-btn${modal.type === t ? " active-" + t : ""}" data-act="sch-type" data-type="${t}">${label}</button>`).join("");
+  const jobOpts = liveJobs().map((j) => `<option value="${esc(j.clientLastName || "")}">${esc((j.priority ? "#" + j.priority + " · " : "") + (j.clientFullName || "") + (statusOf(j) === "production" ? " · in production" : ""))}</option>`).join("")
+    + prodClients.filter((n) => !jobByLastName(n)).map((n) => `<option value="${esc(n)}"></option>`).join("");
+  const hide = modal.type === "off" ? " hidden" : "";
+  $("schModalCardBox").innerHTML = `
+    <h3>${modal.id ? "Edit assignment" : "Add assignment"}</h3>
+    <label>Employee</label><select id="schEmp">${empOpts}</select>
+    <label>Type</label><div class="sch-type-btns">${typeBtns}</div>
+    <div class="sch-client-row${hide}"><label>Client</label>
+      <input type="text" id="schClient" list="schJobList" autocomplete="off" placeholder="Client name" value="${esc(modal.client)}"><datalist id="schJobList">${jobOpts}</datalist>
+      <div class="sch-hint" id="schJobHint">${jobHint()}</div></div>
+    <div class="sch-client-row${hide}"><label>Work description</label><input type="text" id="schDesc" autocomplete="off" placeholder="e.g. glazing sashes, site measure" value="${esc(modal.desc)}"></div>
+    <label>Start date</label><input type="date" id="schStart" value="${modal.start}">
+    <label>End date</label><input type="date" id="schEnd" value="${modal.end}">
+    <div class="sch-modal-btns"><button data-act="sch-card-cancel">Cancel</button><button class="primary" data-act="sch-card-save">Save</button></div>`;
+  $("schModalCard").classList.add("open");
+  setTimeout(() => { const f = $(modal.type === "off" ? "schStart" : "schClient"); if (f) f.focus(); }, 40);
+}
+
+function jobHint() {
+  const j = jobById(modal.jobId) || jobByLastName(modal.client);
+  if (j) return `Linked to ${esc(j.clientFullName || j.clientLastName)}${j.priority ? " · priority #" + esc(j.priority) : ""} (${esc(j.id)})`;
+  return modal.client ? "Not a live job — saved as a plain name" : "Pick a live job or type any name";
+}
+
+function closeCardModal() { const m = $("schModalCard"); if (m) m.classList.remove("open"); modal = null; }
+
+function setModalType(t) {
+  if (!modal) return; modal.type = t;
+  document.querySelectorAll("#schModalCardBox .sch-type-btn").forEach((b) => { b.className = "sch-type-btn" + (b.dataset.type === t ? " active-" + t : ""); });
+  document.querySelectorAll("#schModalCardBox .sch-client-row").forEach((r) => r.classList.toggle("hidden", t === "off"));
+}
+
+/** Client field changed: link the job, and size the card from its hours budget if the dates are untouched. */
+function onClientChanged() {
+  if (!modal) return;
+  modal.client = $("schClient").value.trim();
+  const j = jobByLastName(modal.client);
+  modal.jobId = j ? j.id : null;
+  modal.priorityId = j ? (parseInt(j.priority, 10) || null) : modal.priorityId;
+  $("schJobHint").innerHTML = jobHint();
+  if (!j || modal.id) return;
+  const start = $("schStart").value; if (!start || $("schEnd").value !== start) return;
+  const t = modal.type; if (t !== "fab" && t !== "resto") return;
+  const budget = j.hoursBudget || [];
+  const pick = (kind) => budget.filter((r) => r.type === kind || (!r.type && r.scope && r.scope.toLowerCase().startsWith(kind))).reduce((s, r) => s + (parseFloat(r.total) || 0), 0);
+  const hours = t === "fab" ? pick("fab") * 0.5 : pick("resto");
+  if (hours > 0) { const days = Math.ceil(hours / 8); $("schEnd").value = addBizDays(start, days - 1); toast(`Duration set from the hours budget: ${days} day${days !== 1 ? "s" : ""} (${hours} h)`); }
+}
+
+function saveCardModal() {
+  if (!modal) return;
+  const emp = $("schEmp").value, type = modal.type;
+  const client = $("schClient").value.trim(), desc = $("schDesc").value.trim();
+  const start = $("schStart").value; let end = $("schEnd").value;
+  if (!start) { $("schStart").focus(); return; }
+  if (!end || end < start) end = start;
+  if (type !== "off" && !client) { $("schClient").focus(); return; }
+  const j = type === "off" ? null : (jobByLastName(client) || (modal.jobId && jobById(modal.jobId)) || null);
+  const jobId = j && String(j.clientLastName || "").trim().toLowerCase() === client.toLowerCase() ? j.id : null;
+  const priorityId = jobId ? (parseInt(j.priority, 10) || null) : (type === "off" ? null : modal.priorityId);
+  const patch = { emp, type, client: type === "off" ? "" : client, desc: type === "off" ? "" : desc, startDate: start, endDate: end, priorityId, jobId };
+  if (modal.id) {
+    const c = cards.find((x) => x.id === modal.id);
+    if (c) { Object.assign(c, patch); toast("Assignment updated."); }
+  } else { cards.push({ id: uid(), ...patch }); toast("Assignment added."); }
+  if (client && !prodClients.includes(client)) prodClients.push(client);
+  closeCardModal(); scheduleSave(); render();
+}
+
+function openDeleteModal(id) {
+  const c = cards.find((x) => x.id === id); if (!c) return;
+  deleteId = id;
+  $("schDelMsg").textContent = `Remove "${c.type === "off" ? "Off" : (c.client || "this assignment")}" for ${c.emp}? This can't be undone.`;
+  $("schModalDel").classList.add("open");
+}
+function closeDeleteModal() { const m = $("schModalDel"); if (m) m.classList.remove("open"); deleteId = null; }
+function confirmDelete() {
+  if (deleteId) { cards = cards.filter((c) => c.id !== deleteId); scheduleSave(); toast("Assignment removed."); }
+  closeDeleteModal(); render();
+}
+
+// ── Copy / paste ─────────────────────────────────────────────────────
+function copyCard(id) {
+  const c = cards.find((x) => x.id === id); if (!c) return;
+  copiedCard = { ...c }; copiedJobBar = null; selectedJobBar = null;
+  $("schedWrap").classList.add("paste-ready");
+  toast(`"${c.type === "off" ? "Off" : c.client}" copied — click a cell to paste. Esc cancels.`);
+}
+function clearSelection() {
+  copiedCard = null; copiedJobBar = null; selectedJobBar = null;
+  const w = $("schedWrap"); if (w) w.classList.remove("paste-ready");
+  document.querySelectorAll(".sch-jobbar.selected").forEach((b) => b.classList.remove("selected"));
+}
+function pasteTo(emp, day) {
+  if (copiedJobBar) {
+    const dur = daysBetween(copiedJobBar.startDate, copiedJobBar.endDate);
+    cards.push({ id: uid(), emp, type: copiedJobBar.type, client: copiedJobBar.client, desc: copiedJobBar.desc || "", startDate: day, endDate: key(addDays(fromKey(day), dur)), priorityId: copiedJobBar.priorityId || null, jobId: copiedJobBar.jobId || null });
+    toast(`Pasted "${copiedJobBar.client}" for ${emp}.`);
+    clearSelection(); scheduleSave(); render(); return;
+  }
+  if (copiedCard) {
+    const dur = daysBetween(copiedCard.startDate, copiedCard.endDate);
+    const c = { ...copiedCard, id: uid(), emp, startDate: day, endDate: key(addDays(fromKey(day), dur)) };
+    cards.push(c); scheduleSave(); render();
+    toast(`Pasted "${c.type === "off" ? "Off" : c.client}" for ${emp}. Click another cell to paste again, Esc to stop.`);
+  }
+}
+function selectJobBar(el) {
+  const client = el.dataset.client, ws = el.dataset.start, we = el.dataset.end;
+  const matching = cards.filter((c) => c.client === client && c.type !== "off" && c.startDate <= we && c.endDate >= ws);
+  copiedCard = null; copiedJobBar = null;
+  selectedJobBar = {
+    client, startDate: ws, endDate: we,
+    type: matching.length ? filterType(matching[0].type) : "fab",
+    desc: matching.map((c) => c.desc).find((d) => d) || "",
+    priorityId: matching.map((c) => c.priorityId).find((p) => p) || null,
+    jobId: matching.map((c) => c.jobId).find((p) => p) || null,
+  };
+  document.querySelectorAll(".sch-jobbar.selected").forEach((b) => b.classList.remove("selected"));
+  el.classList.add("selected"); $("schedWrap").classList.remove("paste-ready");
+  toast(`"${client}" selected — ⌘C / Ctrl+C to copy the job, then click a cell.`);
+}
+
+// ── Drag a card between cells ────────────────────────────────────────
+function startDrag(el, e) {
+  const card = cards.find((c) => c.id === el.dataset.id); if (!card) return;
+  e.preventDefault();
+  const sx = e.clientX, sy = e.clientY; let moved = false, hl = null;
+  const cellAt = (x, y) => { el.style.display = "none"; const hit = document.elementFromPoint(x, y); el.style.display = ""; return hit ? hit.closest(".sch-cell") : null; };
+  const grabCell = cellAt(sx, sy); const grabDate = grabCell ? grabCell.dataset.day : card.startDate;
+  el.classList.add("dragging");
+  const onMove = (m) => {
+    const dx = m.clientX - sx, dy = m.clientY - sy;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) moved = true;
+    el.style.transform = `translate(${dx}px,${dy}px)`;
+    if (hl) hl.classList.remove("drag-over");
+    hl = cellAt(m.clientX, m.clientY); if (hl) hl.classList.add("drag-over");
+  };
+  const onUp = (m) => {
+    document.removeEventListener("mousemove", onMove); document.removeEventListener("mouseup", onUp);
+    if (hl) hl.classList.remove("drag-over");
+    el.classList.remove("dragging"); el.style.transform = "";
+    if (!moved) return;
+    dragEndedAt = Date.now();
+    const drop = cellAt(m.clientX, m.clientY);
+    if (!drop || !drop.dataset.day || !drop.dataset.emp) return;
+    const shift = daysBetween(/^\d{4}-\d{2}-\d{2}$/.test(grabDate) ? grabDate : card.startDate, drop.dataset.day);
+    if (shift === 0 && drop.dataset.emp === card.emp) return;
+    card.emp = drop.dataset.emp;
+    card.startDate = key(addDays(fromKey(card.startDate), shift));
+    card.endDate = key(addDays(fromKey(card.endDate), shift));
+    scheduleSave(); render();
+  };
+  document.addEventListener("mousemove", onMove); document.addEventListener("mouseup", onUp);
+}
+
+// ── Navigation ───────────────────────────────────────────────────────
+function setView(v) { view = v; if (v === "crew") focus = null; render(); }
+function goWeek(delta) { anchorMonday = addDays(anchorMonday, delta * 7); render(); }
+function openJobFromBar(el) {
+  const id = resolveJobId(el.dataset.slug, el.dataset.label);
+  if (!id) { toast(`No job in the app matches "${el.dataset.label}" yet`, true); return; }
+  document.dispatchEvent(new CustomEvent("eps:navigate", { detail: { tab: "jobs", jobId: id } }));
+}
+
+// ═════════════════════════════════════════════════════════════════════
+// EVENTS — one click listener (header buttons live outside <main>), one keydown, one mousedown
+// ═════════════════════════════════════════════════════════════════════
+function wireEvents() {
+  document.addEventListener("click", (e) => {
+    if (!isMounted()) return;
+    const el = e.target.closest("[data-act^='sch-']"); if (!el) return;
+    const act = el.dataset.act;
+    const cardEl = e.target.closest(".scard");
+    switch (act) {
+      case "sch-view": setView(el.dataset.view); break;
+      case "sch-prev": goWeek(-1); break;
+      case "sch-next": goWeek(1); break;
+      case "sch-today": anchorMonday = mondayOf(new Date()); render(); break;
+      case "sch-goto": anchorMonday = mondayOf(fromKey(el.dataset.day)); render(); break;
+      case "sch-print": window.print(); break;
+      case "sch-filter": { const t = el.dataset.type; typeFilters.has(t) ? typeFilters.delete(t) : typeFilters.add(t); render(); break; }
+      case "sch-toggle-jobs": showJobStrip = !showJobStrip; render(); break;
+      case "sch-open-job": openJobFromBar(el); break;
+      case "sch-jobbar": if (Date.now() - dragEndedAt < 300) break; e.stopPropagation(); selectJobBar(el); break;
+      case "sch-copy": e.stopPropagation(); copyCard(cardEl.dataset.id); break;
+      case "sch-edit": e.stopPropagation(); openCardModal(cards.find((c) => c.id === cardEl.dataset.id)); break;
+      case "sch-del": e.stopPropagation(); openDeleteModal(cardEl.dataset.id); break;
+      case "sch-cell": {
+        if (Date.now() - dragEndedAt < 300) break;
+        if (cardEl) {
+          if (copiedCard || copiedJobBar) pasteTo(el.dataset.emp, el.dataset.day);
+          else openCardModal(cards.find((c) => c.id === cardEl.dataset.id));
+          break;
+        }
+        if (copiedCard || copiedJobBar) pasteTo(el.dataset.emp, el.dataset.day);
+        else openCardModal(null, { emp: el.dataset.emp, day: el.dataset.day });
+        break;
+      }
+      case "sch-type": setModalType(el.dataset.type); break;
+      case "sch-card-cancel": closeCardModal(); break;
+      case "sch-card-save": saveCardModal(); break;
+      case "sch-del-cancel": closeDeleteModal(); break;
+      case "sch-del-confirm": confirmDelete(); break;
+      case "sch-overlay": if (e.target === el) { closeCardModal(); closeDeleteModal(); } break;
+    }
+  });
+
+  document.addEventListener("mousedown", (e) => {
+    if (!isMounted() || view !== "crew" || e.button !== 0) return;
+    const el = e.target.closest(".scard"); if (!el || e.target.closest(".scard-btn")) return;
+    startDrag(el, e);
+  });
+  document.addEventListener("mouseover", (e) => {
+    if (!isMounted()) return;
+    const el = e.target.closest(".scard"); hoverCardId = el ? el.dataset.id : null;
+  });
+
+  // Modal fields: keep the datalist link fresh, and keep end >= start.
+  document.addEventListener("input", (e) => { if (isMounted() && e.target.id === "schClient") onClientChanged(); });
+  document.addEventListener("change", (e) => {
+    if (!isMounted() || !modal) return;
+    if (e.target.id === "schStart" || e.target.id === "schEnd") { const s = $("schStart").value, en = $("schEnd").value; if (en && s && en < s) $("schEnd").value = s; }
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (!isMounted()) return;
+    const tag = document.activeElement && document.activeElement.tagName;
+    const inInput = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+    const cardOpen = $("schModalCard")?.classList.contains("open"), delOpen = $("schModalDel")?.classList.contains("open");
+
+    if (e.key === "Escape") {
+      if (cardOpen) { closeCardModal(); return; }
+      if (delOpen) { closeDeleteModal(); return; }
+      clearSelection(); return;
+    }
+    if (cardOpen) {
+      if (e.key === "Enter" && tag !== "TEXTAREA" && tag !== "SELECT") { e.preventDefault(); saveCardModal(); }
+      return;
+    }
+    if (delOpen) { if (e.key === "Enter") { e.preventDefault(); confirmDelete(); } return; }
+    if (view !== "crew") { if (!inInput && (e.key === "v" || e.key === "V")) { e.preventDefault(); setView("crew"); } return; }
+
+    if ((e.ctrlKey || e.metaKey) && (e.key === "c" || e.key === "C") && !inInput) {
+      if (selectedJobBar) {
+        copiedJobBar = { ...selectedJobBar }; copiedCard = null;
+        $("schedWrap").classList.add("paste-ready");
+        toast(`"${selectedJobBar.client}" copied — click a cell to paste.`);
+        e.preventDefault(); return;
+      }
+      if (hoverCardId) { copyCard(hoverCardId); e.preventDefault(); }
+      return;
+    }
+    if (inInput) return;
+    if (e.key === "v" || e.key === "V") { e.preventDefault(); setView("forecast"); return; }
+    if (e.key === "ArrowLeft") { e.preventDefault(); goWeek(-1); return; }
+    if (e.key === "ArrowRight") { e.preventDefault(); goWeek(1); return; }
+  });
+}
