@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EPS Projects</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+<!-- Header: app name, tab bar, and the buttons the current view needs -->
+<div class="app-header">
+  <div class="wordmark">EPS<span>/</span>Projects</div>
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-tab="jobs">Jobs</button>
+    <button class="tab" data-tab="board">Board</button>
+    <button class="tab" data-tab="schedule">Schedule</button>
+  </nav>
+  <div class="header-nav" id="headerNav"></div>
+</div>
+
+<!-- Each tab renders itself into here -->
+<main id="view"></main>
+
+<!-- Save bar and toast are shared; jobs.js drives them -->
+<div class="save-bar" id="saveBar">
+  <div class="save-status" id="saveStatus">Unsaved changes</div>
+  <button class="btn-save" id="btnSave">Save Changes</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- Sign-in gate. Signed-in @eastportlandsash.com accounts only. -->
+<div id="eps-auth-gate">
+  <div class="gate-title">East Portland Sash &mdash; Tools</div>
+  <div id="eps-auth-msg" class="gate-msg">Sign in with your East Portland Sash account to load your data.</div>
+  <button id="eps-auth-btn" class="gate-btn">Sign in with Google</button>
+</div>
+
+<script type="module">
+  import { onAuthChange, isEpsUser, signIn, signOutUser } from "./data.js";
+  import { mountJobs, jobsHasUnsaved } from "./jobs.js";
+
+  // ── Sign-in gate ──
+  const gate = document.getElementById("eps-auth-gate");
+  const msg  = document.getElementById("eps-auth-msg");
+  const btn  = document.getElementById("eps-auth-btn");
+
+  onAuthChange((user) => {
+    if (isEpsUser(user)) { gate.style.display = "none"; return; }
+    if (user) {
+      msg.textContent = `That account (${user.email}) is not an East Portland Sash account. Sign in with your @eastportlandsash.com login.`;
+      signOutUser();
+    }
+    gate.style.display = "flex";
+  });
+
+  btn.onclick = async () => {
+    try { await signIn(); }
+    catch (e) { msg.textContent = "Sign-in failed: " + (e && e.message || e); }
+  };
+
+  // ── Tabs ──
+  const view = document.getElementById("view");
+  const tabs = document.getElementById("tabs");
+  let current = null;
+
+  function showTab(name) {
+    if (name === current) return;
+    // Leaving the Jobs tab with unsaved edits deserves a warning.
+    if (current === "jobs" && jobsHasUnsaved() && !confirm("You have unsaved changes. Leave anyway?")) return;
+    current = name;
+    tabs.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === name));
+    document.getElementById("headerNav").innerHTML = "";
+    document.getElementById("saveBar").classList.remove("visible");
+
+    if (name === "jobs") { mountJobs(view); return; }
+    const label = name === "board" ? "Board" : "Schedule";
+    view.innerHTML = `<div class="placeholder"><div class="placeholder-title">${label}</div><p>coming next</p></div>`;
+  }
+
+  tabs.addEventListener("click", (e) => {
+    const t = e.target.closest(".tab");
+    if (t) showTab(t.dataset.tab);
+  });
+  // Other modules ask for a tab by dispatching this event (e.g. a lead-time cell).
+  document.addEventListener("eps:navigate", (e) => showTab(e.detail.tab));
+
+  showTab("jobs");
+</script>
+</body>
+</html>
