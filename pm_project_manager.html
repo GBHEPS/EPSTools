@@ -84,6 +84,32 @@
     .os-cell.money .os-v { color:var(--green); }
     .os-cell.ar .os-v { color:var(--amber); }
     .os-strip .os-foot { flex-basis:100%; font-size:10px; color:var(--text-light); padding:3px 14px; border-top:1px solid var(--border); background:var(--bg); }
+
+    /* ── OS lead-time timeline (click a lead cell to open) ── */
+    .os-cell.lead { cursor:pointer; }
+    .os-cell.lead:hover { background:var(--bg); }
+    .os-cell.lead.open { background:var(--green-light); }
+    .os-tl { border:1px solid var(--border); border-top:0; border-radius:0 0 6px 6px; background:var(--surface); margin:-10px 0 10px; padding:10px 14px 8px; overflow-x:auto; }
+    .os-tl-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; }
+    .os-tl-head b { font-size:12px; }
+    .os-tl-head span { font-size:10px; color:var(--text-muted); font-family:var(--mono); }
+    .os-tl svg { display:block; min-width:720px; }
+    .os-tl .lane-label { font-size:10px; font-weight:700; fill:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; }
+    .os-tl .wk { font-size:9px; fill:var(--text-light); font-family:var(--mono); }
+    .os-tl .grid { stroke:var(--border); stroke-width:1; }
+    .os-tl .month { stroke:var(--border-strong); stroke-width:1; }
+    .os-tl .bar { rx:3; }
+    .os-tl .bar.restoration { fill:#c9dcc9; stroke:#7ab07a; }
+    .os-tl .bar.fabrication { fill:#cfe0ee; stroke:#7aa6c9; }
+    .os-tl .bar.filler { fill:#ede2c4; stroke:#d4a820; }
+    .os-tl .bar.anchored { stroke-width:2; }
+    .os-tl .bar.blocked { stroke-dasharray:4 3; }
+    .os-tl .bar-label { font-size:10px; fill:var(--text); pointer-events:none; }
+    .os-tl .marker { fill:var(--green); }
+    .os-tl .marker-label { font-size:10px; font-weight:700; fill:var(--green); }
+    .os-tl .today { stroke:#c0392b; stroke-width:1.5; stroke-dasharray:3 3; }
+    .os-tl .legend { font-size:10px; color:var(--text-muted); margin-top:6px; display:flex; gap:14px; flex-wrap:wrap; }
+    .os-tl .legend i { display:inline-block; width:12px; height:9px; border:1px solid; border-radius:2px; vertical-align:-1px; margin-right:4px; }
     .tally-bar { display: flex; align-items: center; justify-content: space-between; background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 10px 16px; margin-bottom: 10px; }
     .tally-label { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
     .tally-amount { font-family: var(--mono); font-size: 20px; font-weight: 600; color: var(--text); }
@@ -392,6 +418,7 @@
       </div>
     </div>
     <div class="os-strip" id="osStrip" style="display:none"></div>
+    <div class="os-tl" id="osTimeline" style="display:none"></div>
     <div class="tally-bar">
       <div>
         <div class="tally-label">Visible Contract Value</div>
@@ -596,13 +623,85 @@
 
   // ── LOAD PROJECTS ──
 
+
+  // ── Lead-time timeline: lanes × weeks, bars per job, flag where a new job lands ──
+  function toggleTimeline(cell) {
+    var tl = document.getElementById('osTimeline'); var key = cell.dataset.key;
+    var wasOpen = cell.classList.contains('open');
+    document.querySelectorAll('.os-cell.lead').forEach(function(c){ c.classList.remove('open'); });
+    if (wasOpen) { tl.style.display = 'none'; return; }
+    cell.classList.add('open'); renderTimeline(key); tl.style.display = 'block';
+  }
+  function renderTimeline(focusKey) {
+    var d = window._osDash || {}; var tl = document.getElementById('osTimeline');
+    var bars = d.timeline || []; var marks = d.leadMarkers || [];
+    if (!bars.length) { tl.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">No timeline yet — ask the OS to run the schedule check.</div>'; return; }
+    var day = 86400000, mon = function(s){ var x = new Date(s + 'T00:00:00'); return x; };
+    var today = mon(d.today); var t0 = new Date(today); t0.setDate(t0.getDate() - ((t0.getDay()+6)%7)); // this Monday
+    var ends = bars.map(function(b){ return mon(b.start).getTime() + b.weeks*7*day; }).concat(marks.map(function(m){ return mon(m.start).getTime() + 14*day; }));
+    var tEnd = new Date(Math.max.apply(null, ends)); var nWeeks = Math.max(8, Math.ceil((tEnd - t0)/(7*day)) + 1);
+    var L = 110, W = 64, rowH = 22, laneGap = 10, top = 22;
+    var lanes = [['restoration','Restoration · ' + (d.capacity && d.capacity.restoration ? d.capacity.restoration + ' h/wk' : '')],
+                 ['fabrication','Fabrication · ' + (d.capacity && d.capacity.fabrication ? d.capacity.fabrication + ' h/wk' : '')],
+                 ['filler','Onesie-twosie · 1/wk']];
+    // pack bars into rows within each lane so overlaps don't stack on top of each other
+    var laneRows = {}, y = top, laneY = {};
+    lanes.forEach(function(ln){
+      var key = ln[0], rows = [];
+      bars.filter(function(b){ return b.lane === key; }).sort(function(a,b){ return a.start < b.start ? -1 : 1; }).forEach(function(b){
+        var s = mon(b.start).getTime(), e = s + b.weeks*7*day, placed = false;
+        for (var r = 0; r < rows.length && !placed; r++) { if (rows[r].end <= s) { rows[r].end = e; rows[r].items.push(b); placed = true; } }
+        if (!placed) rows.push({ end: e, items: [b] });
+      });
+      if (!rows.length) rows.push({ items: [] });
+      laneRows[key] = rows; laneY[key] = y; y += rows.length * rowH + laneGap;
+    });
+    var H = y + 18, Wt = L + nWeeks*W + 10;
+    var x = function(dateStr){ return L + ((mon(dateStr) - t0)/(7*day)) * W; };
+    var svg = ['<svg width="' + Wt + '" height="' + H + '" viewBox="0 0 ' + Wt + ' ' + H + '">'];
+    // week columns
+    for (var i = 0; i < nWeeks; i++) {
+      var wd = new Date(t0.getTime() + i*7*day); var isMonth = wd.getDate() <= 7;
+      svg.push('<line class="' + (isMonth ? 'month' : 'grid') + '" x1="' + (L+i*W) + '" y1="' + (top-6) + '" x2="' + (L+i*W) + '" y2="' + (H-14) + '"/>');
+      svg.push('<text class="wk" x="' + (L+i*W+3) + '" y="' + (top-9) + '">' + (wd.getMonth()+1) + '/' + wd.getDate() + '</text>');
+    }
+    // lanes + bars
+    lanes.forEach(function(ln){
+      var key = ln[0], rows = laneRows[key], y0 = laneY[key];
+      svg.push('<text class="lane-label" x="0" y="' + (y0 + 14) + '">' + ln[1] + '</text>');
+      rows.forEach(function(row, ri){
+        row.items.forEach(function(b){
+          var bx = x(b.start), bw = Math.max(b.weeks*W - 3, 10), by = y0 + ri*rowH + 3;
+          var cls = 'bar ' + b.lane + (b.anchored ? ' anchored' : '') + (b.blocked ? ' blocked' : '');
+          var tip = b.label + ' — ' + b.hours + ' h, ' + b.weeks + ' wk from ' + b.start + (b.commitment ? ' (' + b.commitment + ')' : '') + (b.blocked ? '\nBlocked: ' + b.blocked : '');
+          svg.push('<g><title>' + tip.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</title><rect class="' + cls + '" x="' + bx + '" y="' + by + '" width="' + bw + '" height="' + (rowH-6) + '"/>');
+          svg.push('<text class="bar-label" x="' + (bx+4) + '" y="' + (by+12) + '">' + b.label.replace(/</g,'&lt;') + (bw > 70 ? ' · ' + b.hours + 'h' : '') + '</text></g>');
+        });
+      });
+    });
+    // today
+    var tx = L + ((today - t0)/(7*day))*W;
+    svg.push('<line class="today" x1="' + tx + '" y1="' + (top-6) + '" x2="' + tx + '" y2="' + (H-14) + '"/>');
+    // lead markers: where a NEW job of each size would land
+    marks.forEach(function(m){
+      var mx = x(m.start), my = laneY[m.lane] || top; var hot = (m.key === focusKey);
+      svg.push('<g opacity="' + (hot ? 1 : 0.45) + '"><title>New ' + m.desc + ' would start week of ' + m.start + '</title>');
+      svg.push('<polygon class="marker" points="' + mx + ',' + (my-2) + ' ' + (mx+7) + ',' + (my+5) + ' ' + mx + ',' + (my+12) + '"/>');
+      svg.push('<text class="marker-label" x="' + (mx+10) + '" y="' + (my+9) + '">' + (hot ? 'next opening' : '') + '</text></g>');
+    });
+    svg.push('</svg>');
+    var focus = (d.leadTimes||[]).filter(function(l){ return l.key === focusKey; })[0];
+    tl.innerHTML = '<div class="os-tl-head"><b>' + (focus ? 'What\'s ahead of a new ' + focus.label.toLowerCase() + ' job — lands week of ' + focus.week : 'Schedule board') + '</b><span>board as of ' + (d.leadTimesAsOf||'?') + ' · today ' + (d.today||'') + '</span></div>'
+      + svg.join('') + '<div class="legend"><span><i style="background:#c9dcc9;border-color:#7ab07a"></i>restoration</span><span><i style="background:#cfe0ee;border-color:#7aa6c9"></i>fabrication</span><span><i style="background:#ede2c4;border-color:#d4a820"></i>onesie-twosie</span><span><i style="border-width:2px;border-color:#555"></i>date in writing</span><span><i style="border-style:dashed;border-color:#555"></i>blocked</span><span style="color:#c0392b">┆ today</span><span style="color:var(--green)">▶ next opening</span></div>';
+  }
   // ── OS dashboard strip: lead times + unbilled, written by eps-os ──
   function loadDashboard() {
     db.collection('boards').doc('dashboard').get().then(function(snap) {
       var el = document.getElementById('osStrip'); if (!snap.exists) { el.style.display='none'; return; }
       var d = snap.data(); var money = function(n){ return '$' + Math.round(n||0).toLocaleString(); };
+      window._osDash = d;
       var cells = (d.leadTimes||[]).map(function(l){
-        return '<div class="os-cell"><div class="os-k">Lead · ' + l.label + '</div><div class="os-v">' + l.say + '</div><div class="os-s">week of ' + l.week + ' · ~' + l.weeksOut + ' wk</div></div>';
+        return '<div class="os-cell lead" data-key="' + l.key + '" onclick="toggleTimeline(this)" title="Click to see what leads up to this"><div class="os-k">Lead · ' + l.label + '</div><div class="os-v">' + l.say + '</div><div class="os-s">week of ' + l.week + ' · ~' + l.weeksOut + ' wk</div></div>';
       });
       cells.push('<div class="os-cell money"><div class="os-k">Unbilled on live jobs</div><div class="os-v">' + money(d.unbilled) + '</div><div class="os-s">' + (d.unbilledJobs||0) + ' of ' + (d.liveJobs||0) + ' jobs · contract minus invoiced</div></div>');
       cells.push('<div class="os-cell ar"><div class="os-k">Invoiced, not yet paid</div><div class="os-v">' + money(d.openAR) + '</div><div class="os-s">open A/R per QuickBooks</div></div>');
