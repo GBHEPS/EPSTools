@@ -73,6 +73,17 @@
     .status-production { background: var(--amber-light); color: var(--amber); border: 1px solid var(--amber-border); }
     .status-complete { background: var(--green-light); color: var(--green); border: 1px solid var(--green-border); }
     .status-hold { background: #f5f0f0; color: #8a5050; border: 1px solid #d4a0a0; }
+
+    /* ── OS dashboard strip (fed by eps-os → boards/dashboard) ── */
+    .os-strip { display:flex; flex-wrap:wrap; gap:0; border:1px solid var(--border); border-radius:6px; background:var(--surface); margin:0 0 10px; overflow:hidden; }
+    .os-cell { flex:1 1 150px; padding:8px 14px; border-right:1px solid var(--border); min-width:140px; }
+    .os-cell:last-child { border-right:0; }
+    .os-cell .os-k { font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-light); font-weight:600; }
+    .os-cell .os-v { font-size:15px; font-weight:700; color:var(--text); margin-top:2px; }
+    .os-cell .os-s { font-size:10px; color:var(--text-muted); font-family:var(--mono); margin-top:1px; }
+    .os-cell.money .os-v { color:var(--green); }
+    .os-cell.ar .os-v { color:var(--amber); }
+    .os-strip .os-foot { flex-basis:100%; font-size:10px; color:var(--text-light); padding:3px 14px; border-top:1px solid var(--border); background:var(--bg); }
     .tally-bar { display: flex; align-items: center; justify-content: space-between; background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 10px 16px; margin-bottom: 10px; }
     .tally-label { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
     .tally-amount { font-family: var(--mono); font-size: 20px; font-weight: 600; color: var(--text); }
@@ -380,6 +391,7 @@
         <button class="btn-print-go" onclick="executePrint()">Print Selected</button>
       </div>
     </div>
+    <div class="os-strip" id="osStrip" style="display:none"></div>
     <div class="tally-bar">
       <div>
         <div class="tally-label">Visible Contract Value</div>
@@ -583,6 +595,22 @@
   };
 
   // ── LOAD PROJECTS ──
+
+  // ── OS dashboard strip: lead times + unbilled, written by eps-os ──
+  function loadDashboard() {
+    db.collection('boards').doc('dashboard').get().then(function(snap) {
+      var el = document.getElementById('osStrip'); if (!snap.exists) { el.style.display='none'; return; }
+      var d = snap.data(); var money = function(n){ return '$' + Math.round(n||0).toLocaleString(); };
+      var cells = (d.leadTimes||[]).map(function(l){
+        return '<div class="os-cell"><div class="os-k">Lead · ' + l.label + '</div><div class="os-v">' + l.say + '</div><div class="os-s">week of ' + l.week + ' · ~' + l.weeksOut + ' wk</div></div>';
+      });
+      cells.push('<div class="os-cell money"><div class="os-k">Unbilled on live jobs</div><div class="os-v">' + money(d.unbilled) + '</div><div class="os-s">' + (d.unbilledJobs||0) + ' of ' + (d.liveJobs||0) + ' jobs · contract minus invoiced</div></div>');
+      cells.push('<div class="os-cell ar"><div class="os-k">Invoiced, not yet paid</div><div class="os-v">' + money(d.openAR) + '</div><div class="os-s">open A/R per QuickBooks</div></div>');
+      var ts = d.updatedAt && d.updatedAt.toDate ? d.updatedAt.toDate().toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : '';
+      cells.push('<div class="os-foot">Lead times from the schedule board as of ' + (d.leadTimesAsOf||'?') + ' · strip refreshed ' + ts + ' by the OS</div>');
+      el.innerHTML = cells.join(''); el.style.display = 'flex';
+    }).catch(function(e){ console.warn('dashboard strip', e); });
+  }
   function loadProjects() {
     db.collection('pm_projects').get().then(function(snap) {
       _projects = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
@@ -1745,6 +1773,7 @@
     if (_epsLoaded || !u || !/@eastportlandsash\.com$/i.test(u.email || '')) return;
     _epsLoaded = true;
     loadProjects();
+    loadDashboard();
   });
 </script>
 
