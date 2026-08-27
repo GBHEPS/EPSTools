@@ -506,9 +506,13 @@ body.print-board .board-wrap { page: board; }
 .sch-tl-svg .bar.fabrication { fill: #cfe0ee; stroke: #7aa6c9; }
 .sch-tl-svg .bar.filler { fill: #ede2c4; stroke: #d4a820; }
 .sch-tl-svg .bar.anchored { stroke-width: 2; }
+.sch-tl-svg .bar.pinned { stroke: #b5651d; stroke-width: 2; stroke-dasharray: 4 2; }
+.sch-tl-svg .tl-bar.dragging { cursor: grabbing; opacity: .75; }
+.sch-tl-svg .bar-unpin { font-size: 11px; fill: #b5651d; cursor: pointer; }
+.sch-tl-svg .bar-unpin:hover { fill: #7a3f0f; }
 .sch-tl-svg .bar.blocked { stroke-dasharray: 4 3; }
 .sch-tl-svg .bar-label { font-size: 10px; fill: var(--text); pointer-events: none; }
-.sch-tl-svg .tl-bar { cursor: pointer; }
+.sch-tl-svg .tl-bar { cursor: grab; }
 .sch-tl-svg .tl-bar:hover .bar { filter: brightness(0.93); stroke-width: 2; }
 .sch-tl-svg .marker { fill: var(--green); }
 .sch-tl-svg .marker-label { font-size: 10px; font-weight: 700; fill: var(--green); }

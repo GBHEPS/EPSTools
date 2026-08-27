@@ -1,6 +1,7 @@
 // schedule.js — the Schedule tab: two views on the same page.
 //
-//   Forecast  the OS schedule board (boards/dashboard: lanes × weeks), read-only.
+//   Forecast  the OS schedule board (boards/dashboard: lanes × weeks). Drag a bar
+//             to pin its job to a week; the OS repacks the rest on the next check.
 //   Crew      the two-week crew board (boards/schedule cards), editable.
 //
 // Same conventions as jobs.js: views are HTML strings rendered into <main>,
@@ -9,7 +10,7 @@
 // for sign-in). All data-act names here are prefixed "sch-" so they never
 // collide with the jobs.js listener, which also sits on document.
 
-import { db, whenSignedIn, loadDashboard, saveScheduleCards, loadJobs } from "./data.js";
+import { db, whenSignedIn, loadDashboard, saveScheduleCards, loadJobs, saveJob } from "./data.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 
 // ── Constants ────────────────────────────────────────────────────────
@@ -45,6 +46,7 @@ let copiedJobBar = null;
 let modal = null;                // { id|null, emp, type, ... } while the card modal is open
 let deleteId = null;
 
+let tlGeom = null;               // forecast geometry (L, W, t0) so a drag can snap to weeks
 let dragEndedAt = 0;             // a drop re-renders the board; the click that follows must not open anything
 
 let saveTimer = null;
@@ -201,7 +203,11 @@ function renderForecast() {
   const bars = d.timeline || [], marks = d.leadMarkers || [];
   const focusLead = (d.leadTimes || []).find((l) => l.key === focus);
   const title = focusLead ? `What's ahead of a new ${esc(focusLead.label.toLowerCase())} job — lands week of ${esc(focusLead.week)}` : "Schedule board";
-  const note = `Forecast comes from the OS schedule board (shared/SCHEDULE.md), as of ${esc(d.leadTimesAsOf || "?")}. Drag-to-anchor comes in step 4.`;
+  const pendingPins = bars.filter((b) => b.localPin).length;
+  const note = `Forecast comes from the OS schedule board (shared/SCHEDULE.md), as of ${esc(d.leadTimesAsOf || "?")}. `
+    + `Drag a bar to pin that job to a week — the OS treats a pin like a promise and packs everything else around it on the next schedule check. `
+    + `A date already in writing (contract or promised) still wins. Click ⊘ on a pinned bar to let it float again.`
+    + (pendingPins ? ` <b>${pendingPins} pin${pendingPins > 1 ? "s" : ""} saved — the neighbors move on the next schedule check.</b>` : "");
   if (!bars.length) {
     return `<div class="sch-panel"><div class="sch-panel-head"><b>${title}</b></div>
       <div class="sch-empty">No timeline yet — ask the OS to run the schedule check.</div><div class="sch-note">${note}</div></div>`;
@@ -211,6 +217,7 @@ function renderForecast() {
   const ends = bars.map((b) => at(b.start).getTime() + b.weeks * 7 * day).concat(marks.map((m) => at(m.start).getTime() + 14 * day));
   const nWeeks = Math.max(8, Math.ceil((Math.max(...ends) - t0) / (7 * day)) + 1);
   const L = 120, W = 64, rowH = 22, laneGap = 10, top = 22;
+  tlGeom = { L, W, t0 };
   const cap = d.capacity || {};
   const lanes = [
     ["restoration", "Restoration" + (cap.restoration ? " · " + cap.restoration + " h/wk" : "")],
@@ -242,11 +249,15 @@ function renderForecast() {
     svg.push(`<text class="lane-label" x="0" y="${y0 + 14}">${esc(label)}</text>`);
     laneRows[k].forEach((row, ri) => row.items.forEach((b) => {
       const bx = x(b.start), bw = Math.max(b.weeks * W - 3, 10), by = y0 + ri * rowH + 3;
-      const cls = "bar " + b.lane + (b.anchored ? " anchored" : "") + (b.blocked ? " blocked" : "");
-      const tip = `${b.label} — ${b.hours} h, ${b.weeks} wk from ${b.start}${b.commitment ? " (" + b.commitment + ")" : ""}${b.blocked ? "\nBlocked: " + b.blocked : ""}\nClick to open the job`;
-      svg.push(`<g class="tl-bar" data-act="sch-open-job" data-slug="${esc(b.slug || "")}" data-label="${esc(b.label || "")}"><title>${esc(tip)}</title>`);
+      const pinned = !!b.pinned;
+      const cls = "bar " + b.lane + (b.anchored ? " anchored" : "") + (pinned ? " pinned" : "") + (b.blocked ? " blocked" : "");
+      const tip = `${b.label} — ${b.hours} h, ${b.weeks} wk from ${b.start}${b.commitment && b.commitment !== "forecast" ? " (" + b.commitment + ")" : ""}${pinned ? "\nPinned here by you" : ""}${b.blocked ? "\nBlocked: " + b.blocked : ""}\nClick to open the job · drag to pin to a week`;
+      const idx = bars.indexOf(b);
+      svg.push(`<g class="tl-bar${pinned ? " is-pinned" : ""}" data-act="sch-open-job" data-bar="${idx}" data-slug="${esc(b.slug || "")}" data-part="${esc(b.part || "site")}" data-label="${esc(b.label || "")}"><title>${esc(tip)}</title>`);
       svg.push(`<rect class="${cls}" x="${bx}" y="${by}" width="${bw}" height="${rowH - 6}"/>`);
-      svg.push(`<text class="bar-label" x="${bx + 4}" y="${by + 12}">${esc(b.label)}${bw > 70 ? " · " + esc(b.hours) + "h" : ""}</text></g>`);
+      svg.push(`<text class="bar-label" x="${bx + 4}" y="${by + 12}">${esc(b.label)}${bw > 70 ? " · " + esc(b.hours) + "h" : ""}</text>`);
+      if (pinned) svg.push(`<text class="bar-unpin" data-act="sch-unpin" data-bar="${idx}" x="${bx + bw - 11}" y="${by + 12}"><title>Unpin — let the OS place this job again</title>⊘</text>`);
+      svg.push(`</g>`);
     }));
   });
   const tx = L + ((today - t0) / (7 * day)) * W;
@@ -568,6 +579,66 @@ function startDrag(el, e) {
   document.addEventListener("mousemove", onMove); document.addEventListener("mouseup", onUp);
 }
 
+// ── Forecast: drag a bar to pin its job to a week ────────────────────
+function startBarDrag(g, e) {
+  const bar = dash && dash.timeline ? dash.timeline[+g.dataset.bar] : null;
+  if (!bar || !tlGeom) return;
+  e.preventDefault();
+  const sx = e.clientX; let moved = false, weeks = 0;
+  const day = 86400000, at = (s) => new Date(s + "T00:00:00");
+  const startWeek = Math.round((at(bar.start) - tlGeom.t0) / (7 * day));
+  const minWeeks = -startWeek; // never before the first column (this week)
+  g.classList.add("dragging");
+  const onMove = (m) => {
+    const dx = m.clientX - sx;
+    if (Math.abs(dx) > 4) moved = true;
+    weeks = Math.max(minWeeks, Math.round(dx / tlGeom.W));
+    g.setAttribute("transform", `translate(${weeks * tlGeom.W},0)`);
+  };
+  const onUp = () => {
+    document.removeEventListener("mousemove", onMove); document.removeEventListener("mouseup", onUp);
+    g.classList.remove("dragging"); g.removeAttribute("transform");
+    if (!moved) return;
+    dragEndedAt = Date.now();
+    if (weeks === 0) return;
+    const week = key(mondayOf(new Date(at(bar.start).getTime() + weeks * 7 * day)));
+    pinBar(bar, week);
+  };
+  document.addEventListener("mousemove", onMove); document.addEventListener("mouseup", onUp);
+}
+
+/** Save the pin on the job, move the bar on screen, and say what happens next. */
+async function pinBar(bar, week) {
+  const id = resolveJobId(bar.slug, bar.label);
+  if (!id) { toast(`No job in the app matches "${bar.label}" — add it on the Jobs tab first`, true); return; }
+  if (bar.commitment === "contract" || bar.commitment === "promised") {
+    toast(`${bar.label} has a ${bar.commitment} week in writing — change that in the job folder rather than pinning`, true); return;
+  }
+  const field = bar.part === "fab" ? "pinnedFabWeek" : "pinnedWeek";
+  const prev = { start: bar.start, pinned: bar.pinned, anchored: bar.anchored, localPin: bar.localPin };
+  bar.start = week; bar.pinned = week; bar.anchored = true; bar.localPin = true;
+  render();
+  try {
+    await saveJob(id, { [field]: week, [field + "By"]: "board", [field + "At"]: new Date().toISOString() });
+    toast(`${bar.label} pinned to week of ${week}. The OS repacks the others on the next schedule check.`);
+  } catch (err) {
+    Object.assign(bar, prev); render();
+    toast(`Couldn't save the pin: ${err.message || err}`, true);
+  }
+}
+
+async function unpinBar(idx) {
+  const bar = dash && dash.timeline ? dash.timeline[idx] : null; if (!bar) return;
+  const id = resolveJobId(bar.slug, bar.label); if (!id) return;
+  const field = bar.part === "fab" ? "pinnedFabWeek" : "pinnedWeek";
+  bar.pinned = ""; bar.anchored = false; bar.localPin = true;
+  render();
+  try {
+    await saveJob(id, { [field]: null, [field + "By"]: null, [field + "At"]: null });
+    toast(`${bar.label} unpinned — it floats again after the next schedule check.`);
+  } catch (err) { toast(`Couldn't unpin: ${err.message || err}`, true); }
+}
+
 // ── Navigation ───────────────────────────────────────────────────────
 function setView(v) { view = v; if (v === "crew") focus = null; render(); }
 function goWeek(delta) { anchorMonday = addDays(anchorMonday, delta * 7); render(); }
@@ -595,7 +666,8 @@ function wireEvents() {
       case "sch-print": window.print(); break;
       case "sch-filter": { const t = el.dataset.type; typeFilters.has(t) ? typeFilters.delete(t) : typeFilters.add(t); render(); break; }
       case "sch-toggle-jobs": showJobStrip = !showJobStrip; render(); break;
-      case "sch-open-job": openJobFromBar(el); break;
+      case "sch-open-job": if (Date.now() - dragEndedAt < 300) break; openJobFromBar(el); break;
+      case "sch-unpin": e.stopPropagation(); unpinBar(+el.dataset.bar); break;
       case "sch-jobbar": if (Date.now() - dragEndedAt < 300) break; e.stopPropagation(); selectJobBar(el); break;
       case "sch-copy": e.stopPropagation(); copyCard(cardEl.dataset.id); break;
       case "sch-edit": e.stopPropagation(); openCardModal(cards.find((c) => c.id === cardEl.dataset.id)); break;
@@ -621,7 +693,12 @@ function wireEvents() {
   });
 
   document.addEventListener("mousedown", (e) => {
-    if (!isMounted() || view !== "crew" || e.button !== 0) return;
+    if (!isMounted() || e.button !== 0) return;
+    if (view === "forecast") {
+      const bar = e.target.closest(".tl-bar"); if (!bar || e.target.closest(".bar-unpin")) return;
+      startBarDrag(bar, e); return;
+    }
+    if (view !== "crew") return;
     const el = e.target.closest(".scard"); if (!el || e.target.closest(".scard-btn")) return;
     startDrag(el, e);
   });
