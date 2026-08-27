@@ -3,7 +3,10 @@
 // There is no separate board document any more. A card IS a job. Each job
 // in pm_projects carries one small field:
 //
-//   board: { shop: <zoneId|null>, site: <zoneId|null>, note: "" }
+//   board: { shop: <zoneId|null>, site: <zoneId|null>, shopNote: "", siteNote: "" }
+//
+// The two lane cards are independent: each has its own note. (An older
+// single `note` is shown on both until one of them is edited.)
 //
 // A job can sit in the Shop lane, the Site lane, both, or neither. Moving a
 // card writes that field straight back to Firestore — there is no save
@@ -98,8 +101,10 @@ function remainingOf(p) {
 /** The job's board field, filled out so callers never test for missing keys. */
 function boardOf(p) {
   const b = p.board || {};
-  return { shop: b.shop || null, site: b.site || null, note: b.note || "" };
+  return { shop: b.shop || null, site: b.site || null, note: b.note || "",
+           shopNote: b.shopNote ?? b.note ?? "", siteNote: b.siteNote ?? b.note ?? "" };
 }
+function noteOf(b, lane) { return lane === "shop" ? b.shopNote : b.siteNote; }
 
 // ── Which jobs show where ────────────────────────────────────────────
 
@@ -207,8 +212,8 @@ function card({ job: p, lane }) {
         ${zone === FINAL ? `<span class="card-lane-tag ${lane}">${lane}</span>` : ""}
       </div>
       <div class="card-note-row">
-        <span class="card-note${b.note ? "" : " empty"}" data-act="bd-note" data-id="${esc(p.id)}" title="Edit note">${esc(b.note || "add note")}</span>
-        <button class="card-pencil" data-act="bd-note" data-id="${esc(p.id)}" title="Edit note">✎</button>
+        <span class="card-note${noteOf(b, lane) ? "" : " empty"}" data-act="bd-note" data-id="${esc(p.id)}" data-lane="${lane}" title="Edit note">${esc(noteOf(b, lane) || "add note")}</span>
+        <button class="card-pencil" data-act="bd-note" data-id="${esc(p.id)}" data-lane="${lane}" title="Edit note">✎</button>
       </div>
       ${p.totalAmount ? `<div class="card-remaining">${money(remaining)} left</div>` : ""}
     </div>
@@ -254,12 +259,12 @@ function removeFromLane(id, lane) {
   writeBoard(id, b);
 }
 
-function saveNote(id, text) {
+function saveNote(id, lane, text) {
   const p = jobs.find((j) => j.id === id); if (!p) return;
   const b = boardOf(p);
   text = text.trim();
-  if (b.note === text) { render(); return; }
-  b.note = text;
+  if (noteOf(b, lane) === text) { render(); return; }
+  if (lane === "shop") b.shopNote = text; else b.siteNote = text;
   writeBoard(id, b);
 }
 
@@ -267,12 +272,12 @@ function saveNote(id, text) {
 // Clicking the note (or its pencil) swaps it for an input. Blur or Enter
 // commits; Escape puts the old note back.
 
-function startNoteEdit(id) {
-  const cardEl = root.querySelector(`.card[data-id="${CSS.escape(id)}"] .card-note-row`);
+function startNoteEdit(id, lane) {
+  const cardEl = root.querySelector(`.card[data-id="${CSS.escape(id)}"][data-lane="${lane}"] .card-note-row`);
   if (!cardEl || cardEl.querySelector("input")) return;
   const p = jobs.find((j) => j.id === id); if (!p) return;
   const b = boardOf(p);
-  cardEl.innerHTML = `<input class="card-note-input" data-note="${esc(id)}" value="${esc(b.note)}" placeholder="note" maxlength="80">`;
+  cardEl.innerHTML = `<input class="card-note-input" data-note="${esc(id)}" data-lane="${lane}" value="${esc(noteOf(b, lane))}" placeholder="note" maxlength="80">`;
   const input = cardEl.querySelector("input");
   // The card is draggable; an input inside one cannot select text unless we say so.
   cardEl.closest(".card").setAttribute("draggable", "false");
@@ -306,7 +311,7 @@ function wireEvents() {
         break;
       case "bd-place": moveTo(id, FIRST_ZONE[el.dataset.lane], el.dataset.lane); break;
       case "bd-remove": removeFromLane(id, el.dataset.lane); break;
-      case "bd-note": startNoteEdit(id); break;
+      case "bd-note": startNoteEdit(id, el.dataset.lane); break;
       case "bd-print": printBoard(); break;
     }
   });
@@ -320,7 +325,7 @@ function wireEvents() {
   root.addEventListener("focusout", (e) => {
     const input = e.target.closest(".card-note-input"); if (!input) return;
     if (input.dataset.cancel) { render(); return; }
-    saveNote(input.dataset.note, input.value);
+    saveNote(input.dataset.note, input.dataset.lane, input.value);
   });
 
   // Drag and drop. The card carries its job id and the lane it was picked
