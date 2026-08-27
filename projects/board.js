@@ -143,7 +143,7 @@ function render() {
     <div class="board-tray">
       <div class="board-tray-label">Not placed</div>
       ${unplaced.map((p) => `
-        <div class="tray-item">
+        <div class="tray-item" draggable="true" data-id="${esc(p.id)}" data-lane="tray">
           <span class="tray-name" data-act="bd-open" data-id="${esc(p.id)}">${esc(p.clientLastName || p.id)}</span>
           <span class="tray-est">#${esc(p.estimateNumber || p.id)}</span>
           <button class="tray-btn shop" data-act="bd-place" data-id="${esc(p.id)}" data-lane="shop">→ Shop</button>
@@ -239,8 +239,9 @@ async function writeBoard(id, next) {
 function moveTo(id, zoneId, fromLane) {
   const p = jobs.find((j) => j.id === id); if (!p) return;
   const b = boardOf(p);
-  // Final belongs to whichever lane the card was dragged from.
-  const lane = laneOfZone(zoneId) || fromLane;
+  // Final belongs to whichever lane the card was dragged from. From the
+  // tray there is no lane yet, so Final means the site lane.
+  const lane = laneOfZone(zoneId) || (fromLane === "tray" ? "site" : fromLane);
   if (b[lane] === zoneId) return;   // dropped where it already was
   b[lane] = zoneId;
   writeBoard(id, b);
@@ -325,14 +326,15 @@ function wireEvents() {
   // Drag and drop. The card carries its job id and the lane it was picked
   // up from; the dropzone says which zone (and lane) it represents.
   root.addEventListener("dragstart", (e) => {
-    const c = e.target.closest(".card"); if (!c) return;
+    // Cards on the board and items in the "Not placed" tray both drag the same way.
+    const c = e.target.closest(".card, .tray-item"); if (!c) return;
     dragging = { id: c.dataset.id, fromLane: c.dataset.lane };
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", c.dataset.id);   // Firefox needs some data to start a drag
     c.classList.add("dragging");
   });
   root.addEventListener("dragend", (e) => {
-    const c = e.target.closest(".card"); if (c) c.classList.remove("dragging");
+    const c = e.target.closest(".card, .tray-item"); if (c) c.classList.remove("dragging");
     dragging = null;
     root.querySelectorAll(".dropzone.drag-over").forEach((z) => z.classList.remove("drag-over"));
   });

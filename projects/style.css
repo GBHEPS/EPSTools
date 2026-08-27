@@ -112,7 +112,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); min-
 .btn-new-project:hover { background: #1f4f1f; }
 
 /* ── OS dashboard strip (boards/dashboard, written by the OS) ── */
-.os-strip { display: flex; flex-wrap: wrap; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); margin: 0 0 10px; overflow: hidden; }
+.os-strip { display: flex; flex-wrap: wrap; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); margin: 0 0 10px; overflow: hidden; position: sticky; top: 52px; z-index: 50; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
 .os-cell { flex: 1 1 150px; padding: 8px 14px; border-right: 1px solid var(--border); min-width: 140px; }
 .os-cell:last-child { border-right: 0; }
 .os-cell .os-k { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-light); font-weight: 600; }
@@ -120,6 +120,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); min-
 .os-cell .os-s { font-size: 10px; color: var(--text-muted); font-family: var(--mono); margin-top: 1px; }
 .os-cell.money .os-v { color: var(--green); }
 .os-cell.ar .os-v { color: var(--amber); }
+.os-cell.tally .os-v { font-family: var(--mono); font-size: 18px; }
 .os-cell.lead { cursor: pointer; }
 .os-cell.lead:hover { background: var(--bg); }
 .os-strip .os-foot { flex-basis: 100%; font-size: 10px; color: var(--text-light); padding: 3px 14px; border-top: 1px solid var(--border); background: var(--bg); }
@@ -393,7 +394,7 @@ textarea.field-input { resize: vertical; min-height: 80px; line-height: 1.5; }
 /* "Not placed" tray — working jobs that have no board field yet */
 .board-tray { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; background: var(--amber-light); border: 1px solid var(--amber-border); border-radius: 6px; padding: 8px 12px; margin-bottom: 10px; }
 .board-tray-label { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--amber); margin-right: 6px; }
-.tray-item { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 3px 4px 3px 8px; font-size: 12px; }
+.tray-item { cursor: grab; display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 3px 4px 3px 8px; font-size: 12px; }
 .tray-name { font-weight: 600; cursor: pointer; }
 .tray-name:hover { text-decoration: underline; }
 .tray-est { font-family: var(--mono); font-size: 10px; color: var(--text-muted); }
@@ -425,9 +426,9 @@ textarea.field-input { resize: vertical; min-height: 80px; line-height: 1.5; }
 .zone.hold .zone-label { background: var(--zone-hold-bg); color: var(--text-muted); }
 
 /* Each zone holds as many cards as it holds, and scrolls on its own past that. */
-.dropzone { min-height: 52px; max-height: 260px; overflow-y: auto; padding: 5px; display: flex; flex-direction: column; gap: 4px; }
-.zone.hold .dropzone { min-height: 36px; max-height: 140px; }
-.final-zone { min-height: 300px; max-height: calc(100vh - 160px); flex: 1; }
+.dropzone { min-height: 52px; padding: 5px; display: flex; flex-direction: column; gap: 4px; }
+.zone.hold .dropzone { min-height: 36px; }
+.final-zone { min-height: 300px; flex: 1; }
 .dropzone.drag-over { background: #f0f7e8; outline: 1.5px dashed #639922; outline-offset: -2px; border-radius: 4px; }
 
 /* Cards */
@@ -635,3 +636,5 @@ body.print-board .board-wrap { page: board; }
   .scard-name { font-size: 12pt; } .scard-desc { font-size: 9pt; } .scard-span { font-size: 8pt; }
   .sch-panel { border: 0.5pt solid #999; max-width: 100%; }
 }
+
+.tray-item.dragging { opacity: 0.4; }

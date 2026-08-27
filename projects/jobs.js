@@ -59,6 +59,7 @@ let job = null;            // the job open in the detail view
 let dirty = false;
 let hoursRows = [], suppliesRows = [], paymentRows = [], schedRows = [];
 let formHoursRows = [];    // the new-job form's hours table
+let tally = { total: 0, count: 0 };   // what the list currently adds up to (shown in the strip)
 
 let _nextId = 1;
 const uid = () => _nextId++;
@@ -142,11 +143,7 @@ async function showList() {
           <button class="btn-print-go" data-act="print-go">Print Selected</button>
         </div>
       </div>
-      <div class="os-strip" id="osStrip" style="display:none"></div>
-      <div class="tally-bar">
-        <div><div class="tally-label">Visible Contract Value</div><div class="tally-sub" id="tallyCount">—</div></div>
-        <div class="tally-amount" id="tallyAmount">—</div>
-      </div>
+      <div class="os-strip" id="osStrip"></div>
       <div class="project-table" id="projectTable">
         <div class="table-head" id="tableHead"></div>
         <div id="projectList"><div class="loading-state">Loading projects…</div></div>
@@ -181,14 +178,18 @@ function renderTableHead() {
 /** The OS dashboard strip: lead times, unbilled, open A/R. */
 function renderDashboard() {
   const el = $("osStrip"); if (!el) return;
-  const d = dash;
-  if (!d) { el.style.display = "none"; return; }
+  const d = dash || {};
+  // The visible-contract tally sits in the same strip as the OS numbers so
+  // the whole block reads as one and stays put while the list scrolls.
+  const tallyCell = `<div class="os-cell tally"><div class="os-k">Visible contract value</div><div class="os-v" id="tallyAmount">${money(tally.total)}</div><div class="os-s" id="tallyCount">${tally.count} project${tally.count !== 1 ? "s" : ""}</div></div>`;
+  if (!dash) { el.innerHTML = tallyCell; el.style.display = "flex"; return; }
   const cells = (d.leadTimes || []).map((l) => `
     <div class="os-cell lead" data-act="lead-cell" data-key="${esc(l.key)}" title="See what leads up to this opening">
       <div class="os-k">Lead · ${esc(l.label)}</div>
       <div class="os-v">${esc(l.say)}</div>
       <div class="os-s">week of ${esc(l.week)} · ~${esc(l.weeksOut)} wk</div>
     </div>`);
+  cells.unshift(tallyCell);
   cells.push(`<div class="os-cell money"><div class="os-k">Unbilled on live jobs</div><div class="os-v">${money(d.unbilled)}</div><div class="os-s">${d.unbilledJobs || 0} of ${d.liveJobs || 0} jobs · contract minus invoiced</div></div>`);
   cells.push(`<div class="os-cell ar"><div class="os-k">Invoiced, not yet paid</div><div class="os-v">${money(d.openAR)}</div><div class="os-s">open A/R per QuickBooks</div></div>`);
   cells.push(`<div class="os-foot">Lead times from the schedule board as of ${esc(d.leadTimesAsOf || "?")} · strip refreshed ${fmtStamp(d.updatedAt)} by the OS</div>`);
@@ -221,8 +222,9 @@ function visibleJobs() {
 function renderList() {
   const list = visibleJobs();
   const total = list.reduce((s, p) => s + Math.max(0, remainingOf(p)), 0);
-  $("tallyAmount").textContent = money(total);
-  $("tallyCount").textContent = `${list.length} project${list.length !== 1 ? "s" : ""}`;
+  tally = { total, count: list.length };
+  if ($("tallyAmount")) $("tallyAmount").textContent = money(total);
+  if ($("tallyCount")) $("tallyCount").textContent = `${list.length} project${list.length !== 1 ? "s" : ""}`;
   $("projectTable").classList.toggle("print-mode", printMode);
   renderTableHead();
 
