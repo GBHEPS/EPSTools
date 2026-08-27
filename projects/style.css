@@ -496,7 +496,7 @@ body.print-board .board-wrap { page: board; }
 .sch-panel-head b { font-size: 13px; }
 .sch-panel-head span { font-size: 10px; color: var(--text-muted); font-family: var(--mono); }
 .sch-tl-scroll { overflow-x: auto; }
-.sch-tl-svg { display: block; min-width: 720px; }
+.sch-tl-svg { display: block; min-width: 720px; user-select: none; -webkit-user-select: none; }
 .sch-tl-svg .lane-label { font-size: 10px; font-weight: 700; fill: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; }
 .sch-tl-svg .wk { font-size: 9px; fill: var(--text-light); font-family: var(--mono); }
 .sch-tl-svg .grid { stroke: var(--border); stroke-width: 1; }
