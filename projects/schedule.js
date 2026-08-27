@@ -10,7 +10,7 @@
 // for sign-in). All data-act names here are prefixed "sch-" so they never
 // collide with the jobs.js listener, which also sits on document.
 
-import { db, whenSignedIn, loadDashboard, saveScheduleCards, loadJobs, saveJob } from "./data.js";
+import { db, whenSignedIn, loadDashboard, saveScheduleCards, loadJobs, saveJob, commitBoard, auth } from "./data.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 
 // ── Constants ────────────────────────────────────────────────────────
@@ -180,7 +180,12 @@ function render() {
   const sw = (v, label) => `<button class="sch-view-btn${view === v ? " active" : ""}" data-act="sch-view" data-view="${v}">${label}</button>`;
   const left = `<div class="sch-switch">${sw("forecast", "Forecast")}${sw("crew", "Crew")}</div>`;
   if (view === "forecast") {
-    setHeaderNav(left + `<span class="sch-stamp">board as of ${esc(dash?.leadTimesAsOf || "?")} · today ${esc(dash?.today || key(new Date()))}</span>`);
+    const draft = boardIsDraft();
+    const submitted = dash?.committedAt ? `submitted ${esc(stampShort(dash.committedAt))}` : "never submitted";
+    const submitBtn = draft
+      ? `<button class="btn-header primary" data-act="sch-submit" title="Commit the board as it stands. The OS drafts client emails for red bars and moves their written weeks.">Submit board</button>`
+      : `<button class="btn-header" disabled title="Nothing moved since the last submit">Board ${submitted}</button>`;
+    setHeaderNav(left + `<span class="sch-stamp">board as of ${esc(dash?.leadTimesAsOf || "?")} · today ${esc(dash?.today || key(new Date()))}</span>` + submitBtn);
     wrap.innerHTML = renderForecast();
   } else {
     const label = fmt(anchorMonday) + " – " + fmt(addDays(anchorMonday, 11));
@@ -205,8 +210,8 @@ function renderForecast() {
   const title = focusLead ? `What's ahead of a new ${esc(focusLead.label.toLowerCase())} job — lands week of ${esc(focusLead.week)}` : "Schedule board";
   const pendingPins = bars.filter((b) => b.localPin).length;
   const note = `Forecast comes from the OS schedule board (shared/SCHEDULE.md), as of ${esc(d.leadTimesAsOf || "?")}. `
-    + `Drag a bar to pin that job to a week — sideways for the week, up or down to change its lane (a onesie-twosie can become a restoration or fab job and back). The OS treats a pin like a promise and packs everything else around it on the next schedule check. `
-    + `A date already in writing (contract or promised) still wins. Click ⊘ on a pinned bar to let it float again.`
+    + `Drag a bar to pin that job to a week — sideways for the week, up or down to change its lane. The OS treats a pin like a promise and packs everything else around it on the next schedule check. `
+    + `A <b style="color:#c0392b">red</b> outline means you moved a job off a week the client was told; it stays a draft until you press <b>Submit board</b>. Then the OS drafts the client email, moves the written week, and the red clears on the next schedule check. Click ⊘ on a pinned bar to let it float again.`
     + (pendingPins ? ` <b>${pendingPins} pin${pendingPins > 1 ? "s" : ""} saved — the neighbors move on the next schedule check.</b>` : "");
   if (!bars.length) {
     return `<div class="sch-panel"><div class="sch-panel-head"><b>${title}</b></div>
@@ -253,12 +258,15 @@ function renderForecast() {
     laneRows[k].forEach((row, ri) => row.items.forEach((b) => {
       const bx = x(b.start), bw = Math.max(b.weeks * W - 3, 10), by = y0 + ri * rowH + 3;
       const pinned = !!b.pinned;
-      const cls = "bar " + b.lane + (b.anchored ? " anchored" : "") + (pinned ? " pinned" : "") + (b.blocked ? " blocked" : "");
-      const tip = `${b.label} — ${b.hours} h, ${b.weeks} wk from ${b.start}${b.commitment && b.commitment !== "forecast" ? " (" + b.commitment + ")" : ""}${pinned ? "\nPinned here by you" : ""}${b.blocked ? "\nBlocked: " + b.blocked : ""}\nClick to open the job · drag to pin to a week`;
+      const conflict = pinned && b.conflict ? b.conflict : "";
+      const submitted = conflict && !pinIsDraft(b);
+      const cls = "bar " + b.lane + (b.anchored ? " anchored" : "") + (pinned ? " pinned" : "") + (conflict ? " conflict" + (submitted ? " submitted" : "") : "") + (b.blocked ? " blocked" : "");
+      const tip = `${b.label} — ${b.hours} h, ${b.weeks} wk from ${b.start}${b.commitment && b.commitment !== "forecast" ? " (" + b.commitment + ")" : ""}${pinned ? "\nPinned here by you" : ""}${conflict ? "\nClient was told week of " + conflict + (submitted ? " — submitted, email being drafted" : " — draft, press Submit board") : ""}${b.blocked ? "\nBlocked: " + b.blocked : ""}\nClick to open the job · drag to pin to a week`;
       const idx = bars.indexOf(b);
       svg.push(`<g class="tl-bar${pinned ? " is-pinned" : ""}" data-act="sch-open-job" data-bar="${idx}" data-slug="${esc(b.slug || "")}" data-part="${esc(b.part || "site")}" data-label="${esc(b.label || "")}"><title>${esc(tip)}</title>`);
       svg.push(`<rect class="${cls}" x="${bx}" y="${by}" width="${bw}" height="${rowH - 6}"/>`);
       svg.push(`<text class="bar-label" x="${bx + 4}" y="${by + 12}">${esc(b.label)}${bw > 70 ? " · " + esc(b.hours) + "h" : ""}</text>`);
+      if (conflict && bw > 90) svg.push(`<text class="bar-was" x="${bx + bw - 24}" y="${by + 12}" text-anchor="end">was ${esc(fmt(at(conflict)))}</text>`);
       if (pinned) svg.push(`<text class="bar-unpin" data-act="sch-unpin" data-bar="${idx}" x="${bx + bw - 11}" y="${by + 12}"><title>Unpin — let the OS place this job again</title>⊘</text>`);
       svg.push(`</g>`);
     }));
@@ -277,6 +285,9 @@ function renderForecast() {
     <span><i style="background:#d4ebbb;border-color:#97C459"></i>fabrication</span>
     <span><i style="background:#ede2c4;border-color:#d4a820"></i>onesie-twosie</span>
     <span><i style="border-width:2px;border-color:#555"></i>date in writing</span>
+    <span><i style="border-style:dashed;border-color:#b5651d;border-width:2px"></i>pinned by you</span>
+    <span><i style="border-color:#c0392b;border-width:2px"></i>moved off a written week</span>
+    <span><i style="border-style:dotted;border-color:#c0392b;border-width:2px"></i>submitted</span>
     <span><i style="border-style:dashed;border-color:#555"></i>blocked</span>
     <span style="color:#c0392b">┆ today</span><span style="color:var(--green)">▶ next opening</span></div>`;
   return `<div class="sch-panel">
@@ -622,19 +633,21 @@ const LANE_WORDS = { restoration: "restoration", fabrication: "fabrication", fil
 async function pinBar(bar, week, lane) {
   const id = resolveJobId(bar.slug, bar.label);
   if (!id) { toast(`No job in the app matches "${bar.label}" — add it on the Jobs tab first`, true); return; }
-  if (bar.commitment === "contract" || bar.commitment === "promised") {
-    toast(`${bar.label} has a ${bar.commitment} week in writing — change that in the job folder rather than pinning`, true); return;
-  }
   lane = lane || bar.lane;
   const field = bar.part === "fab" ? "pinnedFabWeek" : "pinnedWeek";
   const laneField = bar.part === "fab" ? "pinnedFabLane" : "pinnedLane";
-  const prev = { start: bar.start, lane: bar.lane, pinned: bar.pinned, anchored: bar.anchored, localPin: bar.localPin };
+  const prev = { start: bar.start, lane: bar.lane, pinned: bar.pinned, anchored: bar.anchored, localPin: bar.localPin, conflict: bar.conflict };
   const laneChanged = lane !== bar.lane;
+  const stamp = new Date().toISOString();
   bar.start = week; bar.lane = lane; bar.pinned = week; bar.anchored = true; bar.localPin = true;
+  bar.conflict = bar.writtenWeek && bar.writtenWeek !== week ? bar.writtenWeek : "";
+  const job = jobById(id); if (job) job[field + "At"] = stamp;
   render();
   try {
-    await saveJob(id, { [field]: week, [laneField]: lane, [field + "By"]: "board", [field + "At"]: new Date().toISOString() });
-    toast(`${bar.label} pinned to week of ${week}${laneChanged ? " as " + LANE_WORDS[lane] : ""}. The OS repacks the others on the next schedule check.`);
+    await saveJob(id, { [field]: week, [laneField]: lane, [field + "By"]: "board", [field + "At"]: stamp });
+    toast(bar.conflict
+      ? `${bar.label} moved off the week the client was told (${bar.conflict}). Red until you press Submit board.`
+      : `${bar.label} pinned to week of ${week}${laneChanged ? " as " + LANE_WORDS[lane] : ""}. The OS repacks the others on the next schedule check.`);
   } catch (err) {
     Object.assign(bar, prev); render();
     toast(`Couldn't save the pin: ${err.message || err}`, true);
@@ -646,12 +659,37 @@ async function unpinBar(idx) {
   const id = resolveJobId(bar.slug, bar.label); if (!id) return;
   const field = bar.part === "fab" ? "pinnedFabWeek" : "pinnedWeek";
   const laneField = bar.part === "fab" ? "pinnedFabLane" : "pinnedLane";
-  bar.pinned = ""; bar.anchored = false; bar.localPin = true;
+  bar.pinned = ""; bar.anchored = !!bar.writtenWeek; bar.conflict = ""; bar.localPin = true;
+  if (bar.writtenWeek) bar.start = bar.writtenWeek;
+  const job = jobById(id); if (job) job[field + "At"] = null;
   render();
   try {
     await saveJob(id, { [field]: null, [laneField]: null, [field + "By"]: null, [field + "At"]: null });
     toast(`${bar.label} unpinned — it floats again after the next schedule check.`);
   } catch (err) { toast(`Couldn't unpin: ${err.message || err}`, true); }
+}
+
+// ── Submit: the board is a draft until Geoff commits it ──────────────
+function pinStampOf(b) {
+  const id = resolveJobId(b.slug, b.label); const j = jobById(id); if (!j) return "";
+  return j[b.part === "fab" ? "pinnedFabWeekAt" : "pinnedWeekAt"] || "";
+}
+/** A pin is draft when it was made after the last submit (or there never was one). */
+function pinIsDraft(b) {
+  const at = pinStampOf(b); if (!at) return false;
+  return !dash?.committedAt || at > dash.committedAt;
+}
+function boardIsDraft() { return (dash?.timeline || []).some((b) => b.pinned && pinIsDraft(b)); }
+function stampShort(iso) { const d = new Date(iso); return isNaN(d) ? "" : `${d.getMonth() + 1}/${d.getDate()} ${d.getHours() % 12 || 12}:${String(d.getMinutes()).padStart(2, "0")}${d.getHours() < 12 ? "am" : "pm"}`; }
+async function submitBoard() {
+  try {
+    const who = auth.currentUser?.email || "";
+    const at = await commitBoard(who);
+    dash.committedAt = at; dash.committedBy = who;
+    const reds = (dash.timeline || []).filter((b) => b.pinned && b.conflict).length;
+    render();
+    toast(reds ? `Board submitted. ${reds} client email${reds > 1 ? "s" : ""} will be drafted on the next board-moves review.` : "Board submitted.");
+  } catch (err) { toast(`Couldn't submit: ${err.message || err}`, true); }
 }
 
 // ── Navigation ───────────────────────────────────────────────────────
@@ -683,6 +721,7 @@ function wireEvents() {
       case "sch-toggle-jobs": showJobStrip = !showJobStrip; render(); break;
       case "sch-open-job": if (Date.now() - dragEndedAt < 300) break; openJobFromBar(el); break;
       case "sch-unpin": e.stopPropagation(); unpinBar(+el.dataset.bar); break;
+      case "sch-submit": submitBoard(); break;
       case "sch-jobbar": if (Date.now() - dragEndedAt < 300) break; e.stopPropagation(); selectJobBar(el); break;
       case "sch-copy": e.stopPropagation(); copyCard(cardEl.dataset.id); break;
       case "sch-edit": e.stopPropagation(); openCardModal(cards.find((c) => c.id === cardEl.dataset.id)); break;

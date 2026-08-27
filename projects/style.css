@@ -45,6 +45,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); min-
 .btn-header:hover { background: #3a5a7a; color: #fff; }
 .btn-header.primary { background: var(--green); border-color: var(--green); color: #fff; }
 .btn-header.primary:hover { background: #1f4f1f; }
+.btn-header:disabled { opacity: .6; cursor: default; }
 .btn-header.active { background: var(--amber); color: #fff; border-color: var(--amber); }
 
 .placeholder { max-width: 600px; margin: 80px auto; text-align: center; color: var(--text-muted); }
@@ -508,6 +509,11 @@ body.print-board .board-wrap { page: board; }
 .sch-tl-svg .bar.filler { fill: #ede2c4; stroke: #d4a820; }
 .sch-tl-svg .bar.anchored { stroke-width: 2; }
 .sch-tl-svg .bar.pinned { stroke: #b5651d; stroke-width: 2; stroke-dasharray: 4 2; }
+/* Moved off a week the client was told: red. Solid = draft, dotted = submitted and waiting on the OS. */
+.sch-tl-svg .bar.conflict { stroke: #c0392b; stroke-width: 2.5; stroke-dasharray: none; }
+.sch-tl-svg .bar.conflict.submitted { stroke-dasharray: 2 2; }
+.sch-tl-svg .bar-was { font-size: 9px; fill: #c0392b; font-family: var(--mono); pointer-events: none; }
+.sch-legend i[style*="dotted"] { border-style: dotted; }
 .sch-tl-svg .tl-bar.dragging { cursor: grabbing; opacity: .75; }
 .sch-tl-svg .lane-drop { fill: #fff3c4; opacity: .6; }
 .sch-tl-svg .bar-unpin { font-size: 11px; fill: #b5651d; cursor: pointer; }

@@ -107,6 +107,14 @@ export async function loadDashboard() {
   return snap.exists() ? snap.data() : null;
 }
 
+/** Stamp the Forecast as submitted: the OS acts only on a board Geoff has committed. */
+export async function commitBoard(who) {
+  await whenSignedIn();
+  const committedAt = new Date().toISOString();
+  await setDoc(doc(db, "boards", "dashboard"), { committedAt, committedBy: who || "" }, { merge: true });
+  return committedAt;
+}
+
 /** boards/schedule cards, as the old scheduler stored them. Reworked in step 3. */
 export async function loadScheduleCards() {
   await whenSignedIn();
