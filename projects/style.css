@@ -502,12 +502,14 @@ body.print-board .board-wrap { page: board; }
 .sch-tl-svg .grid { stroke: var(--border); stroke-width: 1; }
 .sch-tl-svg .month { stroke: var(--border-strong); stroke-width: 1; }
 .sch-tl-svg .bar { rx: 3; }
-.sch-tl-svg .bar.restoration { fill: #c9dcc9; stroke: #7ab07a; }
-.sch-tl-svg .bar.fabrication { fill: #cfe0ee; stroke: #7aa6c9; }
+/* Restoration is blue, fabrication is green — same as the Crew cards and the Board lanes. */
+.sch-tl-svg .bar.restoration { fill: #cfe0ee; stroke: #5a9aca; }
+.sch-tl-svg .bar.fabrication { fill: #d4ebbb; stroke: #97C459; }
 .sch-tl-svg .bar.filler { fill: #ede2c4; stroke: #d4a820; }
 .sch-tl-svg .bar.anchored { stroke-width: 2; }
 .sch-tl-svg .bar.pinned { stroke: #b5651d; stroke-width: 2; stroke-dasharray: 4 2; }
 .sch-tl-svg .tl-bar.dragging { cursor: grabbing; opacity: .75; }
+.sch-tl-svg .lane-drop { fill: #fff3c4; opacity: .6; }
 .sch-tl-svg .bar-unpin { font-size: 11px; fill: #b5651d; cursor: pointer; }
 .sch-tl-svg .bar-unpin:hover { fill: #7a3f0f; }
 .sch-tl-svg .bar.blocked { stroke-dasharray: 4 3; }

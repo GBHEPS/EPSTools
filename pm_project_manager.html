@@ -99,8 +99,8 @@
     .os-tl .grid { stroke:var(--border); stroke-width:1; }
     .os-tl .month { stroke:var(--border-strong); stroke-width:1; }
     .os-tl .bar { rx:3; }
-    .os-tl .bar.restoration { fill:#c9dcc9; stroke:#7ab07a; }
-    .os-tl .bar.fabrication { fill:#cfe0ee; stroke:#7aa6c9; }
+    .os-tl .bar.restoration { fill:#cfe0ee; stroke:#5a9aca; }
+    .os-tl .bar.fabrication { fill:#d4ebbb; stroke:#97C459; }
     .os-tl .bar.filler { fill:#ede2c4; stroke:#d4a820; }
     .os-tl .bar.anchored { stroke-width:2; }
     .os-tl .bar.blocked { stroke-dasharray:4 3; }
@@ -692,7 +692,7 @@
     svg.push('</svg>');
     var focus = (d.leadTimes||[]).filter(function(l){ return l.key === focusKey; })[0];
     tl.innerHTML = '<div class="os-tl-head"><b>' + (focus ? 'What\'s ahead of a new ' + focus.label.toLowerCase() + ' job — lands week of ' + focus.week : 'Schedule board') + '</b><span>board as of ' + (d.leadTimesAsOf||'?') + ' · today ' + (d.today||'') + '</span></div>'
-      + svg.join('') + '<div class="legend"><span><i style="background:#c9dcc9;border-color:#7ab07a"></i>restoration</span><span><i style="background:#cfe0ee;border-color:#7aa6c9"></i>fabrication</span><span><i style="background:#ede2c4;border-color:#d4a820"></i>onesie-twosie</span><span><i style="border-width:2px;border-color:#555"></i>date in writing</span><span><i style="border-style:dashed;border-color:#555"></i>blocked</span><span style="color:#c0392b">┆ today</span><span style="color:var(--green)">▶ next opening</span></div>';
+      + svg.join('') + '<div class="legend"><span><i style="background:#cfe0ee;border-color:#5a9aca"></i>restoration</span><span><i style="background:#d4ebbb;border-color:#97C459"></i>fabrication</span><span><i style="background:#ede2c4;border-color:#d4a820"></i>onesie-twosie</span><span><i style="border-width:2px;border-color:#555"></i>date in writing</span><span><i style="border-style:dashed;border-color:#555"></i>blocked</span><span style="color:#c0392b">┆ today</span><span style="color:var(--green)">▶ next opening</span></div>';
   }
   // ── OS dashboard strip: lead times + unbilled, written by eps-os ──
   function loadDashboard() {

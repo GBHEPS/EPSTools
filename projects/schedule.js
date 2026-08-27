@@ -205,7 +205,7 @@ function renderForecast() {
   const title = focusLead ? `What's ahead of a new ${esc(focusLead.label.toLowerCase())} job — lands week of ${esc(focusLead.week)}` : "Schedule board";
   const pendingPins = bars.filter((b) => b.localPin).length;
   const note = `Forecast comes from the OS schedule board (shared/SCHEDULE.md), as of ${esc(d.leadTimesAsOf || "?")}. `
-    + `Drag a bar to pin that job to a week — the OS treats a pin like a promise and packs everything else around it on the next schedule check. `
+    + `Drag a bar to pin that job to a week — sideways for the week, up or down to change its lane (a onesie-twosie can become a restoration or fab job and back). The OS treats a pin like a promise and packs everything else around it on the next schedule check. `
     + `A date already in writing (contract or promised) still wins. Click ⊘ on a pinned bar to let it float again.`
     + (pendingPins ? ` <b>${pendingPins} pin${pendingPins > 1 ? "s" : ""} saved — the neighbors move on the next schedule check.</b>` : "");
   if (!bars.length) {
@@ -237,8 +237,11 @@ function renderForecast() {
     laneRows[k] = rows; laneY[k] = y; y += rows.length * rowH + laneGap;
   });
   const H = y + 18, Wt = L + nWeeks * W + 10;
+  tlGeom.lanes = lanes.map(([k]) => ({ k, y0: laneY[k] - laneGap / 2, y1: laneY[k] + laneRows[k].length * rowH + laneGap / 2 }));
+  tlGeom.H = H; tlGeom.Wt = Wt;
   const x = (s) => L + ((at(s) - t0) / (7 * day)) * W;
   const svg = [`<svg class="sch-tl-svg" width="${Wt}" height="${H}" viewBox="0 0 ${Wt} ${H}">`];
+  tlGeom.lanes.forEach((ln) => svg.push(`<rect class="lane-drop" data-lane="${ln.k}" x="${L}" y="${ln.y0}" width="${nWeeks * W}" height="${ln.y1 - ln.y0}" visibility="hidden"/>`));
   for (let i = 0; i < nWeeks; i++) {
     const wd = new Date(t0.getTime() + i * 7 * day);
     svg.push(`<line class="${wd.getDate() <= 7 ? "month" : "grid"}" x1="${L + i * W}" y1="${top - 6}" x2="${L + i * W}" y2="${H - 14}"/>`);
@@ -270,8 +273,8 @@ function renderForecast() {
   });
   svg.push("</svg>");
   const legend = `<div class="sch-legend">
-    <span><i style="background:#c9dcc9;border-color:#7ab07a"></i>restoration</span>
-    <span><i style="background:#cfe0ee;border-color:#7aa6c9"></i>fabrication</span>
+    <span><i style="background:#cfe0ee;border-color:#5a9aca"></i>restoration</span>
+    <span><i style="background:#d4ebbb;border-color:#97C459"></i>fabrication</span>
     <span><i style="background:#ede2c4;border-color:#d4a820"></i>onesie-twosie</span>
     <span><i style="border-width:2px;border-color:#555"></i>date in writing</span>
     <span><i style="border-style:dashed;border-color:#555"></i>blocked</span>
@@ -584,43 +587,54 @@ function startBarDrag(g, e) {
   const bar = dash && dash.timeline ? dash.timeline[+g.dataset.bar] : null;
   if (!bar || !tlGeom) return;
   e.preventDefault();
-  const sx = e.clientX; let moved = false, weeks = 0;
+  const sx = e.clientX, sy = e.clientY; let moved = false, weeks = 0, lane = bar.lane, hl = null;
+  const svgEl = g.closest("svg"), svgTop = svgEl.getBoundingClientRect().top;
   const day = 86400000, at = (s) => new Date(s + "T00:00:00");
   const startWeek = Math.round((at(bar.start) - tlGeom.t0) / (7 * day));
   const minWeeks = -startWeek; // never before the first column (this week)
+  const laneAt = (clientY) => { const y = clientY - svgTop; const ln = (tlGeom.lanes || []).find((l) => y >= l.y0 && y < l.y1); return ln ? ln.k : bar.lane; };
   g.classList.add("dragging");
   const onMove = (m) => {
-    const dx = m.clientX - sx;
-    if (Math.abs(dx) > 4) moved = true;
+    const dx = m.clientX - sx, dy = m.clientY - sy;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) moved = true;
     weeks = Math.max(minWeeks, Math.round(dx / tlGeom.W));
-    g.setAttribute("transform", `translate(${weeks * tlGeom.W},0)`);
+    lane = laneAt(m.clientY);
+    g.setAttribute("transform", `translate(${weeks * tlGeom.W},${dy})`);
+    if (hl) hl.setAttribute("visibility", "hidden");
+    hl = lane !== bar.lane ? svgEl.querySelector(`.lane-drop[data-lane="${lane}"]`) : null;
+    if (hl) hl.setAttribute("visibility", "visible");
   };
   const onUp = () => {
     document.removeEventListener("mousemove", onMove); document.removeEventListener("mouseup", onUp);
     g.classList.remove("dragging"); g.removeAttribute("transform");
+    if (hl) hl.setAttribute("visibility", "hidden");
     if (!moved) return;
     dragEndedAt = Date.now();
-    if (weeks === 0) return;
+    if (weeks === 0 && lane === bar.lane) return;
     const week = key(mondayOf(new Date(at(bar.start).getTime() + weeks * 7 * day)));
-    pinBar(bar, week);
+    pinBar(bar, week, lane);
   };
   document.addEventListener("mousemove", onMove); document.addEventListener("mouseup", onUp);
 }
 
 /** Save the pin on the job, move the bar on screen, and say what happens next. */
-async function pinBar(bar, week) {
+const LANE_WORDS = { restoration: "restoration", fabrication: "fabrication", filler: "onesie-twosie" };
+async function pinBar(bar, week, lane) {
   const id = resolveJobId(bar.slug, bar.label);
   if (!id) { toast(`No job in the app matches "${bar.label}" — add it on the Jobs tab first`, true); return; }
   if (bar.commitment === "contract" || bar.commitment === "promised") {
     toast(`${bar.label} has a ${bar.commitment} week in writing — change that in the job folder rather than pinning`, true); return;
   }
+  lane = lane || bar.lane;
   const field = bar.part === "fab" ? "pinnedFabWeek" : "pinnedWeek";
-  const prev = { start: bar.start, pinned: bar.pinned, anchored: bar.anchored, localPin: bar.localPin };
-  bar.start = week; bar.pinned = week; bar.anchored = true; bar.localPin = true;
+  const laneField = bar.part === "fab" ? "pinnedFabLane" : "pinnedLane";
+  const prev = { start: bar.start, lane: bar.lane, pinned: bar.pinned, anchored: bar.anchored, localPin: bar.localPin };
+  const laneChanged = lane !== bar.lane;
+  bar.start = week; bar.lane = lane; bar.pinned = week; bar.anchored = true; bar.localPin = true;
   render();
   try {
-    await saveJob(id, { [field]: week, [field + "By"]: "board", [field + "At"]: new Date().toISOString() });
-    toast(`${bar.label} pinned to week of ${week}. The OS repacks the others on the next schedule check.`);
+    await saveJob(id, { [field]: week, [laneField]: lane, [field + "By"]: "board", [field + "At"]: new Date().toISOString() });
+    toast(`${bar.label} pinned to week of ${week}${laneChanged ? " as " + LANE_WORDS[lane] : ""}. The OS repacks the others on the next schedule check.`);
   } catch (err) {
     Object.assign(bar, prev); render();
     toast(`Couldn't save the pin: ${err.message || err}`, true);
@@ -631,10 +645,11 @@ async function unpinBar(idx) {
   const bar = dash && dash.timeline ? dash.timeline[idx] : null; if (!bar) return;
   const id = resolveJobId(bar.slug, bar.label); if (!id) return;
   const field = bar.part === "fab" ? "pinnedFabWeek" : "pinnedWeek";
+  const laneField = bar.part === "fab" ? "pinnedFabLane" : "pinnedLane";
   bar.pinned = ""; bar.anchored = false; bar.localPin = true;
   render();
   try {
-    await saveJob(id, { [field]: null, [field + "By"]: null, [field + "At"]: null });
+    await saveJob(id, { [field]: null, [laneField]: null, [field + "By"]: null, [field + "At"]: null });
     toast(`${bar.label} unpinned — it floats again after the next schedule check.`);
   } catch (err) { toast(`Couldn't unpin: ${err.message || err}`, true); }
 }
