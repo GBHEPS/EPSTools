@@ -122,6 +122,7 @@ async function ensureLoaded() {
   if (!loading) loading = (async () => {
     const [d, j, c, s] = await Promise.all([loadDashboard(), loadJobs(), loadCrew(), loadScheduleDoc()]);
     dash = d; jobs = j; crew = c; cards = s.cards; prodClients = s.prodClients;
+    overlayPins();
     loaded = true;
   })();
   await loading;
@@ -667,6 +668,27 @@ async function unpinBar(idx) {
     await saveJob(id, { [field]: null, [laneField]: null, [field + "By"]: null, [field + "At"]: null });
     toast(`${bar.label} unpinned — it floats again after the next schedule check.`);
   } catch (err) { toast(`Couldn't unpin: ${err.message || err}`, true); }
+}
+
+// ── Pins over the timeline ───────────────────────────────────────────
+// boards/dashboard is the OS's last schedule check. Geoff's pins live on
+// the jobs and may be newer, so every load lays them over the bars: the
+// board always shows where he put things, whether or not the OS has run.
+function overlayPins() {
+  (dash?.timeline || []).forEach((b) => {
+    const j = jobById(resolveJobId(b.slug, b.label)); if (!j) return;
+    const fab = b.part === "fab";
+    const week = j[fab ? "pinnedFabWeek" : "pinnedWeek"], lane = j[fab ? "pinnedFabLane" : "pinnedLane"];
+    if (week) {
+      b.start = week; b.pinned = week; b.anchored = true;
+      if (lane) b.lane = lane;
+      b.conflict = b.writtenWeek && b.writtenWeek !== week ? b.writtenWeek : "";
+    } else if (b.pinned) {
+      // The OS still thinks it is pinned but the job says no: it was unpinned since the last check.
+      b.pinned = ""; b.conflict = ""; b.anchored = !!b.writtenWeek;
+      if (b.writtenWeek) b.start = b.writtenWeek;
+    }
+  });
 }
 
 // ── Submit: the board is a draft until Geoff commits it ──────────────
