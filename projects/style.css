@@ -519,6 +519,9 @@ body.print-board .board-wrap { page: board; }
 .sch-tl-svg .bar-unpin { font-size: 11px; fill: #b5651d; cursor: pointer; }
 .sch-tl-svg .bar-unpin:hover { fill: #7a3f0f; }
 .sch-tl-svg .bar.blocked { stroke-dasharray: 4 3; }
+.sch-tl-svg .chain-link { fill: none; stroke: #8a7a5a; stroke-width: 1.5; pointer-events: none; }
+.sch-tl-svg .chain-link.backwards { stroke: #c0392b; stroke-dasharray: 3 2; }
+.sch-tl-svg .bar.link { rx: 6; }
 .sch-tl-svg .bar-label { font-size: 10px; fill: var(--text); pointer-events: none; }
 .sch-tl-svg .tl-bar { cursor: grab; }
 .sch-tl-svg .tl-bar:hover .bar { filter: brightness(0.93); stroke-width: 2; }

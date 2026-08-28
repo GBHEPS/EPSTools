@@ -212,7 +212,8 @@ function renderForecast() {
   const pendingPins = bars.filter((b) => b.localPin).length;
   const note = `Forecast comes from the OS schedule board (shared/SCHEDULE.md), as of ${esc(d.leadTimesAsOf || "?")}. `
     + `Drag a bar to pin that job to a week — sideways for the week, up or down to change its lane. The OS treats a pin like a promise and packs everything else around it on the next schedule check. `
-    + `A <b style="color:#c0392b">red</b> outline means you moved a job off a week the client was told; it stays a draft until you press <b>Submit board</b>. Then the OS drafts the client email, moves the written week, and the red clears on the next schedule check. Click ⊘ on a pinned bar to let it float again.`
+    + `A <b style="color:#c0392b">red</b> outline means you moved a job off a week the client was told; it stays a draft until you press <b>Submit board</b>. Then the OS drafts the client email, moves the written week, and the red clears on the next schedule check. Click ⊘ on a pinned bar to let it float again. `
+    + `Storm and full-unit jobs show as a <b>chain</b>: measure → assembly → site fit → glazing → install, joined by a thin line. Drag a link and the ones after it slide on the next check; the ones before hold.`
     + (pendingPins ? ` <b>${pendingPins} pin${pendingPins > 1 ? "s" : ""} saved — the neighbors move on the next schedule check.</b>` : "");
   if (!bars.length) {
     return `<div class="sch-panel"><div class="sch-panel-head"><b>${title}</b></div>
@@ -246,6 +247,7 @@ function renderForecast() {
   tlGeom.lanes = lanes.map(([k]) => ({ k, y0: laneY[k] - laneGap / 2, y1: laneY[k] + laneRows[k].length * rowH + laneGap / 2 }));
   tlGeom.H = H; tlGeom.Wt = Wt;
   const x = (s) => L + ((at(s) - t0) / (7 * day)) * W;
+  const geomByIdx = {};
   const svg = [`<svg class="sch-tl-svg" width="${Wt}" height="${H}" viewBox="0 0 ${Wt} ${H}">`];
   tlGeom.lanes.forEach((ln) => svg.push(`<rect class="lane-drop" data-lane="${ln.k}" x="${L}" y="${ln.y0}" width="${nWeeks * W}" height="${ln.y1 - ln.y0}" visibility="hidden"/>`));
   for (let i = 0; i < nWeeks; i++) {
@@ -261,9 +263,12 @@ function renderForecast() {
       const pinned = !!b.pinned;
       const conflict = pinned && b.conflict ? b.conflict : "";
       const submitted = conflict && !pinIsDraft(b);
-      const cls = "bar " + b.lane + (b.anchored ? " anchored" : "") + (pinned ? " pinned" : "") + (conflict ? " conflict" + (submitted ? " submitted" : "") : "") + (b.blocked ? " blocked" : "");
-      const tip = `${b.label} — ${b.hours} h, ${b.weeks} wk from ${b.start}${b.commitment && b.commitment !== "forecast" ? " (" + b.commitment + ")" : ""}${pinned ? "\nPinned here by you" : ""}${conflict ? "\nClient was told week of " + conflict + (submitted ? " — submitted, email being drafted" : " — draft, press Submit board") : ""}${b.blocked ? "\nBlocked: " + b.blocked : ""}\nClick to open the job · drag to pin to a week`;
+      const isLink = !!b.chain;
+      const cls = "bar " + b.lane + (b.anchored ? " anchored" : "") + (pinned ? " pinned" : "") + (conflict ? " conflict" + (submitted ? " submitted" : "") : "") + (b.blocked ? " blocked" : "") + (isLink ? " link" : "");
+      const chainNote = isLink ? `\n${b.chainType === "full-unit" ? "Full-unit" : "Storm"} chain, step: ${b.link}. ${b.link === "assembly" ? "Move this and every link after it moves." : "Move this and the links after it slide; the ones before hold."}` : "";
+      const tip = `${b.label} — ${b.hours} h, ${b.weeks} wk from ${b.start}${b.commitment && b.commitment !== "forecast" ? " (" + b.commitment + ")" : ""}${chainNote}${pinned ? "\nPinned here by you" : ""}${conflict ? "\nClient was told week of " + conflict + (submitted ? " — submitted, email being drafted" : " — draft, press Submit board") : ""}${b.blocked ? "\nBlocked: " + b.blocked : ""}\nClick to open the job · drag to pin to a week`;
       const idx = bars.indexOf(b);
+      if (isLink) geomByIdx[idx] = { x0: bx, x1: bx + bw, ym: by + (rowH - 6) / 2 };
       svg.push(`<g class="tl-bar${pinned ? " is-pinned" : ""}" data-act="sch-open-job" data-bar="${idx}" data-slug="${esc(b.slug || "")}" data-part="${esc(b.part || "site")}" data-label="${esc(b.label || "")}"><title>${esc(tip)}</title>`);
       svg.push(`<rect class="${cls}" x="${bx}" y="${by}" width="${bw}" height="${rowH - 6}"/>`);
       svg.push(`<text class="bar-label" x="${bx + 4}" y="${by + 12}">${esc(b.label)}${bw > 70 ? " · " + esc(b.hours) + "h" : ""}</text>`);
@@ -271,6 +276,22 @@ function renderForecast() {
       if (pinned) svg.push(`<text class="bar-unpin" data-act="sch-unpin" data-bar="${idx}" x="${bx + bw - 11}" y="${by + 12}"><title>Unpin — let the OS place this job again</title>⊘</text>`);
       svg.push(`</g>`);
     }));
+  });
+  // Chain connectors: a thin line from the end of each link to the start of
+  // the next, so the dead time between steps is the thing you see.
+  const chains = {};
+  bars.forEach((b, i) => { if (b.chain && geomByIdx[i]) (chains[b.chain] = chains[b.chain] || []).push({ b, g: geomByIdx[i] }); });
+  const ORDER = { measure: 0, assembly: 1, fit: 2, glazing: 3, install: 4 };
+  Object.values(chains).forEach((links) => {
+    links.sort((p, q) => (ORDER[p.b.link] ?? 9) - (ORDER[q.b.link] ?? 9));
+    for (let i = 1; i < links.length; i++) {
+      const a = links[i - 1].g, c = links[i].g;
+      const ax = a.x1, cx = c.x0, mid = ax + Math.max((cx - ax) / 2, 6);
+      const path = cx >= ax - 2
+        ? `M${ax},${a.ym} H${mid} V${c.ym} H${cx}`
+        : `M${ax},${a.ym} h6 V${(a.ym + c.ym) / 2} H${cx - 6} V${c.ym} h6`;
+      svg.push(`<path class="chain-link${cx < ax - 2 ? " backwards" : ""}" d="${path}"/>`);
+    }
   });
   const tx = L + ((today - t0) / (7 * day)) * W;
   svg.push(`<line class="today" x1="${tx}" y1="${top - 6}" x2="${tx}" y2="${H - 14}"/>`);
@@ -290,6 +311,7 @@ function renderForecast() {
     <span><i style="border-color:#c0392b;border-width:2px"></i>moved off a written week</span>
     <span><i style="border-style:dotted;border-color:#c0392b;border-width:2px"></i>submitted</span>
     <span><i style="border-style:dashed;border-color:#555"></i>blocked</span>
+    <span><span style="display:inline-block;width:14px;border-top:1.5px solid #8a7a5a;vertical-align:middle;margin-right:4px"></span>chain — storms &amp; full units, step to step</span>
     <span style="color:#c0392b">┆ today</span><span style="color:var(--green)">▶ next opening</span></div>`;
   return `<div class="sch-panel">
     <div class="sch-panel-head"><b>${title}</b><span>board as of ${esc(d.leadTimesAsOf || "?")} · today ${esc(d.today || "")}</span></div>
@@ -633,9 +655,10 @@ function startBarDrag(g, e) {
 const LANE_WORDS = { restoration: "restoration", fabrication: "fabrication", filler: "onesie-twosie" };
 /** Which job fields a bar's pin lives in: site / fab twin / measure twin. */
 function pinFields(part) {
-  const base = part === "fab" ? "pinnedFabWeek" : part === "measure" ? "pinnedMeasureWeek" : "pinnedWeek";
-  const lane = part === "fab" ? "pinnedFabLane" : part === "measure" ? "pinnedMeasureLane" : "pinnedLane";
-  return { week: base, lane };
+  // site → pinnedWeek/pinnedLane; any twin or chain link (fab, measure, fit,
+  // glazing, install) → pinned<Part>Week / pinned<Part>Lane.
+  const stem = !part || part === "site" ? "pinned" : "pinned" + part[0].toUpperCase() + part.slice(1);
+  return { week: stem + "Week", lane: stem + "Lane" };
 }
 async function pinBar(bar, week, lane) {
   const id = resolveJobId(bar.slug, bar.label);
