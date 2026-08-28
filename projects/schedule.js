@@ -631,12 +631,17 @@ function startBarDrag(g, e) {
 
 /** Save the pin on the job, move the bar on screen, and say what happens next. */
 const LANE_WORDS = { restoration: "restoration", fabrication: "fabrication", filler: "onesie-twosie" };
+/** Which job fields a bar's pin lives in: site / fab twin / measure twin. */
+function pinFields(part) {
+  const base = part === "fab" ? "pinnedFabWeek" : part === "measure" ? "pinnedMeasureWeek" : "pinnedWeek";
+  const lane = part === "fab" ? "pinnedFabLane" : part === "measure" ? "pinnedMeasureLane" : "pinnedLane";
+  return { week: base, lane };
+}
 async function pinBar(bar, week, lane) {
   const id = resolveJobId(bar.slug, bar.label);
   if (!id) { toast(`No job in the app matches "${bar.label}" — add it on the Jobs tab first`, true); return; }
   lane = lane || bar.lane;
-  const field = bar.part === "fab" ? "pinnedFabWeek" : "pinnedWeek";
-  const laneField = bar.part === "fab" ? "pinnedFabLane" : "pinnedLane";
+  const { week: field, lane: laneField } = pinFields(bar.part);
   const prev = { start: bar.start, lane: bar.lane, pinned: bar.pinned, anchored: bar.anchored, localPin: bar.localPin, conflict: bar.conflict };
   const laneChanged = lane !== bar.lane;
   const stamp = new Date().toISOString();
@@ -658,8 +663,7 @@ async function pinBar(bar, week, lane) {
 async function unpinBar(idx) {
   const bar = dash && dash.timeline ? dash.timeline[idx] : null; if (!bar) return;
   const id = resolveJobId(bar.slug, bar.label); if (!id) return;
-  const field = bar.part === "fab" ? "pinnedFabWeek" : "pinnedWeek";
-  const laneField = bar.part === "fab" ? "pinnedFabLane" : "pinnedLane";
+  const { week: field, lane: laneField } = pinFields(bar.part);
   bar.pinned = ""; bar.anchored = !!bar.writtenWeek; bar.conflict = ""; bar.localPin = true;
   if (bar.writtenWeek) bar.start = bar.writtenWeek;
   const job = jobById(id); if (job) job[field + "At"] = null;
@@ -677,8 +681,8 @@ async function unpinBar(idx) {
 function overlayPins() {
   (dash?.timeline || []).forEach((b) => {
     const j = jobById(resolveJobId(b.slug, b.label)); if (!j) return;
-    const fab = b.part === "fab";
-    const week = j[fab ? "pinnedFabWeek" : "pinnedWeek"], lane = j[fab ? "pinnedFabLane" : "pinnedLane"];
+    const f = pinFields(b.part);
+    const week = j[f.week], lane = j[f.lane];
     if (week) {
       b.start = week; b.pinned = week; b.anchored = true;
       if (lane) b.lane = lane;
@@ -694,7 +698,7 @@ function overlayPins() {
 // ── Submit: the board is a draft until Geoff commits it ──────────────
 function pinStampOf(b) {
   const id = resolveJobId(b.slug, b.label); const j = jobById(id); if (!j) return "";
-  return j[b.part === "fab" ? "pinnedFabWeekAt" : "pinnedWeekAt"] || "";
+  return j[pinFields(b.part).week + "At"] || "";
 }
 /** A pin is draft when it was made after the last submit (or there never was one). */
 function pinIsDraft(b) {
