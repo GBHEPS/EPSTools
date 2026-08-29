@@ -519,8 +519,14 @@ body.print-board .board-wrap { page: board; }
 .sch-tl-svg .bar-unpin { font-size: 11px; fill: #b5651d; cursor: pointer; }
 .sch-tl-svg .bar-unpin:hover { fill: #7a3f0f; }
 .sch-tl-svg .bar.blocked { stroke-dasharray: 4 3; }
-.sch-tl-svg .chain-link { fill: none; stroke: #8a7a5a; stroke-width: 1.5; pointer-events: none; }
-.sch-tl-svg .chain-link.backwards { stroke: #c0392b; stroke-dasharray: 3 2; }
+.sch-tl-svg .chain-link { fill: none; stroke-width: 1.5; stroke-linejoin: round; opacity: .85; cursor: pointer; }
+.sch-tl-svg .chain-link.backwards { stroke-dasharray: 3 2; }
+.sch-tl-svg .chain-dot { opacity: .85; pointer-events: none; }
+.sch-tl-svg.chain-focus .tl-bar:not(.chain-hl), .sch-tl-svg.chain-focus .chain-link:not(.chain-hl), .sch-tl-svg.chain-focus .chain-dot:not(.chain-hl) { opacity: .22; }
+.sch-tl-svg.chain-focus .tl-out, .sch-tl-svg.chain-focus .tl-mark { opacity: .22; }
+.sch-tl-svg .chain-link.chain-hl { stroke-width: 3; opacity: 1; }
+.sch-tl-svg .chain-dot.chain-hl { r: 3.5; opacity: 1; }
+.sch-tl-svg .tl-bar.chain-hl .bar { stroke-width: 2.5; filter: brightness(0.95); }
 .sch-tl-svg .bar.link { rx: 6; }
 .sch-tl-svg .bar.out { fill: #e4e0d8; stroke: #a09880; stroke-dasharray: none; }
 .sch-tl-svg .bar.out.shop { fill: #d8d3c8; }

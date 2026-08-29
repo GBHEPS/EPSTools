@@ -46,7 +46,9 @@ let copiedJobBar = null;
 let modal = null;                // { id|null, emp, type, ... } while the card modal is open
 let deleteId = null;
 
-let tlGeom = null;               // forecast geometry (L, W, t0) so a drag can snap to weeks
+let tlGeom = null;
+let focusChain = null;           // chain lit on the Forecast (hover lights, click keeps)
+let hoverChain = null;               // forecast geometry (L, W, t0) so a drag can snap to weeks
 let dragEndedAt = 0;             // a drop re-renders the board; the click that follows must not open anything
 
 let saveTimer = null;
@@ -232,7 +234,7 @@ function renderForecast() {
   const today = at(d.today || key(new Date())); const t0 = mondayOf(today);
   const ends = bars.map((b) => at(b.start).getTime() + b.weeks * 7 * day).concat(marks.map((m) => at(m.start).getTime() + 14 * day));
   const nWeeks = Math.max(8, Math.ceil((Math.max(...ends) - t0) / (7 * day)) + 1);
-  const L = 120, rowH = 26, laneGap = 12, top = 22;
+  const L = 120, rowH = 26, laneGap = 16, top = 22;
   // Weeks stretch to fill the window (never under 56 px); the board scrolls only when it must.
   const avail = (root && root.clientWidth ? root.clientWidth : window.innerWidth) - 48;
   const W = Math.max(56, Math.floor((avail - L - 10) / nWeeks));
@@ -270,7 +272,7 @@ function renderForecast() {
   tlGeom.H = H; tlGeom.Wt = Wt;
   const x = (s) => L + ((at(s) - t0) / (7 * day)) * W;
   const geomByIdx = {};
-  const svg = [`<svg class="sch-tl-svg" width="${Wt}" height="${H}" viewBox="0 0 ${Wt} ${H}">`];
+  const svg = [`<svg class="sch-tl-svg${focusChain ? " chain-focus" : ""}" width="${Wt}" height="${H}" viewBox="0 0 ${Wt} ${H}">`];
   tlGeom.lanes.forEach((ln) => svg.push(`<rect class="lane-drop" data-lane="${ln.k}" x="${L}" y="${ln.y0}" width="${nWeeks * W}" height="${ln.y1 - ln.y0}" visibility="hidden"/>`));
   const shortW = d.shortWeeks || {};
   for (let i = 0; i < nWeeks; i++) {
@@ -308,8 +310,8 @@ function renderForecast() {
       const chainNote = isLink ? `\n${b.chainType === "full-unit" ? "Full-unit" : "Storm"} chain, step: ${b.link}. ${b.link === "assembly" ? "Move this and every link after it moves." : "Move this and the links after it slide; the ones before hold."}` : "";
       const tip = `${b.label} — ${b.hours} h, ${b.weeks} wk from ${b.start}${b.commitment && b.commitment !== "forecast" ? " (" + b.commitment + ")" : ""}${chainNote}${pinned ? "\nPinned here by you" : ""}${conflict ? "\nClient was told week of " + conflict + (submitted ? " — submitted, email being drafted" : " — draft, press Submit board") : ""}${b.blocked ? "\nBlocked: " + b.blocked : ""}\nClick to open the job · drag to pin to a week`;
       const idx = bars.indexOf(b);
-      if (isLink) geomByIdx[idx] = { x0: bx, x1: bx + bw, ym: by + (rowH - 6) / 2 };
-      svg.push(`<g class="tl-bar${pinned ? " is-pinned" : ""}" data-act="sch-open-job" data-bar="${idx}" data-slug="${esc(b.slug || "")}" data-part="${esc(b.part || "site")}" data-label="${esc(b.label || "")}"><title>${esc(tip)}</title>`);
+      if (isLink) geomByIdx[idx] = { x0: bx, x1: bx + bw, ym: by + (rowH - 6) / 2, li: lanes.findIndex(([lk]) => lk === k) };
+      svg.push(`<g class="tl-bar${pinned ? " is-pinned" : ""}${isLink ? " chain-bar" + (focusChain === b.chain ? " chain-hl" : "") : ""}"${isLink ? ` data-chain="${esc(b.chain)}"` : ""} data-act="sch-open-job" data-bar="${idx}" data-slug="${esc(b.slug || "")}" data-part="${esc(b.part || "site")}" data-label="${esc(b.label || "")}"><title>${esc(tip)}</title>`);
       svg.push(`<rect class="${cls}" x="${bx}" y="${by}" width="${bw}" height="${rowH - 6}"/>`);
       svg.push(`<text class="bar-label" x="${bx + 4}" y="${by + 12}">${esc(b.label)}${bw > 70 ? " · " + esc(b.hours) + "h" : ""}</text>`);
       if (conflict && bw > 90) svg.push(`<text class="bar-was" x="${bx + bw - 24}" y="${by + 12}" text-anchor="end">was ${esc(fmt(at(conflict)))}</text>`);
@@ -322,15 +324,32 @@ function renderForecast() {
   const chains = {};
   bars.forEach((b, i) => { if (b.chain && geomByIdx[i]) (chains[b.chain] = chains[b.chain] || []).push({ b, g: geomByIdx[i] }); });
   const ORDER = { measure: 0, assembly: 1, fit: 2, paint: 2.5, glazing: 3, install: 4 };
-  Object.values(chains).forEach((links) => {
+  // Routing: bars stop 3 px short of the next week line, so x = (week line − 1.5)
+  // is always empty in every lane — vertical runs go there. Horizontal runs go in
+  // the gaps between lanes. Lines never cross a bar. Each chain gets its own color
+  // and a small vertical offset so two chains in one gap stay apart.
+  const CHAIN_COLORS = ["#8a5a2b", "#6a4aae", "#1a7a6e", "#b5651d", "#2d5a8a", "#8a2060"];
+  const freeX = (px) => L + Math.round((px - L) / W) * W - 1.5;  // nearest week line, nudged into the empty sliver
+  const chanY = (li, below, off) => (below ? tlGeom.lanes[li].y1 : tlGeom.lanes[li].y0) + off;
+  Object.keys(chains).sort().forEach((chainKey, ci) => {
+    const links = chains[chainKey];
     links.sort((p, q) => (ORDER[p.b.link] ?? 9) - (ORDER[q.b.link] ?? 9));
+    const color = CHAIN_COLORS[ci % CHAIN_COLORS.length], off = ((ci % 3) - 1) * 3;
+    const hl = focusChain === chainKey;
     for (let i = 1; i < links.length; i++) {
       const a = links[i - 1].g, c = links[i].g;
-      const ax = a.x1, cx = c.x0, mid = ax + Math.max((cx - ax) / 2, 6);
-      const path = cx >= ax - 2
-        ? `M${ax},${a.ym} H${mid} V${c.ym} H${cx}`
-        : `M${ax},${a.ym} h6 V${(a.ym + c.ym) / 2} H${cx - 6} V${c.ym} h6`;
-      svg.push(`<path class="chain-link${cx < ax - 2 ? " backwards" : ""}" d="${path}"/>`);
+      const xa = freeX(a.x1 + 3), xc = freeX(c.x0);           // sliver right after A ends; sliver just before C starts
+      const backwards = c.x0 < a.x1 - 2;
+      let d;
+      if (a.li === c.li && !backwards && xc - xa < W) {
+        d = `M${a.x1},${a.ym} H${c.x0}`;                          // adjacent weeks, same lane: straight across
+      } else {
+        // channel: the gap below A's lane when heading down or level, above it when heading up
+        const y = c.li > a.li ? chanY(a.li, true, off) : c.li < a.li ? chanY(a.li, false, off) : chanY(a.li, true, off);
+        d = `M${a.x1},${a.ym} H${xa} V${y} H${xc} V${c.ym} H${c.x0}`;
+      }
+      svg.push(`<path class="chain-link${backwards ? " backwards" : ""}${hl ? " chain-hl" : ""}" data-chain="${esc(chainKey)}" style="stroke:${color}" d="${d}"><title>${esc(links[0].b.label.split(" (")[0] + ": " + links[i - 1].b.link + " → " + links[i].b.link)}</title></path>`);
+      svg.push(`<circle class="chain-dot${hl ? " chain-hl" : ""}" data-chain="${esc(chainKey)}" cx="${c.x0}" cy="${c.ym}" r="2.5" style="fill:${color}"/>`);
     }
   });
   const tx = L + ((today - t0) / (7 * day)) * W;
@@ -881,7 +900,18 @@ function openJobFromBar(el) {
 // ═════════════════════════════════════════════════════════════════════
 // EVENTS — one click listener (header buttons live outside <main>), one keydown, one mousedown
 // ═════════════════════════════════════════════════════════════════════
+function setChainLight(chain) {
+  const svg = root && root.querySelector(".sch-tl-svg"); if (!svg) return;
+  const lit = chain || focusChain;
+  svg.classList.toggle("chain-focus", !!lit);
+  svg.querySelectorAll("[data-chain]").forEach((el) => el.classList.toggle("chain-hl", !!lit && el.dataset.chain === lit));
+}
 function wireEvents() {
+  document.addEventListener("mouseover", (e) => {
+    if (!isMounted() || view !== "forecast") return;
+    const el = e.target.closest("[data-chain]"); const chain = el ? el.dataset.chain : null;
+    if (chain !== hoverChain) { hoverChain = chain; setChainLight(chain); }
+  });
   document.addEventListener("click", (e) => {
     if (!isMounted()) return;
     const el = e.target.closest("[data-act^='sch-']"); if (!el) return;
@@ -896,7 +926,12 @@ function wireEvents() {
       case "sch-print": window.print(); break;
       case "sch-filter": { const t = el.dataset.type; typeFilters.has(t) ? typeFilters.delete(t) : typeFilters.add(t); render(); break; }
       case "sch-toggle-jobs": showJobStrip = !showJobStrip; render(); break;
-      case "sch-open-job": if (Date.now() - dragEndedAt < 300) break; openJobFromBar(el); break;
+      case "sch-open-job": {
+        if (Date.now() - dragEndedAt < 300) break;
+        // A click on a chain link keeps that chain lit (click again to let go); the job opens on double-click.
+        if (el.dataset.chain && e.detail === 1) { focusChain = focusChain === el.dataset.chain ? null : el.dataset.chain; setChainLight(null); break; }
+        openJobFromBar(el); break;
+      }
       case "sch-unpin": e.stopPropagation(); unpinBar(+el.dataset.bar); break;
       case "sch-submit": submitBoard(); break;
       case "sch-revert": revertBoard(); break;
