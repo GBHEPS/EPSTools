@@ -47,6 +47,9 @@ let modal = null;                // { id|null, emp, type, ... } while the card m
 let deleteId = null;
 
 let tlGeom = null;
+let zoom = 1;                    // week-width multiplier on the Forecast; remembered per browser
+try { zoom = Math.min(4, Math.max(0.5, parseFloat(localStorage.getItem("eps.forecast.zoom")) || 1)); } catch (e) { /* storage blocked: fine */ }
+function setZoom(z) { zoom = Math.min(4, Math.max(0.5, Math.round(z * 4) / 4)); try { localStorage.setItem("eps.forecast.zoom", String(zoom)); } catch (e) { /* fine */ } render(); }
 let focusChain = null;           // chain lit on the Forecast (hover lights, click keeps)
 let hoverChain = null;               // forecast geometry (L, W, t0) so a drag can snap to weeks
 let dragEndedAt = 0;             // a drop re-renders the board; the click that follows must not open anything
@@ -196,7 +199,8 @@ function render() {
       ? `<button class="btn-header" data-act="sch-revert" title="Put every pin back the way the OS last shipped the board">Revert</button>` : "";
     const clearBtn = anyPins()
       ? `<button class="btn-header" data-act="sch-clear" title="Clear every pin and let the OS place everything from the job folders">Clear pins</button>` : "";
-    const outBtn = `<button class="btn-header" data-act="sch-out-add" title="Block out a holiday, a shop closure, or someone's time off">+ Time off</button>`;
+    const zoomCtl = `<span class="sch-zoom"><button class="btn-header" data-act="sch-zoom-out" title="Narrower weeks (−)">−</button><button class="btn-header" data-act="sch-zoom-fit" title="Fit the window">${zoom === 1 ? "fit" : Math.round(zoom * 100) + "%"}</button><button class="btn-header" data-act="sch-zoom-in" title="Wider weeks (+)">+</button></span>`;
+    const outBtn = zoomCtl + `<button class="btn-header" data-act="sch-out-add" title="Block out a holiday, a shop closure, or someone's time off">+ Time off</button>`;
     setHeaderNav(left + outBtn + `<span class="sch-stamp">board as of ${esc(dash?.leadTimesAsOf || "?")} · today ${esc(dash?.today || key(new Date()))}</span>` + revertBtn + clearBtn + submitBtn);
     wrap.innerHTML = renderForecast();
   } else {
@@ -234,10 +238,10 @@ function renderForecast() {
   const today = at(d.today || key(new Date())); const t0 = mondayOf(today);
   const ends = bars.map((b) => at(b.start).getTime() + b.weeks * 7 * day).concat(marks.map((m) => at(m.start).getTime() + 14 * day));
   const nWeeks = Math.max(8, Math.ceil((Math.max(...ends) - t0) / (7 * day)) + 1);
-  const L = 120, rowH = 26, laneGap = 16, top = 22;
+  const L = 120, rowH = 34, laneGap = 16, top = 22;
   // Weeks stretch to fill the window (never under 56 px); the board scrolls only when it must.
   const avail = (root && root.clientWidth ? root.clientWidth : window.innerWidth) - 48;
-  const W = Math.max(56, Math.floor((avail - L - 10) / nWeeks));
+  const W = Math.max(56, Math.floor(((avail - L - 10) / nWeeks) * zoom));
   tlGeom = { L, W, t0 };
   const cap = d.capacity || {};
   const lanes = [
@@ -297,7 +301,12 @@ function renderForecast() {
         const src = b.source === "holiday" ? "\nHoliday (eps/time-off.yaml)" : b.source === "board" ? "\nAdded on the board · ✕ removes it" : "\nFrom eps/time-off.yaml";
         svg.push(`<g class="tl-out"><title>${esc(b.label + src)}</title>`);
         svg.push(`<rect class="bar out${b.who === "SHOP" ? " shop" : ""}" x="${bx}" y="${by}" width="${bw}" height="${rowH - 6}"/>`);
-        svg.push(`<text class="bar-label" x="${bx + 4}" y="${by + 12}">${esc(b.label)}</text>`);
+        {
+          const [l1, l2] = String(b.label).split(" · ");
+          const fitText = (t, px, per) => { const n = Math.max(1, Math.floor(px / per)); return t.length > n ? t.slice(0, Math.max(1, n - 1)) + "…" : t; };
+          svg.push(`<text class="bar-label" x="${bx + 4}" y="${by + 12}">${esc(fitText(l1 || "", bw - 8, 6.2))}</text>`);
+          if (l2) svg.push(`<text class="bar-sub" x="${bx + 4}" y="${by + 23}">${esc(fitText(l2, bw - 8, 5.4))}</text>`);
+        }
         if (removable) svg.push(`<text class="bar-unpin" data-act="sch-out-remove" data-out="${esc(b.id)}" x="${bx + bw - 11}" y="${by + 12}"><title>Remove this block</title>✕</text>`);
         svg.push(`</g>`);
         return;
@@ -313,7 +322,14 @@ function renderForecast() {
       if (isLink) geomByIdx[idx] = { x0: bx, x1: bx + bw, ym: by + (rowH - 6) / 2, li: lanes.findIndex(([lk]) => lk === k) };
       svg.push(`<g class="tl-bar${pinned ? " is-pinned" : ""}${isLink ? " chain-bar" + (focusChain === b.chain ? " chain-hl" : "") : ""}"${isLink ? ` data-chain="${esc(b.chain)}"` : ""} data-act="sch-open-job" data-bar="${idx}" data-slug="${esc(b.slug || "")}" data-part="${esc(b.part || "site")}" data-label="${esc(b.label || "")}"><title>${esc(tip)}</title>`);
       svg.push(`<rect class="${cls}" x="${bx}" y="${by}" width="${bw}" height="${rowH - 6}"/>`);
-      svg.push(`<text class="bar-label" x="${bx + 4}" y="${by + 12}">${esc(b.label)}${bw > 70 ? " · " + esc(b.hours) + "h" : ""}</text>`);
+      {
+        const m = /^(.*?)\s*\((.+)\)$/.exec(b.label || "");
+        const name = m ? m[1] : (b.label || ""), step = m ? m[2] : "";
+        const fitText = (t, px, per) => { const n = Math.max(1, Math.floor(px / per)); return t.length > n ? t.slice(0, Math.max(1, n - 1)) + "…" : t; };
+        const sub = [step, `${b.hours}h`, b.lane === "filler" && b.hours ? (b.hours <= 4 ? "½ day" : Math.ceil(b.hours / 4) / 2 + " d") : ""].filter(Boolean).join(" · ");
+        svg.push(`<text class="bar-label" x="${bx + 4}" y="${by + 12}">${esc(fitText(name, bw - 8 - (pinned ? 12 : 0), 6.2))}</text>`);
+        svg.push(`<text class="bar-sub" x="${bx + 4}" y="${by + 23}">${esc(fitText(sub, bw - 8, 5.4))}</text>`);
+      }
       if (conflict && bw > 90) svg.push(`<text class="bar-was" x="${bx + bw - 24}" y="${by + 12}" text-anchor="end">was ${esc(fmt(at(conflict)))}</text>`);
       if (pinned) svg.push(`<text class="bar-unpin" data-act="sch-unpin" data-bar="${idx}" x="${bx + bw - 11}" y="${by + 12}"><title>Unpin — let the OS place this job again</title>⊘</text>`);
       svg.push(`</g>`);
@@ -936,6 +952,9 @@ function wireEvents() {
       case "sch-submit": submitBoard(); break;
       case "sch-revert": revertBoard(); break;
       case "sch-out-add": openOutModal(); break;
+      case "sch-zoom-in": setZoom(zoom + 0.25); break;
+      case "sch-zoom-out": setZoom(zoom - 0.25); break;
+      case "sch-zoom-fit": setZoom(1); break;
       case "sch-out-cancel": closeOutModal(); break;
       case "sch-out-save": saveOutModal(); break;
       case "sch-out-remove": e.stopPropagation(); removeOut(el.dataset.out); break;
@@ -1016,6 +1035,8 @@ function wireEvents() {
     }
     if (inInput) return;
     if (e.key === "v" || e.key === "V") { e.preventDefault(); setView("forecast"); return; }
+    if (view === "forecast" && (e.key === "+" || e.key === "=")) { e.preventDefault(); setZoom(zoom + 0.25); return; }
+    if (view === "forecast" && e.key === "-") { e.preventDefault(); setZoom(zoom - 0.25); return; }
     if (e.key === "ArrowLeft") { e.preventDefault(); goWeek(-1); return; }
     if (e.key === "ArrowRight") { e.preventDefault(); goWeek(1); return; }
   });

@@ -533,7 +533,10 @@ body.print-board .board-wrap { page: board; }
 .sch-tl-svg .tl-out { cursor: default; }
 .sch-tl-svg .short-week { fill: #a09880; opacity: .10; }
 .sch-tl-svg .short-label { font-size: 8px; fill: #8a2020; font-family: var(--mono); }
-.sch-tl-svg .bar-label { font-size: 11px; }
+.sch-tl-svg .bar-label { font-size: 11px; font-weight: 500; }
+.sch-tl-svg .bar-sub { font-size: 9px; fill: var(--text-muted); font-family: var(--mono); pointer-events: none; }
+.sch-zoom { display: inline-flex; gap: 2px; margin-right: 8px; }
+.sch-zoom .btn-header { padding: 5px 8px; }
 .sch-review { margin-bottom: 10px; }
 .sch-review summary { cursor: pointer; font-size: 12px; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
 .sch-review .rv-counts { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--text-muted); }
