@@ -87,6 +87,8 @@ function toast(msg, isError) {
   clearTimeout(t._to); t._to = setTimeout(() => t.classList.remove("show"), 2800);
 }
 function setHeaderNav(html) { const h = $("headerNav"); if (h) h.innerHTML = html; }
+let resizeTimer = null;
+window.addEventListener("resize", () => { if (view === "forecast" && isMounted()) { clearTimeout(resizeTimer); resizeTimer = setTimeout(render, 150); } });
 function isMounted() { return !!(root && root.isConnected && root.querySelector("#schedWrap")); }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
 
@@ -186,7 +188,11 @@ function render() {
     const submitBtn = draft
       ? `<button class="btn-header primary" data-act="sch-submit" title="Commit the board as it stands. The OS drafts client emails for red bars and moves their written weeks.">Submit board</button>`
       : `<button class="btn-header" disabled title="Nothing moved since the last submit">Board ${submitted}</button>`;
-    setHeaderNav(left + `<span class="sch-stamp">board as of ${esc(dash?.leadTimesAsOf || "?")} · today ${esc(dash?.today || key(new Date()))}</span>` + submitBtn);
+    const revertBtn = pinsDifferFromShipped()
+      ? `<button class="btn-header" data-act="sch-revert" title="Put every pin back the way the OS last shipped the board">Revert</button>` : "";
+    const clearBtn = anyPins()
+      ? `<button class="btn-header" data-act="sch-clear" title="Clear every pin and let the OS place everything from the job folders">Clear pins</button>` : "";
+    setHeaderNav(left + `<span class="sch-stamp">board as of ${esc(dash?.leadTimesAsOf || "?")} · today ${esc(dash?.today || key(new Date()))}</span>` + revertBtn + clearBtn + submitBtn);
     wrap.innerHTML = renderForecast();
   } else {
     const label = fmt(anchorMonday) + " – " + fmt(addDays(anchorMonday, 11));
@@ -223,7 +229,10 @@ function renderForecast() {
   const today = at(d.today || key(new Date())); const t0 = mondayOf(today);
   const ends = bars.map((b) => at(b.start).getTime() + b.weeks * 7 * day).concat(marks.map((m) => at(m.start).getTime() + 14 * day));
   const nWeeks = Math.max(8, Math.ceil((Math.max(...ends) - t0) / (7 * day)) + 1);
-  const L = 120, W = 64, rowH = 22, laneGap = 10, top = 22;
+  const L = 120, rowH = 26, laneGap = 12, top = 22;
+  // Weeks stretch to fill the window (never under 56 px); the board scrolls only when it must.
+  const avail = (root && root.clientWidth ? root.clientWidth : window.innerWidth) - 48;
+  const W = Math.max(56, Math.floor((avail - L - 10) / nWeeks));
   tlGeom = { L, W, t0 };
   const cap = d.capacity || {};
   const lanes = [
@@ -313,10 +322,58 @@ function renderForecast() {
     <span><i style="border-style:dashed;border-color:#555"></i>blocked</span>
     <span><span style="display:inline-block;width:14px;border-top:1.5px solid #8a7a5a;vertical-align:middle;margin-right:4px"></span>chain — storms &amp; full units, step to step</span>
     <span style="color:#c0392b">┆ today</span><span style="color:var(--green)">▶ next opening</span></div>`;
-  return `<div class="sch-panel">
+  return renderReview() + `<div class="sch-panel">
     <div class="sch-panel-head"><b>${title}</b><span>board as of ${esc(d.leadTimesAsOf || "?")} · today ${esc(d.today || "")}</span></div>
     <div class="sch-tl-scroll">${svg.join("")}</div>${legend}
     <div class="sch-note">${note}</div></div>`;
+}
+
+// ── Review: what the OS said about the board Geoff last submitted ────
+function renderReview() {
+  const r = dash?.review; if (!r || !r.text) return "";
+  const stale = dash.committedAt && r.committedAt && dash.committedAt > r.committedAt;
+  const html = String(r.text).split("\n").map((ln) => {
+    const t = esc(ln).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/_(.+?)_$/g, "<i>$1</i>");
+    if (ln.startsWith("## ")) return `<h4>${t.slice(3)}</h4>`;
+    if (ln.startsWith("  → ")) return `<div class="rv-fix">→ ${t.slice(4)}</div>`;
+    if (ln.startsWith("- ")) return `<div class="rv-item">${t.slice(2)}</div>`;
+    return ln.trim() ? `<div>${t}</div>` : "";
+  }).join("");
+  const c = r.counts || {};
+  return `<details class="sch-panel sch-review"${(c.breaks || c.reds) ? " open" : ""}>
+    <summary><b>Review of your last submit</b> · ${esc(stampShort(r.at))}${stale ? ` · <span class="rv-stale">board changed since — submit again for a fresh one</span>` : ""}
+      <span class="rv-counts">${c.yours ?? 0} moves · ${c.fallout ?? 0} knock-ons · ${c.breaks ?? 0} problems · ${c.reds ?? 0} emails owed</span></summary>
+    <div class="rv-body">${html}</div></details>`;
+}
+
+// ── Revert / Clear: pins are the only thing Geoff authors ─────────────
+const PIN_FIELDS = ["site", "fab", "measure", "fit", "glazing", "install"].flatMap((p) => {
+  const f = pinFields(p); return [f.week, f.lane, f.week + "By", f.week + "At"];
+});
+function anyPins() { return jobs.some((j) => PIN_FIELDS.some((f) => j[f])); }
+function pinsDifferFromShipped() {
+  const shipped = dash?.shippedPins; if (!shipped) return anyPins();
+  return jobs.some((j) => { const t = shipped[j.id] || {}; return PIN_FIELDS.some((f) => (j[f] || null) !== (t[f] || null)); });
+}
+async function setPinsTo(targetFor, doneMsg) {
+  let n = 0;
+  for (const j of jobs) {
+    const t = targetFor(j) || {}; const patch = {};
+    PIN_FIELDS.forEach((f) => { if ((j[f] || null) !== (t[f] || null)) patch[f] = t[f] || null; });
+    if (!Object.keys(patch).length) continue;
+    await saveJob(j.id, patch); Object.assign(j, patch); n++;
+  }
+  dash = await loadDashboard(); overlayPins(); render();
+  toast(n ? `${doneMsg} (${n} job${n > 1 ? "s" : ""}). The OS repacks on the next schedule check.` : "Nothing to change.");
+}
+function revertBoard() {
+  if (!confirm("Put every pin back the way the OS last shipped the board?")) return;
+  const shipped = dash?.shippedPins || {};
+  setPinsTo((j) => shipped[j.id], "Reverted to the last shipped board").catch((e) => toast(`Couldn't revert: ${e.message || e}`, true));
+}
+function clearPins() {
+  if (!confirm("Clear every pin? Contract and promised weeks stay — they live in the job folders.")) return;
+  setPinsTo(() => ({}), "Pins cleared").catch((e) => toast(`Couldn't clear: ${e.message || e}`, true));
 }
 
 /** A timeline bar's slug → a pm_projects id, by osFolder then by last name. */
@@ -737,7 +794,7 @@ async function submitBoard() {
     dash.committedAt = at; dash.committedBy = who;
     const reds = (dash.timeline || []).filter((b) => b.pinned && b.conflict).length;
     render();
-    toast(reds ? `Board submitted. ${reds} client email${reds > 1 ? "s" : ""} will be drafted on the next board-moves review.` : "Board submitted.");
+    toast(reds ? `Board submitted. Ask the OS to "review my board" — it writes up the fallout and drafts ${reds} client email${reds > 1 ? "s" : ""}.` : `Board submitted. Ask the OS to "review my board" for the write-up.`);
   } catch (err) { toast(`Couldn't submit: ${err.message || err}`, true); }
 }
 
@@ -771,6 +828,8 @@ function wireEvents() {
       case "sch-open-job": if (Date.now() - dragEndedAt < 300) break; openJobFromBar(el); break;
       case "sch-unpin": e.stopPropagation(); unpinBar(+el.dataset.bar); break;
       case "sch-submit": submitBoard(); break;
+      case "sch-revert": revertBoard(); break;
+      case "sch-clear": clearPins(); break;
       case "sch-jobbar": if (Date.now() - dragEndedAt < 300) break; e.stopPropagation(); selectJobBar(el); break;
       case "sch-copy": e.stopPropagation(); copyCard(cardEl.dataset.id); break;
       case "sch-edit": e.stopPropagation(); openCardModal(cards.find((c) => c.id === cardEl.dataset.id)); break;
