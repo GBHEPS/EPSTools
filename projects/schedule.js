@@ -320,7 +320,7 @@ function renderForecast() {
   // the next, so the dead time between steps is the thing you see.
   const chains = {};
   bars.forEach((b, i) => { if (b.chain && geomByIdx[i]) (chains[b.chain] = chains[b.chain] || []).push({ b, g: geomByIdx[i] }); });
-  const ORDER = { measure: 0, assembly: 1, fit: 2, glazing: 3, install: 4 };
+  const ORDER = { measure: 0, assembly: 1, fit: 2, paint: 2.5, glazing: 3, install: 4 };
   Object.values(chains).forEach((links) => {
     links.sort((p, q) => (ORDER[p.b.link] ?? 9) - (ORDER[q.b.link] ?? 9));
     for (let i = 1; i < links.length; i++) {
