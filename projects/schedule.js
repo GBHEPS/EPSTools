@@ -61,6 +61,7 @@ export function mountSchedule(viewEl, opts = {}) {
   if (opts.view === "forecast" || opts.view === "crew") view = opts.view;
   else if (opts.focus) view = "forecast";
   focus = opts.focus || null;
+  history.replaceState(null, "", "#schedule/" + view);
   // Re-read on every mount (the Jobs tab may have pushed cards) unless an edit is still saving.
   if (!savePending) { loaded = false; loading = null; }
   root.innerHTML = `<div id="schedWrap" class="sched-wrap"><div class="loading-state">Loading schedule…</div></div>`;
@@ -869,7 +870,7 @@ async function submitBoard() {
 }
 
 // ── Navigation ───────────────────────────────────────────────────────
-function setView(v) { view = v; if (v === "crew") focus = null; render(); }
+function setView(v) { view = v; if (v === "crew") focus = null; history.replaceState(null, "", "#schedule/" + v); render(); }
 function goWeek(delta) { anchorMonday = addDays(anchorMonday, delta * 7); render(); }
 function openJobFromBar(el) {
   const id = resolveJobId(el.dataset.slug, el.dataset.label);

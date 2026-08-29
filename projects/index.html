@@ -78,6 +78,9 @@
     if (current && current !== name && unsaved && !confirm("You have unsaved changes. Leave anyway?")) return;
     if (current === "jobs" && name !== "jobs") unmountJobs();
     current = name;
+    // Remember where you are in the URL (#schedule/forecast), so a refresh lands back here.
+    const hash = "#" + name + (opts.view ? "/" + opts.view : "");
+    if (location.hash !== hash && !opts.jobId) history.replaceState(null, "", hash);
     tabs.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === name));
     document.getElementById("headerNav").innerHTML = "";
     document.getElementById("saveBar").classList.remove("visible");
@@ -100,7 +103,14 @@
   // Other modules ask for a tab by dispatching this event (e.g. a lead-time cell).
   document.addEventListener("eps:navigate", (e) => showTab(e.detail.tab, e.detail));
 
-  showTab("jobs");
+  // Open on the tab in the URL (#jobs, #board, #schedule/forecast, #schedule/crew); Jobs otherwise.
+  function fromHash() {
+    const [tab, sub] = location.hash.replace(/^#/, "").split("/");
+    return { tab: ["jobs", "board", "schedule"].includes(tab) ? tab : "jobs", view: sub || undefined };
+  }
+  const start = fromHash();
+  showTab(start.tab, start.view ? { view: start.view } : {});
+  window.addEventListener("hashchange", () => { const h = fromHash(); showTab(h.tab, h.view ? { view: h.view } : {}); });
 </script>
 </body>
 </html>
