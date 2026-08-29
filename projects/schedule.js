@@ -10,7 +10,7 @@
 // for sign-in). All data-act names here are prefixed "sch-" so they never
 // collide with the jobs.js listener, which also sits on document.
 
-import { db, whenSignedIn, loadDashboard, saveScheduleCards, loadJobs, saveJob, commitBoard, auth } from "./data.js";
+import { db, whenSignedIn, loadDashboard, saveScheduleCards, loadJobs, saveJob, commitBoard, auth, addTimeOff, removeTimeOff, loadTimeOff } from "./data.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 
 // ── Constants ────────────────────────────────────────────────────────
@@ -122,7 +122,8 @@ function jobByLastName(name) {
 async function ensureLoaded() {
   if (loaded) return;
   if (!loading) loading = (async () => {
-    const [d, j, c, s] = await Promise.all([loadDashboard(), loadJobs(), loadCrew(), loadScheduleDoc()]);
+    const [d, j, c, s, t] = await Promise.all([loadDashboard(), loadJobs(), loadCrew(), loadScheduleDoc(), loadTimeOff().catch(() => null)]);
+    if (t) localOut = t;
     dash = d; jobs = j; crew = c; cards = s.cards; prodClients = s.prodClients;
     overlayPins();
     loaded = true;
@@ -192,7 +193,8 @@ function render() {
       ? `<button class="btn-header" data-act="sch-revert" title="Put every pin back the way the OS last shipped the board">Revert</button>` : "";
     const clearBtn = anyPins()
       ? `<button class="btn-header" data-act="sch-clear" title="Clear every pin and let the OS place everything from the job folders">Clear pins</button>` : "";
-    setHeaderNav(left + `<span class="sch-stamp">board as of ${esc(dash?.leadTimesAsOf || "?")} · today ${esc(dash?.today || key(new Date()))}</span>` + revertBtn + clearBtn + submitBtn);
+    const outBtn = `<button class="btn-header" data-act="sch-out-add" title="Block out a holiday, a shop closure, or someone's time off">+ Time off</button>`;
+    setHeaderNav(left + outBtn + `<span class="sch-stamp">board as of ${esc(dash?.leadTimesAsOf || "?")} · today ${esc(dash?.today || key(new Date()))}</span>` + revertBtn + clearBtn + submitBtn);
     wrap.innerHTML = renderForecast();
   } else {
     const label = fmt(anchorMonday) + " – " + fmt(addDays(anchorMonday, 11));
@@ -238,13 +240,23 @@ function renderForecast() {
   const lanes = [
     ["restoration", "Restoration" + (cap.restoration ? " · " + cap.restoration + " h/wk" : "")],
     ["fabrication", "Fabrication" + (cap.fabrication ? " · " + cap.fabrication + " h/wk" : "")],
-    ["filler", "Onesie-twosie · 1/wk"],
+    ["filler", "Onesie-twosie · ½ days"],
+    ["out", "Out"],
   ];
+  // Out row: holidays and time off. Board-added ones (source "board") can be removed here;
+  // the rest come from eps/time-off.yaml. Entries saved this session show at once (localOut).
+  const outBars = outEntries().map((e) => {
+    const s0 = mondayOf(at(e.start)), e0 = at(e.end);
+    const weeks = Math.max(1, Math.round((mondayOf(e0) - s0) / (7 * day)) + 1);
+    const who = e.who === "SHOP" ? (e.note || "closed") : `${e.who} out${e.note ? " — " + e.note : ""}`;
+    const days = e.start === e.end ? fmt(at(e.start)) : `${fmt(at(e.start))}–${fmt(e0)}`;
+    return { ...e, isOut: true, lane: "out", start: key(s0), weeks, label: `${who} · ${days}` };
+  });
   // pack bars into rows within each lane so overlaps don't stack on top of each other
   const laneRows = {}, laneY = {}; let y = top;
   lanes.forEach(([k]) => {
     const rows = [];
-    bars.filter((b) => b.lane === k).sort((a, b) => (a.start < b.start ? -1 : 1)).forEach((b) => {
+    (k === "out" ? outBars : bars.filter((b) => b.lane === k)).sort((a, b) => (a.start < b.start ? -1 : 1)).forEach((b) => {
       const s = at(b.start).getTime(), e = s + b.weeks * 7 * day;
       const row = rows.find((r) => r.end <= s);
       if (row) { row.end = e; row.items.push(b); } else rows.push({ end: e, items: [b] });
@@ -259,8 +271,16 @@ function renderForecast() {
   const geomByIdx = {};
   const svg = [`<svg class="sch-tl-svg" width="${Wt}" height="${H}" viewBox="0 0 ${Wt} ${H}">`];
   tlGeom.lanes.forEach((ln) => svg.push(`<rect class="lane-drop" data-lane="${ln.k}" x="${L}" y="${ln.y0}" width="${nWeeks * W}" height="${ln.y1 - ln.y0}" visibility="hidden"/>`));
+  const shortW = d.shortWeeks || {};
   for (let i = 0; i < nWeeks; i++) {
     const wd = new Date(t0.getTime() + i * 7 * day);
+    const wk = key(wd);
+    const shorts = Object.entries(shortW).filter(([, m]) => m[wk]);
+    if (shorts.length) {
+      const why = shorts.map(([ln, m]) => `${ln}: ${m[wk].hours} h — ${m[wk].why}`).join("\n");
+      svg.push(`<rect class="short-week" x="${L + i * W}" y="${top - 6}" width="${W}" height="${H - top - 8}"><title>${esc("Short week\n" + why)}</title></rect>`);
+      svg.push(`<text class="short-label" x="${L + i * W + W - 3}" y="${top - 9}" text-anchor="end">${esc(shorts.map(([, m]) => m[wk].hours + "h").join("/"))}</text>`);
+    }
     svg.push(`<line class="${wd.getDate() <= 7 ? "month" : "grid"}" x1="${L + i * W}" y1="${top - 6}" x2="${L + i * W}" y2="${H - 14}"/>`);
     svg.push(`<text class="wk" x="${L + i * W + 3}" y="${top - 9}">${wd.getMonth() + 1}/${wd.getDate()}</text>`);
   }
@@ -269,6 +289,16 @@ function renderForecast() {
     svg.push(`<text class="lane-label" x="0" y="${y0 + 14}">${esc(label)}</text>`);
     laneRows[k].forEach((row, ri) => row.items.forEach((b) => {
       const bx = x(b.start), bw = Math.max(b.weeks * W - 3, 10), by = y0 + ri * rowH + 3;
+      if (b.isOut) {
+        const removable = b.source === "board" && b.id;
+        const src = b.source === "holiday" ? "\nHoliday (eps/time-off.yaml)" : b.source === "board" ? "\nAdded on the board · ✕ removes it" : "\nFrom eps/time-off.yaml";
+        svg.push(`<g class="tl-out"><title>${esc(b.label + src)}</title>`);
+        svg.push(`<rect class="bar out${b.who === "SHOP" ? " shop" : ""}" x="${bx}" y="${by}" width="${bw}" height="${rowH - 6}"/>`);
+        svg.push(`<text class="bar-label" x="${bx + 4}" y="${by + 12}">${esc(b.label)}</text>`);
+        if (removable) svg.push(`<text class="bar-unpin" data-act="sch-out-remove" data-out="${esc(b.id)}" x="${bx + bw - 11}" y="${by + 12}"><title>Remove this block</title>✕</text>`);
+        svg.push(`</g>`);
+        return;
+      }
       const pinned = !!b.pinned;
       const conflict = pinned && b.conflict ? b.conflict : "";
       const submitted = conflict && !pinIsDraft(b);
@@ -321,11 +351,51 @@ function renderForecast() {
     <span><i style="border-style:dotted;border-color:#c0392b;border-width:2px"></i>submitted</span>
     <span><i style="border-style:dashed;border-color:#555"></i>blocked</span>
     <span><span style="display:inline-block;width:14px;border-top:1.5px solid #8a7a5a;vertical-align:middle;margin-right:4px"></span>chain — storms &amp; full units, step to step</span>
+    <span><i style="background:#e4e0d8;border-color:#a09880"></i>out — time off, holidays (short weeks shaded)</span>
     <span style="color:#c0392b">┆ today</span><span style="color:var(--green)">▶ next opening</span></div>`;
   return renderReview() + `<div class="sch-panel">
     <div class="sch-panel-head"><b>${title}</b><span>board as of ${esc(d.leadTimesAsOf || "?")} · today ${esc(d.today || "")}</span></div>
     <div class="sch-tl-scroll">${svg.join("")}</div>${legend}
-    <div class="sch-note">${note}</div></div>`;
+    <div class="sch-note">${note}</div></div>` + renderOutModal();
+}
+
+// ── Out row: time off blocks Geoff adds on the board ──────────────────
+let localOut = null;  // boards/timeoff entries loaded this session (newer than the shipped list)
+function outEntries() {
+  const shipped = (dash?.out || []).filter((e) => e.source !== "board");
+  const board = localOut !== null ? localOut : (dash?.out || []).filter((e) => e.source === "board");
+  return shipped.concat(board.map((e) => ({ ...e, source: "board" })));
+}
+function renderOutModal() {
+  const people = (crew || []).filter((c) => c.active !== false).map((c) => `<option value="${esc(c.initials)}">${esc(c.initials)} — ${esc(c.name || "")}</option>`).join("");
+  return `<div class="sch-overlay" id="schModalOut" data-act="sch-overlay"><div class="sch-modal">
+    <h3>Time off</h3>
+    <label>Who</label><select id="outWho"><option value="SHOP">Shop closed — everyone</option>${people}</select>
+    <label>First day</label><input type="date" id="outStart">
+    <label>Last day</label><input type="date" id="outEnd">
+    <label>Note</label><input id="outNote" placeholder="vacation, dentist, holiday…">
+    <p class="sch-modal-text">Cuts that lane's hours for the week; the OS repacks around it on the next schedule check.</p>
+    <div class="sch-modal-btns"><button data-act="sch-out-cancel">Cancel</button><button class="primary" data-act="sch-out-save">Save</button></div></div></div>`;
+}
+function openOutModal() { const m = $("schModalOut"); if (!m) return; $("outStart").value = key(new Date()); $("outEnd").value = ""; $("outNote").value = ""; m.classList.add("open"); }
+function closeOutModal() { const m = $("schModalOut"); if (m) m.classList.remove("open"); }
+async function saveOutModal() {
+  const who = $("outWho").value, start = $("outStart").value, end = $("outEnd").value || start, note = $("outNote").value.trim();
+  if (!start) { $("outStart").focus(); return; }
+  if (end < start) { toast("Last day is before the first day", true); return; }
+  const entry = { id: uid(), who, start, end, note, by: auth.currentUser?.email || "", at: new Date().toISOString() };
+  try {
+    await addTimeOff(entry);
+    if (localOut === null) localOut = await loadTimeOff(); else localOut.push(entry);
+    closeOutModal(); render();
+    toast(`${who === "SHOP" ? "Shop closed" : who + " out"} ${start}${end !== start ? " – " + end : ""} saved. The board shortens that week on the next schedule check.`);
+  } catch (err) { toast(`Couldn't save: ${err.message || err}`, true); }
+}
+async function removeOut(id) {
+  if (localOut === null) localOut = await loadTimeOff();
+  const entry = localOut.find((e) => e.id === id); if (!entry) return;
+  try { await removeTimeOff(entry); localOut = localOut.filter((e) => e.id !== id); render(); toast("Block removed."); }
+  catch (err) { toast(`Couldn't remove: ${err.message || err}`, true); }
 }
 
 // ── Review: what the OS said about the board Geoff last submitted ────
@@ -829,6 +899,10 @@ function wireEvents() {
       case "sch-unpin": e.stopPropagation(); unpinBar(+el.dataset.bar); break;
       case "sch-submit": submitBoard(); break;
       case "sch-revert": revertBoard(); break;
+      case "sch-out-add": openOutModal(); break;
+      case "sch-out-cancel": closeOutModal(); break;
+      case "sch-out-save": saveOutModal(); break;
+      case "sch-out-remove": e.stopPropagation(); removeOut(el.dataset.out); break;
       case "sch-clear": clearPins(); break;
       case "sch-jobbar": if (Date.now() - dragEndedAt < 300) break; e.stopPropagation(); selectJobBar(el); break;
       case "sch-copy": e.stopPropagation(); copyCard(cardEl.dataset.id); break;
@@ -850,7 +924,7 @@ function wireEvents() {
       case "sch-card-save": saveCardModal(); break;
       case "sch-del-cancel": closeDeleteModal(); break;
       case "sch-del-confirm": confirmDelete(); break;
-      case "sch-overlay": if (e.target === el) { closeCardModal(); closeDeleteModal(); } break;
+      case "sch-overlay": if (e.target === el) { closeCardModal(); closeDeleteModal(); closeOutModal(); } break;
     }
   });
 

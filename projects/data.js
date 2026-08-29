@@ -7,7 +7,7 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
 import {
-  getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, serverTimestamp,
+  getFirestore, collection, doc, getDoc, getDocs, setDoc, deleteDoc, serverTimestamp, updateDoc, arrayUnion, arrayRemove,
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 import {
   getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
@@ -147,4 +147,19 @@ export function fmtStamp(ts) {
   const d = ts && ts.toDate ? ts.toDate() : (ts ? new Date(ts) : null);
   if (!d || isNaN(d)) return "";
   return d.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+// ── Time off: the Forecast's Out row (boards/timeoff.entries) ─────────
+export async function addTimeOff(entry) {
+  await whenSignedIn();
+  await setDoc(doc(db, "boards", "timeoff"), { entries: arrayUnion(entry) }, { merge: true });
+}
+export async function removeTimeOff(entry) {
+  await whenSignedIn();
+  await updateDoc(doc(db, "boards", "timeoff"), { entries: arrayRemove(entry) });
+}
+export async function loadTimeOff() {
+  await whenSignedIn();
+  const snap = await getDoc(doc(db, "boards", "timeoff"));
+  return snap.exists() ? (snap.data().entries || []) : [];
 }
