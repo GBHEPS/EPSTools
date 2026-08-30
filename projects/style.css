@@ -503,9 +503,11 @@ body.print-board .board-wrap { page: board; }
 .sch-tl-svg .grid { stroke: var(--border); stroke-width: 1; }
 .sch-tl-svg .month { stroke: var(--border-strong); stroke-width: 1; }
 .sch-tl-svg .bar { rx: 3; }
-/* Restoration is blue, fabrication is green — same as the Crew cards and the Board lanes. */
+/* Restoration is blue, fabrication is green — same as the Crew cards and the Board lanes.
+   Paint & glaze is the aqua between them (added 8/30). */
 .sch-tl-svg .bar.restoration { fill: #cfe0ee; stroke: #5a9aca; }
 .sch-tl-svg .bar.fabrication { fill: #d4ebbb; stroke: #97C459; }
+.sch-tl-svg .bar.paint-glaze { fill: #c9ece6; stroke: #35ada0; }
 .sch-tl-svg .bar.filler { fill: #ede2c4; stroke: #d4a820; }
 .sch-tl-svg .bar.anchored { stroke-width: 2; }
 .sch-tl-svg .bar.pinned { stroke: #b5651d; stroke-width: 2; stroke-dasharray: 4 2; }

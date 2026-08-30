@@ -247,6 +247,7 @@ function renderForecast() {
   const lanes = [
     ["restoration", "Restoration" + (cap.restoration ? " · " + cap.restoration + " h/wk" : "")],
     ["fabrication", "Fabrication" + (cap.fabrication ? " · " + cap.fabrication + " h/wk" : "")],
+    ["paint-glaze", "Paint & glaze" + (cap.paintGlaze ? " · " + cap.paintGlaze + " h/wk" : "")],
     ["filler", "Onesie-twosie · ½ days"],
     ["out", "Out"],
   ];
@@ -380,6 +381,7 @@ function renderForecast() {
   const legend = `<div class="sch-legend">
     <span><i style="background:#cfe0ee;border-color:#5a9aca"></i>restoration</span>
     <span><i style="background:#d4ebbb;border-color:#97C459"></i>fabrication</span>
+    <span><i style="background:#c9ece6;border-color:#35ada0"></i>paint &amp; glaze</span>
     <span><i style="background:#ede2c4;border-color:#d4a820"></i>onesie-twosie</span>
     <span><i style="border-width:2px;border-color:#555"></i>date in writing</span>
     <span><i style="border-style:dashed;border-color:#b5651d;border-width:2px"></i>pinned by you</span>
@@ -789,7 +791,9 @@ function startBarDrag(g, e) {
   const day = 86400000, at = (s) => new Date(s + "T00:00:00");
   const startWeek = Math.round((at(bar.start) - tlGeom.t0) / (7 * day));
   const minWeeks = -startWeek; // never before the first column (this week)
-  const laneAt = (clientY) => { const y = clientY - svgTop; const ln = (tlGeom.lanes || []).find((l) => y >= l.y0 && y < l.y1); return ln ? ln.k : bar.lane; };
+  // A job bar can never live on the Out row — a drop there keeps its lane.
+  // (Before 8/30 it saved lane "out" and the bar vanished from every render.)
+  const laneAt = (clientY) => { const y = clientY - svgTop; const ln = (tlGeom.lanes || []).find((l) => y >= l.y0 && y < l.y1); return ln && ln.k !== "out" ? ln.k : bar.lane; };
   g.classList.add("dragging");
   const onMove = (m) => {
     const dx = m.clientX - sx, dy = m.clientY - sy;
@@ -815,7 +819,7 @@ function startBarDrag(g, e) {
 }
 
 /** Save the pin on the job, move the bar on screen, and say what happens next. */
-const LANE_WORDS = { restoration: "restoration", fabrication: "fabrication", filler: "onesie-twosie" };
+const LANE_WORDS = { restoration: "restoration", fabrication: "fabrication", "paint-glaze": "paint & glaze", filler: "onesie-twosie" };
 /** Which job fields a bar's pin lives in: site / fab twin / measure twin. */
 function pinFields(part) {
   // site → pinnedWeek/pinnedLane; any twin or chain link (fab, measure, fit,
