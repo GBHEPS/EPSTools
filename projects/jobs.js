@@ -12,36 +12,55 @@ import {
 
 // ── Checklist labels ─────────────────────────────────────────────────
 // Keys are stored on each job, so they must never change. Labels can.
+// The canonical list is settled in eps-os: eps/systems/epstools/PM-CHECKLIST.md.
+// Conditional items (fab-only measure, pets, the production scope items) are
+// standard here; the card creator drops the ones that don't apply into
+// removedTasks, same as deleting them by hand.
 export const CHECKLIST_LABELS = {
+  onboarding: {
+    yesLogged: "Verbal/email yes logged with date",
+    streakMovedToWon: "Streak box moved to won stage",
+    estimateBuilt: "Technical estimate built in QuickBooks",
+    contractSent: "Contract sent (DocuSign)",
+    startInvoiceSent: "Deposit or start-work invoice sent",
+    depositReceived: "Deposit received",
+    forecastOnBoard: "Forecast start week on the schedule board",
+    projectPageAccepted: "Project page updated to accepted stage",
+    welcomeEmailSent: "Welcome email sent (Client Guide)",
+  },
   preProject: {
     contractSigned: "Contract signed",
-    depositReceived: "Deposit received",
     siteAccessConfirmed: "Site access confirmed with client",
     addedToHarvest: "Project added to Harvest",
     hoursBudgetEntered: "Hours budget entered in Harvest",
-    addedToStreak: "Project added to Streak pipeline",
     specialRequirementsDocumented: "Special requirements documented",
     leadTimeMaterialsOrdered: "Lead time materials ordered",
-    sharePhotos: "Share photos",
+    workOrderBuilt: "Work order built",
+    photosInCompanyCam: "Photos in CompanyCam",
+    screenMeasureScheduled: "Measure scheduled (fabrication jobs)",
+    petManagementConfirmed: "Pet management confirmed",
   },
   production: {
-    shopWorkScheduled: "Shop work scheduled",
-    siteWorkScheduled: "Site work scheduled with client",
+    shopWorkScheduled: "Shop fabrication work scheduled",
+    siteWorkScheduled: "Site restoration work scheduled",
+    servicesScheduled: "Services scheduled (paint, leaded panel)",
     materialsReceivedAndStaged: "Materials received and staged",
     crewAssignedAndBriefed: "Crew assigned and briefed",
-    workInProgress: "Work in progress",
   },
   closeout: {
-    finalWalkthrough: "Final walkthrough with client",
-    photosDocumented: "Photos documented",
     punchListCompleted: "Punch list completed",
-    postProjectAnalysis: "Post-project analysis completed",
+    finalWalkthrough: "Final walkthrough with client",
     finalInvoiceSent: "Final invoice sent",
-    followUpScheduled: "Follow-up scheduled",
     paymentReceived: "Payment received",
+    photosDocumented: "Photos documented",
+    reviewRequested: "Review/testimonial requested",
   },
 };
-const SECTION_TITLES = { preProject: "1. Pre-Project Setup", production: "2. Production", closeout: "3. Completion &amp; Closeout" };
+const SECTION_TITLES = { onboarding: "1. Onboarding", preProject: "2. Pre-Project Setup", production: "3. Production", closeout: "4. Completion &amp; Closeout" };
+/** Old cards were born without an onboarding section; don't show them one. */
+function checklistSections(p) {
+  return (p.checklist || {}).onboarding ? ["onboarding", "preProject", "production", "closeout"] : ["preProject", "production", "closeout"];
+}
 const STATUSES = ["pre-production", "production", "complete", "hold"];
 const SCHED_TYPES = { walk: "Walk", fab: "Shop Fab", paint: "Paint/Install", resto: "Resto", off: "Off" };
 
@@ -343,7 +362,7 @@ function printPageHtml(p) {
       ${fact("Status", statusLabel(statusOf(p)))}${fact("Priority", p.priority)}${fact("Lead Tech", p.leadTech)}
       ${fact("Walk / Plan", p.startDate)}${fact("Fab Start", p.fabStart)}${fact("Resto Start", p.restoStart)}
     </div>
-    ${section("preProject")}${section("production")}${section("closeout")}
+    ${checklistSections(p).map(section).join("")}
     <div class="detail-section zone-green"><div class="section-head"><div class="section-label">Hours Budget</div><div class="section-progress">${esc(p.hoursTotal || 0)} hrs total</div></div>
       <table class="hours-table"><thead><tr><th>Scope</th><th>Units</th><th>Benchmark</th><th>Total</th></tr></thead><tbody>${hours}
       <tr class="total-row"><td>Project Total</td><td></td><td></td><td class="hours-num">${esc(p.hoursTotal || 0)} hrs</td></tr></tbody></table></div>
@@ -451,7 +470,7 @@ function renderDetail() {
       <textarea class="editable-area" placeholder="Add project notes…" data-field="notes">${esc(p.notes)}</textarea>
     </div>
 
-    ${["preProject", "production", "closeout"].map(checklistSectionHtml).join("")}
+    ${checklistSections(p).map(checklistSectionHtml).join("")}
 
     <div class="detail-foot">
       <button class="btn-delete-project" data-act="delete-job">Delete Project</button>
@@ -868,10 +887,11 @@ function recalcFormHours() {
 function blankChecklist() {
   const off = (labels) => Object.fromEntries(Object.keys(labels).map((k) => [k, false]));
   return {
+    onboarding: off(CHECKLIST_LABELS.onboarding),
     preProject: off(CHECKLIST_LABELS.preProject),
     production: off(CHECKLIST_LABELS.production),
     closeout: off(CHECKLIST_LABELS.closeout),
-    custom: { preProject: [], production: [], closeout: [] },
+    custom: { onboarding: [], preProject: [], production: [], closeout: [] },
   };
 }
 
