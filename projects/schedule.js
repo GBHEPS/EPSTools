@@ -201,7 +201,7 @@ function render() {
       ? `<button class="btn-header" data-act="sch-clear" title="Clear every pin and let the OS place everything from the job folders">Clear pins</button>` : "";
     const zoomCtl = `<span class="sch-zoom"><button class="btn-header" data-act="sch-zoom-out" title="Narrower weeks (−)">−</button><button class="btn-header" data-act="sch-zoom-fit" title="Fit the window">${zoom === 1 ? "fit" : Math.round(zoom * 100) + "%"}</button><button class="btn-header" data-act="sch-zoom-in" title="Wider weeks (+)">+</button></span>`;
     const outBtn = zoomCtl + `<button class="btn-header" data-act="sch-out-add" title="Block out a holiday, a shop closure, or someone's time off">+ Time off</button>`;
-    setHeaderNav(left + outBtn + `<span class="sch-stamp">board as of ${esc(dash?.leadTimesAsOf || "?")} · today ${esc(dash?.today || key(new Date()))}</span>` + revertBtn + clearBtn + submitBtn);
+    setHeaderNav(left + outBtn + `<span class="sch-stamp">board as of ${esc(dash?.leadTimesAsOf || "?")} · today ${esc(key(new Date()))}</span>` + revertBtn + clearBtn + submitBtn);
     wrap.innerHTML = renderForecast();
   } else {
     const label = fmt(anchorMonday) + " – " + fmt(addDays(anchorMonday, 11));
@@ -235,7 +235,7 @@ function renderForecast() {
       <div class="sch-empty">No timeline yet — ask the OS to run the schedule check.</div><div class="sch-note">${note}</div></div>`;
   }
   const day = 86400000, at = (s) => new Date(s + "T00:00:00");
-  const today = at(d.today || key(new Date())); const t0 = mondayOf(today);
+  const today = at(key(new Date())); const t0 = mondayOf(today);
   const ends = bars.map((b) => at(b.start).getTime() + b.weeks * 7 * day).concat(marks.map((m) => at(m.start).getTime() + 14 * day));
   const nWeeks = Math.max(8, Math.ceil((Math.max(...ends) - t0) / (7 * day)) + 1);
   const L = 120, rowH = 34, laneGap = 16, top = 22;
@@ -392,7 +392,7 @@ function renderForecast() {
     <span><i style="background:#e4e0d8;border-color:#a09880"></i>out — time off, holidays (short weeks shaded)</span>
     <span style="color:#c0392b">┆ today</span><span style="color:var(--green)">▶ next opening</span></div>`;
   return renderReview() + `<div class="sch-panel">
-    <div class="sch-panel-head"><b>${title}</b><span>board as of ${esc(d.leadTimesAsOf || "?")} · today ${esc(d.today || "")}</span></div>
+    <div class="sch-panel-head"><b>${title}</b><span>board as of ${esc(d.leadTimesAsOf || "?")} · today ${esc(key(new Date()))}</span></div>
     <div class="sch-tl-scroll">${svg.join("")}</div>${legend}
     <div class="sch-note">${note}</div></div>` + renderOutModal();
 }
