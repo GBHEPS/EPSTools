@@ -200,7 +200,7 @@ function renderDashboard() {
   const d = dash || {};
   // The visible-contract tally sits in the same strip as the OS numbers so
   // the whole block reads as one and stays put while the list scrolls.
-  const tallyCell = `<div class="os-cell tally"><div class="os-k">Visible contract value</div><div class="os-v" id="tallyAmount">${money(tally.total)}</div><div class="os-s" id="tallyCount">${tally.count} project${tally.count !== 1 ? "s" : ""}</div></div>`;
+  const tallyCell = `<div class="os-cell tally group-start"><div class="os-k">Visible contract value</div><div class="os-v" id="tallyAmount">${money(tally.total)}</div><div class="os-s" id="tallyCount">${tally.count} project${tally.count !== 1 ? "s" : ""}</div></div>`;
   if (!dash) { el.innerHTML = tallyCell; el.style.display = "flex"; return; }
   const cells = (d.leadTimes || []).map((l) => `
     <div class="os-cell lead" data-act="lead-cell" data-key="${esc(l.key)}" title="See what leads up to this opening">
@@ -208,9 +208,13 @@ function renderDashboard() {
       <div class="os-v">${esc(l.say)}</div>
       <div class="os-s">week of ${esc(l.week)} · ~${esc(l.weeksOut)} wk</div>
     </div>`);
-  cells.unshift(tallyCell);
+  // Grouped: schedule cells together, then live-job money, then revenue counters.
+  cells.push(tallyCell);
   cells.push(`<div class="os-cell money"><div class="os-k">Unbilled on live jobs</div><div class="os-v">${money(d.unbilled)}</div><div class="os-s">${d.unbilledJobs || 0} of ${d.liveJobs || 0} jobs · contract minus invoiced</div></div>`);
   cells.push(`<div class="os-cell ar"><div class="os-k">Invoiced, not yet paid</div><div class="os-v">${money(d.openAR)}</div><div class="os-s">open A/R per QuickBooks</div></div>`);
+  const rev = d.revenue || {};
+  cells.push(`<div class="os-cell rev group-start"><div class="os-k">Revenue · rolling 12 mo</div><div class="os-v">${money(rev.rolling12)}</div><div class="os-s">invoiced per QuickBooks</div></div>`);
+  cells.push(`<div class="os-cell rev"><div class="os-k">Revenue · year to date</div><div class="os-v">${money(rev.ytd)}</div><div class="os-s">as of ${esc(rev.asOf || "?")}</div></div>`);
   cells.push(`<div class="os-foot">Lead times from the schedule board as of ${esc(d.leadTimesAsOf || "?")} · strip refreshed ${fmtStamp(d.updatedAt)} by the OS</div>`);
   el.innerHTML = cells.join("");
   el.style.display = "flex";
