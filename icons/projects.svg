@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="EPS Projects">
+  <rect width="32" height="32" rx="7" fill="#2D6A2D"/>
+  <g fill="#F2EFE8">
+    <rect x="5.5" y="7" width="16" height="5" rx="2.5"/>
+    <rect x="11" y="13.5" width="15.5" height="5" rx="2.5"/>
+    <rect x="5.5" y="20" width="12" height="5" rx="2.5"/>
+  </g>
+</svg>

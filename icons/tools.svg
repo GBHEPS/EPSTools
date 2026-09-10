@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="EPS Tools">
+  <rect width="32" height="32" rx="7" fill="#1C2B3A"/>
+  <g fill="#F2EFE8">
+    <rect x="6.5" y="6.5" width="8" height="8" rx="1"/>
+    <rect x="17.5" y="6.5" width="8" height="8" rx="1"/>
+    <rect x="6.5" y="17.5" width="8" height="8" rx="1"/>
+    <rect x="17.5" y="17.5" width="8" height="8" rx="1"/>
+  </g>
+</svg>

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Schedule Board (older page)">
+  <rect width="32" height="32" rx="7" fill="#87867E"/>
+  <path d="M5.5 9 a2 2 0 0 1 2-2 h17 a2 2 0 0 1 2 2 v3.5 h-21 z" fill="#F4F2ED"/>
+  <rect x="5.5" y="14.5" width="21" height="11" rx="2" fill="none" stroke="#F4F2ED" stroke-width="3"/>
+</svg>
