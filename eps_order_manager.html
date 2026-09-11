@@ -140,7 +140,9 @@
 </head>
 <!--
   EPS Order Manager
-  VERSION: 2
+  VERSION: 3
+  v3 (2026-09-11) - price history panel on the Stock tab: click an item, see
+      every order line that ever bought it, with what was paid.
   v2 (2026-09-11) - one status recalc instead of five; forward + correction menu
       replaces the one-way cycle; "complete" is a flag, not a trapdoor; vendor
       actions state their reach; catalog gains onHand / buildUp / location /
@@ -1330,7 +1332,7 @@ window.renderStock = () => {
           <th style="width:70px;text-align:right;">Available</th>
           <th style="width:70px;text-align:right;">Build-up</th>
           <th style="width:70px;text-align:right;">Order</th>
-          <th style="width:90px;"></th>
+          <th style="width:120px;"></th>
         </tr></thead>
         <tbody>${list.map(r=>{
           const d=r.item;
@@ -1348,8 +1350,12 @@ window.renderStock = () => {
             <td style="text-align:right;font-weight:${r.short>0?'bold':'normal'};">${r.available??'—'}</td>
             <td style="text-align:right;color:var(--text2);">${r.buildUp??'—'}</td>
             <td style="text-align:right;font-weight:bold;color:${r.short>0?'var(--amber)':'var(--text3)'};">${r.short>0?r.short:'—'}</td>
-            <td><button class="btn btn-sm btn-edit" onclick="openEditItemModal('${d.id}')">Edit</button></td>
-          </tr>`;}).join('')}</tbody>
+            <td style="white-space:nowrap;">
+              <button class="btn btn-sm" onclick="toggleHistory('${d.id}')" title="What we have paid for this"
+                      style="font-size:11px;${_openHistory===d.id?'background:var(--accent-light);':''}">$</button>
+              <button class="btn btn-sm btn-edit" onclick="openEditItemModal('${d.id}')">Edit</button>
+            </td>
+          </tr>` + (_openHistory===d.id ? historyPanel(d) : '');}).join('')}</tbody>
       </table></div></div>
     </div>`).join('');
 
@@ -1358,6 +1364,75 @@ window.renderStock = () => {
   if(statusEl) statusEl.textContent =
     `${rows.length} shown · ${short} below build-up · ${uncounted} never counted`;
 };
+
+// Every order line that ever bought this item, newest first. Closed-out
+// batches count: a finished order is exactly the history worth reading.
+function priceHistory(itemId){
+  const rows=[];
+  for(const b of batches){
+    for(const li of b.lineItems||[]){
+      if(li.itemId!==itemId) continue;
+      if(!['ordered','received'].includes(li.status)) continue;
+      rows.push({
+        date: li.orderedDate || li.dateSubmitted || '',
+        vendor: li.itemVendor || '',
+        job: b.batchType==='shop' ? 'shop' : (b.client||''),
+        qty: Number(li.qty)||0,
+        cost: li.unitCost==null ? null : Number(li.unitCost),
+        ref: li.orderRef || '',
+        note: li.lineNote || '',
+      });
+    }
+  }
+  rows.sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  return rows;
+}
+
+let _openHistory = null;
+window.toggleHistory = (itemId) => {
+  _openHistory = (_openHistory===itemId) ? null : itemId;
+  renderStock();
+};
+
+function historyPanel(item){
+  const rows = priceHistory(item.id);
+  const priced = rows.filter(r=>r.cost!=null);
+  let summary;
+  if(!rows.length){
+    summary = 'No orders recorded yet.';
+  } else if(!priced.length){
+    summary = `${rows.length} order${rows.length>1?'s':''}, none with a price on them yet.`;
+  } else {
+    const last = priced[0], first = priced[priced.length-1];
+    const bits = [`Last paid $${last.cost}`, `${rows.length} order${rows.length>1?'s':''}`];
+    if(priced.length>1 && first.cost){
+      const pct = Math.round(((last.cost-first.cost)/first.cost)*100);
+      if(pct!==0) bits.push(`${pct>0?'up':'down'} ${Math.abs(pct)}% since ${first.date.slice(0,7)}`);
+    }
+    summary = bits.join('  ·  ');
+  }
+  const body = rows.length ? `<table class="tbl" style="margin-top:8px;">
+      <thead><tr><th style="width:90px;">Date</th><th style="width:15%;">Vendor</th>
+        <th style="width:13%;">For</th><th style="width:60px;text-align:right;">Qty</th>
+        <th style="width:70px;text-align:right;">Each</th><th style="width:80px;text-align:right;">Total</th>
+        <th style="width:15%;">Order</th><th>Spec</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr>
+        <td class="text-mono" style="font-size:11px;">${esc(r.date||'—')}</td>
+        <td>${esc(r.vendor||'—')}</td>
+        <td style="color:var(--text2);">${esc(r.job)}</td>
+        <td style="text-align:right;">${r.qty}</td>
+        <td style="text-align:right;">${r.cost==null?'—':'$'+r.cost}</td>
+        <td style="text-align:right;color:var(--text2);">${r.cost==null?'—':'$'+(r.cost*r.qty).toFixed(2)}</td>
+        <td class="text-mono" style="font-size:11px;color:var(--text3);">${esc(r.ref||'—')}</td>
+        <td style="font-size:11px;color:var(--text2);">${esc(r.note||'')}</td>
+      </tr>`).join('')}</tbody></table>` : '';
+  return `<tr><td colspan="10" style="background:var(--accent-light);padding:10px 14px;">
+      <div style="font-size:13px;font-weight:bold;">${esc(item.name)}
+        <span style="font-weight:normal;color:var(--text2);">· ${esc(item.vendor||'—')}${item.vendor_sku?' · '+esc(item.vendor_sku):''}</span></div>
+      <div style="font-size:12px;color:var(--text2);margin-top:3px;">${esc(summary)}</div>
+      ${body}
+    </td></tr>`;
+}
 
 window.setOnHand = async (itemId, val) => {
   const item = catalog.find(i=>i.id===itemId); if(!item) return;
