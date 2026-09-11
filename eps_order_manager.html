@@ -140,7 +140,9 @@
 </head>
 <!--
   EPS Order Manager
-  VERSION: 3
+  VERSION: 4
+  v4 (2026-09-11) - client batches carry jobId, picked from the PM job list
+      instead of a typed name, so a batch belongs to a job and not to a string.
   v3 (2026-09-11) - price history panel on the Stock tab: click an item, see
       every order line that ever bought it, with what was paid.
   v2 (2026-09-11) - one status recalc instead of five; forward + correction menu
@@ -352,7 +354,12 @@
       <button id="batch-type-client" class="btn btn-primary" onclick="setBatchType('client')" style="flex:1;">Client batch</button>
       <button id="batch-type-shop" class="btn" onclick="setBatchType('shop')" style="flex:1;border-color:#0e9e8a;color:#0a6b5e;">Shop order</button>
     </div>
-    <div class="form-row"><label class="form-label" id="batch-name-label">Client name</label><input class="form-input" id="new-batch-name" placeholder="e.g. Kengla"></div>
+    <div class="form-row" id="batch-job-row">
+      <label class="form-label">Job</label>
+      <select class="form-input" id="new-batch-job" onchange="onBatchJobPick()"><option value="">Loading jobs…</option></select>
+      <div style="font-size:11px;color:var(--text3);margin-top:3px;">From the PM job list. Pick "Not on the list" to type a name instead.</div>
+    </div>
+    <div class="form-row" id="batch-name-row"><label class="form-label" id="batch-name-label">Client name</label><input class="form-input" id="new-batch-name" placeholder="e.g. Kengla"></div>
     <div class="form-row"><label class="form-label">Notes (optional)</label><input class="form-input" id="new-batch-notes" placeholder="Job notes..."></div>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal('modal-batch')">Cancel</button>
@@ -530,9 +537,22 @@ window.switchTab = (tab) => {
   if (tab==='catalog') renderCatalog();
 };
 
+let jobs = [];
+async function loadJobs() {
+  try {
+    const snap = await getDocs(collection(db,'pm_projects'));
+    jobs = snap.docs.map(d=>({id:d.id, ...d.data()}))
+      .filter(j=>j.clientLastName)
+      .sort((a,b)=>(a.clientLastName||'').localeCompare(b.clientLastName||''));
+  } catch(e){ jobs = []; console.warn('pm_projects unreadable:', e.message); }
+}
+/** The job a batch belongs to, by id. Falls back to nothing, never to a name match. */
+function jobOf(batch){ return batch.jobId ? jobs.find(j=>j.id===batch.jobId) : null; }
+
 async function bootstrap() {
   await loadCatalog();
   await loadBatches();
+  await loadJobs();
   renderSidebar();
   renderBatchWorkspace();
   renderColMapping();
@@ -732,14 +752,44 @@ window.setBatchType = (type) => {
     clientBtn.className='btn btn-primary'; shopBtn.className='btn';
     shopBtn.style.cssText='flex:1;border-color:#0e9e8a;color:#0a6b5e;';
     nameLabel.textContent='Client name'; nameInput.placeholder='e.g. Kengla';
+    document.getElementById('batch-job-row').style.display='';
+    onBatchJobPick();
   } else {
     shopBtn.className='btn'; shopBtn.style.cssText='flex:1;background:#d4f4ef;border-color:#0e9e8a;color:#0a6b5e;font-weight:bold;';
     clientBtn.className='btn'; clientBtn.style.cssText='flex:1;';
     nameLabel.textContent='Order name'; nameInput.placeholder='e.g. Shop restock Apr 2026';
+    document.getElementById('batch-job-row').style.display='none';
+    document.getElementById('batch-name-row').style.display='';
+  }
+};
+
+function fillJobPicker(){
+  const sel=document.getElementById('new-batch-job');
+  const taken=new Set(batches.filter(b=>b.jobId).map(b=>b.jobId));
+  const opts=jobs.map(j=>{
+    const est=j.estimateNumber||j.id;
+    const has=taken.has(j.id)?' — already has a batch':'';
+    return `<option value="${j.id}">${esc(j.clientLastName)} · ${esc(est)}${has}</option>`;
+  }).join('');
+  sel.innerHTML='<option value="">Pick a job…</option>'+opts+'<option value="__none">Not on the list (type a name)</option>';
+}
+
+window.onBatchJobPick = () => {
+  const v=document.getElementById('new-batch-job').value;
+  const nameRow=document.getElementById('batch-name-row');
+  const nameIn=document.getElementById('new-batch-name');
+  if(v && v!=='__none'){
+    const j=jobs.find(x=>x.id===v);
+    nameIn.value=j?(j.clientLastName||''):'';
+    nameRow.style.display='none';
+  } else {
+    nameRow.style.display='';
+    if(v==='__none') nameIn.value='';
   }
 };
 
 window.openNewBatchModal = () => {
+  fillJobPicker();
   document.getElementById('new-batch-name').value='';
   document.getElementById('new-batch-notes').value='';
   _newBatchType = 'client';
@@ -755,7 +805,10 @@ window.createBatch = async () => {
   const name = document.getElementById('new-batch-name').value.trim();
   if (!name) { alert('Name required.'); return; }
   const isShop = _newBatchType === 'shop';
+  const picked = document.getElementById('new-batch-job').value;
+  const jobId = (!isShop && picked && picked!=='__none') ? picked : null;
   const data = {
+    jobId,
     client: name,
     notes: document.getElementById('new-batch-notes').value.trim(),
     status: 'open',
@@ -812,6 +865,11 @@ window.renderBatchWorkspace = () => {
   ws.innerHTML = `<div class="batch-workspace">
     <div class="batch-workspace-header">
       <span style="font-size:15px;font-weight:bold;">${esc(batch.client)}</span>
+      ${(() => { const j=jobOf(batch);
+        if(j) return `<span class="badge badge-blue" title="Linked to the PM job">${esc(j.estimateNumber||j.id)}</span>`;
+        if(batch.batchType==='shop') return '';
+        return `<span class="badge badge-gray" title="Not linked to a PM job — matched by name only">no job link</span>`;
+      })()}
       <span class="badge ${sb2}">${sl2}</span>
       ${batch.notes?`<span style="font-size:12px;color:var(--text2);">${esc(batch.notes)}</span>`:''}
       <span style="margin-left:auto;display:flex;gap:6px;">
