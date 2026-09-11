@@ -138,6 +138,15 @@
   }
 </style>
 </head>
+<!--
+  EPS Order Manager
+  VERSION: 2
+  v2 (2026-09-11) - one status recalc instead of five; forward + correction menu
+      replaces the one-way cycle; "complete" is a flag, not a trapdoor; vendor
+      actions state their reach; catalog gains onHand / buildUp / location /
+      perJob; Stock tab does on-hand minus committed against build-up; batch
+      lines record unitCost at order time.
+-->
 <body>
 <div class="app-header">
   <div class="app-logo">EPS <span>Order Manager</span></div>
@@ -145,6 +154,7 @@
     <button class="nav-btn active" onclick="switchTab('orderpad')">Order Pad</button>
     <button class="nav-btn" onclick="switchTab('vendor')">Vendor View</button>
     <button class="nav-btn" onclick="switchTab('pulllist')">Pull List</button>
+    <button class="nav-btn" onclick="switchTab('stock')">Stock</button>
     <button class="nav-btn" onclick="switchTab('catalog')">Catalog</button>
     <button class="nav-btn" onclick="switchTab('import')">Import</button>
   </nav>
@@ -193,6 +203,22 @@
         <button class="btn btn-sm no-print" onclick="printPullList()">Print pull list ↗</button>
       </div>
       <div id="pulllist-content"><div class="loading">Loading...</div></div>
+    </div>
+
+    <!-- STOCK -->
+    <div id="tab-stock" class="tab-view">
+      <div class="toolbar toolbar-sticky">
+        <span class="toolbar-title">Stock</span>
+        <select class="filter-sel" id="stock-view" onchange="renderStock()">
+          <option value="short">Below build-up</option>
+          <option value="all">All stocked items</option>
+          <option value="uncounted">Never counted</option>
+        </select>
+        <select class="filter-sel" id="stock-loc" onchange="renderStock()"><option value="">Everywhere</option></select>
+        <span class="status-bar" id="stock-status"></span>
+        <button class="btn btn-sm no-print" onclick="window.print()">Print count sheet ↗</button>
+      </div>
+      <div id="stock-content"><div class="loading">Loading...</div></div>
     </div>
 
     <!-- CATALOG -->
@@ -354,9 +380,18 @@
       <div><label class="form-label">Vendor</label><input class="form-input" id="item-vendor" placeholder="Vendor name"></div>
       <div><label class="form-label">Vendor SKU</label><input class="form-input" id="item-vsku" placeholder="Vendor's part #"></div>
     </div>
+    <div class="form-row-2">
+      <div><label class="form-label">Unit cost</label><input class="form-input" id="item-cost" placeholder="e.g. 23.11"></div>
+      <div><label class="form-label">Where it lives</label><input class="form-input" id="item-loc" placeholder="e.g. Paint room"></div>
+    </div>
+    <div class="form-row-2">
+      <div><label class="form-label">On hand</label><input class="form-input" id="item-onhand" placeholder="last count"></div>
+      <div><label class="form-label">Build-up to</label><input class="form-input" id="item-buildup" placeholder="reorder below this"></div>
+    </div>
     <div class="form-row"><label class="form-label">Notes</label><input class="form-input" id="item-notes" placeholder="Order qty, specs, etc."></div>
     <div class="form-row">
       <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" id="item-active"> Stocked item (pull from shelf)</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;margin-top:5px;"><input type="checkbox" id="item-perjob"> Counted per job (jobs reserve it; commodities do not)</label>
     </div>
     <input type="hidden" id="item-edit-id">
     <div class="modal-actions">
@@ -420,13 +455,76 @@ const db = getFirestore(app);
 let catalog = [], batches = [], activeBatchId = null, currentTab = 'orderpad';
 let colMap = { active:0, sku:1, category:2, subcategory:3, name:4, unit:5, vendor:6, vendor_sku:7, notes:8 };
 
+
+// ── status model ───────────────────────────────────────────────────────────
+// A line moves pending → submitted → ordered → received. The batch reports the
+// least-advanced line it holds. "Completed" is a separate flag so closing a
+// batch never freezes its lines, and reopening lands on the true status.
+const LINE_FLOW = ['pending','submitted','ordered','received'];
+const LINE_LABEL = {pending:'Pending',submitted:'Submitted',ordered:'Ordered',received:'Received','stock-pull':'Stock pull'};
+const LINE_BADGE = {pending:'badge-gray',submitted:'badge-blue',ordered:'badge-amber',received:'badge-green','stock-pull':'badge-teal'};
+
+function batchStatusFrom(lineItems){
+  const lis = lineItems||[];
+  if(!lis.length) return 'open';
+  if(lis.every(li=>li.status==='received')) return 'complete';
+  for(const st of ['pending','submitted','ordered']){
+    if(lis.some(li=>li.status===st)) return st==='pending' ? 'open' : st;
+  }
+  return 'open';
+}
+
+// Single writer for batch status. Never silently overrides a closed-out batch.
+async function syncBatchStatus(batch, extra){
+  const next = batchStatusFrom(batch.lineItems);
+  const payload = Object.assign({status: next}, extra||{});
+  batch.status = next;
+  await updateDoc(doc(db,'inv_batches',batch.id), payload);
+  return next;
+}
+
+function isClosedOut(batch){ return batch.completed === true || batch.status === 'complete'; }
+
+// ── stock arithmetic ───────────────────────────────────────────────────────
+// Two different things a batch line can mean, and they pull opposite ways:
+//   a CLIENT line not yet received  = demand. That stick is spoken for.
+//   a SHOP line ordered but not in  = supply. That stick is on the truck.
+// available = on hand − committed + on order.
+// Only per-job items commit; commodities ride on the shelf count alone.
+function lineTallies(itemId){
+  let committed = 0, onOrder = 0;
+  for(const b of batches){
+    if(isClosedOut(b)) continue;
+    const shop = b.batchType === 'shop';
+    for(const li of b.lineItems||[]){
+      if(li.itemId!==itemId || li.status==='received') continue;
+      const q = Number(li.qty)||0;
+      if(shop){ if(li.status==='ordered'||li.status==='submitted') onOrder += q; }
+      else committed += q;
+    }
+  }
+  return {committed, onOrder};
+}
+function committedFor(itemId){ return lineTallies(itemId).committed; }
+
+function stockLine(item){
+  const onHand = item.onHand==null ? null : Number(item.onHand);
+  const t = item.perJob ? lineTallies(item.id) : {committed:0, onOrder:0};
+  const available = onHand==null ? null : onHand - t.committed + t.onOrder;
+  const buildUp = item.buildUp==null ? null : Number(item.buildUp);
+  const short = (available!=null && buildUp!=null) ? Math.max(0, buildUp - available) : null;
+  return {onHand, committed:t.committed, onOrder:t.onOrder, available, buildUp, short};
+}
+
 window.switchTab = (tab) => {
   currentTab = tab;
   document.querySelectorAll('.tab-view').forEach(el => el.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
-  document.querySelectorAll('.nav-btn').forEach((btn,i) => btn.classList.toggle('active', ['orderpad','vendor','pulllist','catalog','import'][i]===tab));
+  const order = ['orderpad','vendor','pulllist','stock','catalog','import'];
+  document.querySelectorAll('.nav-btn').forEach((btn,i) => btn.classList.toggle('active', order[i]===tab));
   if (tab==='vendor') renderVendorView();
   if (tab==='pulllist') renderPullList();
+  if (tab==='stock') renderStock();
   if (tab==='catalog') renderCatalog();
 };
 
@@ -499,8 +597,9 @@ window.deleteItem = async (id) => {
 
 window.openNewItemModal = () => {
   document.getElementById('item-modal-title').textContent = 'Add catalog item';
-  ['sku','name','cat','subcat','unit','vendor','vsku','notes'].forEach(f=>document.getElementById('item-'+f).value='');
+  ['sku','name','cat','subcat','unit','vendor','vsku','notes','cost','loc','onhand','buildup'].forEach(f=>document.getElementById('item-'+f).value='');
   document.getElementById('item-active').checked=true;
+  document.getElementById('item-perjob').checked=false;
   document.getElementById('item-edit-id').value='';
   document.getElementById('sku-dup-warning').style.display='none';
   document.getElementById('item-sku').classList.remove('input-error');
@@ -524,7 +623,12 @@ window.duplicateItem = (id) => {
   document.getElementById('item-vendor').value = item.vendor||'';
   document.getElementById('item-vsku').value = item.vendor_sku||'';
   document.getElementById('item-notes').value = item.notes||'';
+  document.getElementById('item-cost').value = item.unit_cost??'';
+  document.getElementById('item-loc').value = item.location||'';
+  document.getElementById('item-onhand').value = '';
+  document.getElementById('item-buildup').value = item.buildUp??'';
   document.getElementById('item-active').checked = !!item.active;
+  document.getElementById('item-perjob').checked = !!item.perJob;
   document.getElementById('item-edit-id').value = ''; // blank = new item
   document.getElementById('sku-dup-warning').style.display='none';
   document.getElementById('item-sku').classList.remove('input-error');
@@ -545,7 +649,12 @@ window.openEditItemModal = (id) => {
   document.getElementById('item-vendor').value = item.vendor||'';
   document.getElementById('item-vsku').value = item.vendor_sku||'';
   document.getElementById('item-notes').value = item.notes||'';
+  document.getElementById('item-cost').value = item.unit_cost??'';
+  document.getElementById('item-loc').value = item.location||'';
+  document.getElementById('item-onhand').value = item.onHand??'';
+  document.getElementById('item-buildup').value = item.buildUp??'';
   document.getElementById('item-active').checked = !!item.active;
+  document.getElementById('item-perjob').checked = !!item.perJob;
   document.getElementById('item-edit-id').value = id;
   document.getElementById('sku-dup-warning').style.display='none';
   document.getElementById('item-sku').classList.remove('input-error');
@@ -586,12 +695,20 @@ window.saveItem = async () => {
     vendor: document.getElementById('item-vendor').value.trim(),
     vendor_sku: document.getElementById('item-vsku').value.trim(),
     notes: document.getElementById('item-notes').value.trim(),
+    location: document.getElementById('item-loc').value.trim(),
     active: document.getElementById('item-active').checked,
+    perJob: document.getElementById('item-perjob').checked,
   };
+  const num = id => { const v=document.getElementById(id).value.trim(); return v===''?null:(Number(v)||0); };
+  data.unit_cost = num('item-cost');
+  data.onHand    = num('item-onhand');
+  data.buildUp   = num('item-buildup');
   if (editId) {
     await updateDoc(doc(db,'inv_catalog',editId), data);
     const idx = catalog.findIndex(i=>i.id===editId);
-    if (idx>=0) catalog[idx]={id:editId,...data};
+    // merge, never replace: vendorAlts and anything else the form does not show
+    // has to survive an edit
+    if (idx>=0) catalog[idx]=Object.assign({},catalog[idx],{id:editId},data);
   } else {
     const ref = await addDoc(collection(db,'inv_catalog'), data);
     catalog.push({id:ref.id,...data});
@@ -680,14 +797,10 @@ window.renderBatchWorkspace = () => {
       </td>
     </tr>`;
   }).join('');
-  // Auto-calculate batch status: lowest status wins
-  const lis = batch.lineItems||[];
-  const hasPending = lis.some(li=>li.status==='pending');
-  const hasSubmitted = lis.some(li=>li.status==='submitted');
-  const hasOrdered = lis.some(li=>li.status==='ordered');
-  const allReceived = lis.length > 0 && lis.every(li=>li.status==='received');
-  const autoStatus = allReceived?'complete':hasPending?'open':hasSubmitted?'submitted':hasOrdered?'ordered':'open';
-  if (autoStatus !== batch.status && batch.status !== 'complete') {
+  // Batch status is always the least-advanced line. A closed-out batch keeps
+  // its lines honest too; "completed" is what hides it, not a frozen status.
+  const autoStatus = batchStatusFrom(batch.lineItems);
+  if (autoStatus !== batch.status) {
     batch.status = autoStatus;
     updateDoc(doc(db,'inv_batches',batch.id), {status: autoStatus});
   }
@@ -703,8 +816,8 @@ window.renderBatchWorkspace = () => {
         <button class="btn btn-sm btn-edit" onclick="openEditBatchModal('${batch.id}')">Edit</button>
         <button class="btn btn-sm no-print" id="stock-filter-btn" onclick="toggleOrderPadStockFilter()" style="${_orderPadStockFilter?'background:var(--accent);color:white;border-color:var(--accent);':''}" title="Filter to stocked items only">${_orderPadStockFilter?'Stocked only ✕':'Stock filter'}</button>
 
-        ${batch.status!=='complete'&&(batch.lineItems||[]).some(li=>li.status==='pending')?`<button class="btn btn-sm" onclick="openOrderModal()">Submit order →</button>`:''}
-        ${batch.status==='complete'?`<button class="btn btn-sm btn-edit" onclick="reopenBatch('${batch.id}')">Reopen</button>`:`<button class="btn btn-sm btn-primary" onclick="completeBatch('${batch.id}')">Mark complete</button>`}
+        ${!isClosedOut(batch)&&(batch.lineItems||[]).some(li=>li.status==='pending')?`<button class="btn btn-sm" onclick="openOrderModal()">Submit order →</button>`:''}
+        ${isClosedOut(batch)?`<button class="btn btn-sm btn-edit" onclick="reopenBatch('${batch.id}')">Reopen</button>`:`<button class="btn btn-sm btn-primary" onclick="completeBatch('${batch.id}')">Close out</button>`}
         <button class="btn btn-sm btn-danger" onclick="deleteBatch('${batch.id}')">Delete</button>
       </span>
     </div>
@@ -810,40 +923,29 @@ window.removeLineItem = async (batchId,idx) => {
 
 window.markReceived = async (batchId,idx) => {
   const batch=batches.find(b=>b.id===batchId); if(!batch) return;
-  batch.lineItems[idx].status='received';
-  batch.lineItems[idx].receivedDate=new Date().toISOString().split('T')[0];
-  const allRec=batch.lineItems.length>0&&batch.lineItems.every(li=>li.status==='received');
-  const anyPend2=batch.lineItems.some(li=>li.status==='pending');
-  const anySubm2=batch.lineItems.some(li=>li.status==='submitted');
-  const anyOrd2=batch.lineItems.some(li=>li.status==='ordered');
-  const newStatus=allRec?'complete':anyPend2?'open':anySubm2?'submitted':anyOrd2?'ordered':'ordered';
-  batch.status=newStatus;
-  const updates={lineItems:batch.lineItems,status:newStatus};
-  await updateDoc(doc(db,'inv_batches',batchId),updates);
+  setLineStatus(batch.lineItems[idx],'received');
+  await syncBatchStatus(batch,{lineItems:batch.lineItems});
   renderBatchWorkspace(); renderSidebar();
 };
 
 window.reopenBatch = async (batchId) => {
   const batch = batches.find(b=>b.id===batchId); if(!batch) return;
-  // Recalc proper status from line items rather than forcing 'open'
-  const lis = batch.lineItems||[];
-  const allNP = lis.length>0&&lis.every(li=>li.status==='received');
-  const hasPending = lis.some(li=>li.status==='pending');
-  const hasSubmitted = lis.some(li=>li.status==='submitted');
-  const hasOrdered = lis.some(li=>li.status==='ordered');
-  const hasStockPull = lis.some(li=>li.status==='stock-pull');
-  // Default to open since we're explicitly reopening
-  const newStatus = hasPending?'open':hasStockPull&&!hasSubmitted&&!hasOrdered?'open':hasSubmitted?'submitted':hasOrdered?'ordered':'open';
-  batch.status = newStatus;
-  await updateDoc(doc(db,'inv_batches',batchId),{status:newStatus});
+  // Clearing the flag is the whole job; the status follows the lines, so a
+  // batch closed out while its lines read "ordered" reopens as ordered.
+  batch.completed = false;
+  await syncBatchStatus(batch,{completed:false});
   renderSidebar(); renderBatchWorkspace();
 };
 
 window.completeBatch = async (batchId) => {
-  if(!confirm('Mark this batch as complete?')) return;
   const batch=batches.find(b=>b.id===batchId); if(!batch) return;
-  batch.status='complete';
-  await updateDoc(doc(db,'inv_batches',batchId),{status:'complete'});
+  const open=(batch.lineItems||[]).filter(li=>li.status!=='received').length;
+  const msg = open ? `Close out this batch? ${open} line${open>1?'s have':' has'} not been received; `
+                   + `those stay as they are and stop counting as committed stock.`
+                   : 'Close out this batch?';
+  if(!confirm(msg)) return;
+  batch.completed = true;
+  await updateDoc(doc(db,'inv_batches',batchId),{completed:true});
   activeBatchId=null; renderSidebar(); renderBatchWorkspace();
 };
 
@@ -856,7 +958,7 @@ window.deleteBatch = async (batchId) => {
 };
 
 window.openOrderModal = () => {
-  const open=batches.filter(b=>b.status!=='complete'&&(b.lineItems||[]).some(li=>li.status==='pending'||li.status==='submitted'));
+  const open=batches.filter(b=>!isClosedOut(b)&&(b.lineItems||[]).some(li=>li.status==='pending'||li.status==='submitted'));
   document.getElementById('order-batch-checklist').innerHTML=open.map(b=>{
     const pendingCount=(b.lineItems||[]).filter(li=>li.status==='pending').length;
     const shopLabel = b.batchType==='shop'?' <span style="color:#0a6b5e;font-size:10px;">[shop]</span>':'';
@@ -876,12 +978,7 @@ window.submitOrder = async () => {
   for(const batchId of checked){
     const batch=batches.find(b=>b.id===batchId); if(!batch) continue;
     batch.lineItems=batch.lineItems.map(li=>li.status==='pending'?{...li,status:'submitted',dateSubmitted:dateOrdered}:li); // stock-pull items untouched
-    const allRec2=batch.lineItems.length>0&&batch.lineItems.every(li=>li.status==='received');
-    const anyPend=batch.lineItems.some(li=>li.status==='pending');
-    const anySubm=batch.lineItems.some(li=>li.status==='submitted');
-    const anyOrd=batch.lineItems.some(li=>li.status==='ordered');
-    batch.status=allRec2?'complete':anyPend?'open':anySubm?'submitted':anyOrd?'ordered':'open';
-    await updateDoc(doc(db,'inv_batches',batchId),{lineItems:batch.lineItems,status:batch.status,dateOrdered,orderNotes:notes});
+    await syncBatchStatus(batch,{lineItems:batch.lineItems,dateOrdered,orderNotes:notes});
   }
   closeModal('modal-order'); renderSidebar(); renderBatchWorkspace();
 };
@@ -896,11 +993,11 @@ function renderSidebar() {
       <span class="batch-item-count">${n} item${n!==1?'s':''}</span>
     </div>`;
   };
-  const shopBatches=batches.filter(b=>b.batchType==='shop'&&b.status!=='complete');
+  const shopBatches=batches.filter(b=>b.batchType==='shop'&&!isClosedOut(b));
   const open=batches.filter(b=>b.status==='open'&&b.batchType!=='shop');
   const submitted=batches.filter(b=>b.status==='submitted'&&b.batchType!=='shop');
   const ordered=batches.filter(b=>b.status==='ordered'&&b.batchType!=='shop');
-  const done=batches.filter(b=>b.status==='complete').slice(0,5);
+  const done=batches.filter(b=>isClosedOut(b)).slice(0,5);
   const shopHTML = b => {
     const dc = {open:'dot-shop',submitted:'dot-shop',ordered:'dot-amber',complete:'dot-complete'}[b.status]||'dot-shop';
     const sl = {open:'Open',submitted:'Submitted',ordered:'Ordered'}[b.status]||b.status;
@@ -916,7 +1013,7 @@ function renderSidebar() {
   document.getElementById('batch-list-submitted').innerHTML=submitted.length?submitted.map(bHTML).join(''):'<div style="font-size:12px;color:var(--text3);">None</div>';
   document.getElementById('batch-list-ordered').innerHTML=ordered.length?ordered.map(bHTML).join(''):'<div style="font-size:12px;color:var(--text3);">None</div>';
   const showAllCompleted = window._showAllCompleted||false;
-  const completedToShow = showAllCompleted ? batches.filter(b=>b.status==='complete') : batches.filter(b=>b.status==='complete').slice(0,5);
+  const completedToShow = showAllCompleted ? batches.filter(b=>isClosedOut(b)) : batches.filter(b=>isClosedOut(b)).slice(0,5);
   document.getElementById('batch-list-complete').innerHTML=completedToShow.length?completedToShow.map(b=>`
     <div class="batch-item ${activeBatchId===b.id?'active-batch':''}" onclick="selectBatch('${b.id}')">
       <div class="batch-status-dot dot-complete"></div>
@@ -927,7 +1024,7 @@ function renderSidebar() {
 }
 
 function renderVendorRollup() {
-  const openBatches=batches.filter(b=>b.status!=='complete');
+  const openBatches=batches.filter(b=>!isClosedOut(b));
   const rollup={};
   for(const batch of openBatches) for(const li of (batch.lineItems||[])){
     if(li.status!=='pending'&&li.status!=='submitted') continue;
@@ -953,7 +1050,7 @@ function renderVendorRollup() {
 function updateVendorBatchFilter() {
   const sel=document.getElementById('vendor-batch-filter');
   const cur=sel.value;
-  sel.innerHTML='<option value="all">All open batches</option>'+batches.filter(b=>b.status!=='complete').map(b=>`<option value="${b.id}"${cur===b.id?' selected':''}>${esc(b.client)}</option>`).join('');
+  sel.innerHTML='<option value="all">All open batches</option>'+batches.filter(b=>!isClosedOut(b)).map(b=>`<option value="${b.id}"${cur===b.id?' selected':''}>${esc(b.client)}</option>`).join('');
 }
 
 window.renderVendorView = () => {
@@ -961,7 +1058,7 @@ window.renderVendorView = () => {
   const fv=document.getElementById('vendor-batch-filter').value;
   const showReceived=document.getElementById('vendor-show-received')?.checked||false;
   const stockFilter=document.getElementById('vendor-stock-filter')?.value||'';
-  const target=fv==='all'?batches.filter(b=>b.status!=='complete'):batches.filter(b=>b.id===fv);
+  const target=fv==='all'?batches.filter(b=>!isClosedOut(b)):batches.filter(b=>b.id===fv);
   const rollup={};
   for(const batch of target) for(let idx=0;idx<(batch.lineItems||[]).length;idx++){
     const li=batch.lineItems[idx];
@@ -995,15 +1092,22 @@ window.renderVendorView = () => {
       const allRec=statuses.every(s=>s==='received');
       const allOrd=statuses.every(s=>s==='ordered'||s==='received');
       const allSubm=statuses.every(s=>s==='submitted'||s==='ordered'||s==='received');
-      // Cycle order: submitted→ordered→received→submitted
-      const cycleNext={'submitted':'ordered','ordered':'received','received':'submitted'};
-      // For mixed, use the dominant non-received status
+      // One step forward is the button. Anything else is a correction, and
+      // corrections live in the menu so a stray click cannot skip a step.
       const dominantStatus=allRec?'received':allOrd?'ordered':allSubm?'submitted':'pending';
-      const nextStatus=cycleNext[dominantStatus]||'submitted';
+      const fwd={'pending':'submitted','submitted':'ordered','ordered':'received'}[dominantStatus];
       const btnColors={'submitted':'background:var(--blue-light);color:var(--blue);border-color:var(--blue-light);','ordered':'background:var(--amber-light);color:var(--amber);border-color:var(--amber-light);','received':'background:var(--accent-light);color:var(--accent-text);border-color:var(--accent-light);'};
-      const btnLabel=allRec?'Received ↺':allOrd?'Ordered ↺':allSubm?'Submitted ↺':'Pending';
       const btnStyle=btnColors[dominantStatus]||'';
-      const statusBtn=dominantStatus!=='pending'?`<button class="btn btn-sm" onclick="cycleVendorStatus('${esc(v)}','${item.id}','${nextStatus}')" style="font-size:11px;padding:3px 8px;${btnStyle}">${btnLabel}</button>`:`<span class="badge badge-gray">Pending</span>`;
+      const fwdLabel={'submitted':'Mark submitted','ordered':'Mark ordered','received':'Mark received'}[fwd];
+      const fixOpts=LINE_FLOW.filter(st=>st!==dominantStatus&&st!==fwd)
+        .map(st=>`<option value="${st}">${LINE_LABEL[st]}</option>`).join('');
+      const statusBtn = `<span style="display:inline-flex;gap:3px;align-items:center;">
+          <span class="badge ${LINE_BADGE[dominantStatus]}" style="font-size:10px;">${LINE_LABEL[dominantStatus]}</span>
+          ${fwd?`<button class="btn btn-sm" onclick="setVendorStatus('${esc(v)}','${item.id}','${dominantStatus}','${fwd}')" style="font-size:11px;padding:3px 8px;${btnStyle}" title="${fwdLabel}">→</button>`:''}
+          <select onchange="if(this.value){setVendorStatus('${esc(v)}','${item.id}','${dominantStatus}',this.value);this.value='';}" title="Correct this status" style="font-size:10px;padding:2px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--text3);">
+            <option value="">⋯</option>${fixOpts}
+          </select>
+        </span>`;
       const rowStyle=allRec?'opacity:0.5;':'';
       return `<tr style="${rowStyle}">
         <td class="cat-row-sku">${esc(item.sku||'—')}</td>
@@ -1029,30 +1133,42 @@ window.renderVendorView = () => {
   }).join('');
 };
 
-window.cycleVendorStatus = async (vendor, itemId, nextStatus) => {
-  // Find all line items for this vendor+item across batches and advance their status
-  const target = batches.filter(b=>b.status!=='complete');
-  for(const batch of target){
-    let changed=false;
-    (batch.lineItems||[]).forEach(li=>{
-      if(li.itemId===itemId&&li.status!=='pending'){
-        const cur=li.status;
-        // Only advance if the next step is logical
-        const order=['submitted','ordered','received'];
-        const curIdx=order.indexOf(cur);
-        const nxtIdx=order.indexOf(nextStatus);
-        if(curIdx>=0){ li.status=nextStatus; changed=true; }
-      }
-    });
-    if(changed){
-      const allRec=batch.lineItems.length>0&&batch.lineItems.every(li=>li.status==='received');
-      const anyPend=batch.lineItems.some(li=>li.status==='pending');
-      const anySubm=batch.lineItems.some(li=>li.status==='submitted');
-      const anyOrd=batch.lineItems.some(li=>li.status==='ordered');
-      batch.status=allRec?'complete':anyPend?'open':anySubm?'submitted':anyOrd?'ordered':'open';
-      await updateDoc(doc(db,'inv_batches',batch.id),{lineItems:batch.lineItems,status:batch.status});
+// Stamp who moved a line and when, so a wrong status has an author.
+function setLineStatus(li, next){
+  li.status = next;
+  li.statusAt = new Date().toISOString();
+  li.statusBy = 'app';
+  if(next==='received' && !li.receivedDate) li.receivedDate = new Date().toISOString().split('T')[0];
+  if(next==='ordered' && !li.orderedDate){
+    li.orderedDate = new Date().toISOString().split('T')[0];
+    // freeze the price as of the order, so the catalog can move on without
+    // rewriting history
+    if(li.unitCost==null){
+      const it = catalog.find(i=>i.id===li.itemId);
+      if(it && it.unit_cost!=null) li.unitCost = it.unit_cost;
     }
   }
+}
+
+// Move every line for this vendor+item that is currently at `from`. Scoped to
+// one step, and it says out loud how many batches it is about to touch.
+window.setVendorStatus = async (vendor, itemId, from, next) => {
+  if(!LINE_FLOW.includes(next)) return;
+  const hits=[];
+  for(const b of batches){
+    if(isClosedOut(b)) continue;
+    for(const li of b.lineItems||[]){
+      if(li.itemId===itemId && li.status===from) hits.push([b,li]);
+    }
+  }
+  if(!hits.length) return;
+  const jobs=[...new Set(hits.map(([b])=>b.client))];
+  if(jobs.length>1 && !confirm(
+      `Mark ${LINE_LABEL[next]} on ${hits.length} lines across ${jobs.length} batches:\n\n`
+      + jobs.join('\n') + '\n\nGo ahead?')) return;
+  const touched=new Set();
+  for(const [b,li] of hits){ setLineStatus(li,next); touched.add(b); }
+  for(const b of touched) await syncBatchStatus(b,{lineItems:b.lineItems});
   renderSidebar(); renderVendorView();
 };
 
@@ -1151,7 +1267,7 @@ window.jumpToVendorFromRollup = (vendor) => {
   },150);
 };
 
-// markVendorOrdered removed — replaced by cycleVendorStatus
+// markVendorOrdered and cycleVendorStatus removed — replaced by setVendorStatus
 
 let _pullView = 'vendor'; // 'vendor' or 'job'
 
@@ -1171,8 +1287,89 @@ window.setPullView = (view) => {
   renderPullList();
 };
 
+window.renderStock = () => {
+  const view = document.getElementById('stock-view').value;
+  const locF = document.getElementById('stock-loc').value;
+  const el = document.getElementById('stock-content');
+  const statusEl = document.getElementById('stock-status');
+
+  const locs=[...new Set(catalog.filter(i=>i.active).map(i=>i.location).filter(Boolean))].sort();
+  const locSel=document.getElementById('stock-loc'); const cur=locSel.value;
+  locSel.innerHTML='<option value="">Everywhere</option>'
+    + locs.map(l=>`<option${cur===l?' selected':''}>${esc(l)}</option>`).join('');
+
+  let rows = catalog.filter(i=>i.active).map(i=>({item:i, ...stockLine(i)}));
+  if(locF) rows = rows.filter(r=>(r.item.location||'')===locF);
+  if(view==='short')     rows = rows.filter(r=>r.short>0);
+  if(view==='uncounted') rows = rows.filter(r=>r.onHand==null);
+
+  if(!rows.length){
+    const msg = view==='short' ? 'Nothing is below its build-up level.'
+              : view==='uncounted' ? 'Every stocked item has a count on it.'
+              : 'No stocked items.';
+    el.innerHTML=`<div class="empty-state"><div class="empty-icon">📦</div><div>${msg}</div></div>`;
+    if(statusEl) statusEl.textContent=''; return;
+  }
+
+  // walk the shop in shelf order, then by name
+  rows.sort((a,b)=> (a.item.location||'~~').localeCompare(b.item.location||'~~')
+                    || (a.item.name||'').localeCompare(b.item.name||''));
+
+  const byLoc={};
+  rows.forEach(r=>{ const l=r.item.location||'Unassigned'; (byLoc[l]=byLoc[l]||[]).push(r); });
+
+  el.innerHTML = Object.entries(byLoc).map(([loc,list])=>`
+    <div class="card" style="margin-bottom:14px;">
+      <div style="font-size:14px;font-weight:bold;margin-bottom:8px;">${esc(loc)} <span style="color:var(--text3);font-weight:normal;">· ${list.length}</span></div>
+      <div class="table-wrap"><div class="table-scroll"><table class="tbl">
+        <thead><tr>
+          <th style="width:80px;">SKU</th><th>Description</th><th style="width:46px;">Unit</th>
+          <th style="width:70px;text-align:right;">On hand</th>
+          <th style="width:80px;text-align:right;">Committed</th>
+          <th style="width:70px;text-align:right;">On order</th>
+          <th style="width:70px;text-align:right;">Available</th>
+          <th style="width:70px;text-align:right;">Build-up</th>
+          <th style="width:70px;text-align:right;">Order</th>
+          <th style="width:90px;"></th>
+        </tr></thead>
+        <tbody>${list.map(r=>{
+          const d=r.item;
+          const dim = r.onHand==null ? 'color:var(--text3);' : '';
+          return `<tr style="${r.short>0?'background:var(--amber-light);':''}">
+            <td class="cat-row-sku">${esc(d.sku||'—')}</td>
+            <td>${esc(d.name)}${d.perJob?' <span class="badge badge-teal" style="font-size:9px;">per job</span>':''}</td>
+            <td>${esc(d.unit||'')}</td>
+            <td style="text-align:right;${dim}">
+              <input type="number" value="${r.onHand??''}" placeholder="—" onchange="setOnHand('${d.id}',this.value)"
+                     style="width:58px;text-align:right;padding:2px 4px;">
+            </td>
+            <td style="text-align:right;color:var(--text2);">${d.perJob?(r.committed||'—'):'—'}</td>
+            <td style="text-align:right;color:var(--text2);">${d.perJob&&r.onOrder?('+'+r.onOrder):'—'}</td>
+            <td style="text-align:right;font-weight:${r.short>0?'bold':'normal'};">${r.available??'—'}</td>
+            <td style="text-align:right;color:var(--text2);">${r.buildUp??'—'}</td>
+            <td style="text-align:right;font-weight:bold;color:${r.short>0?'var(--amber)':'var(--text3)'};">${r.short>0?r.short:'—'}</td>
+            <td><button class="btn btn-sm btn-edit" onclick="openEditItemModal('${d.id}')">Edit</button></td>
+          </tr>`;}).join('')}</tbody>
+      </table></div></div>
+    </div>`).join('');
+
+  const short=rows.filter(r=>r.short>0).length;
+  const uncounted=rows.filter(r=>r.onHand==null).length;
+  if(statusEl) statusEl.textContent =
+    `${rows.length} shown · ${short} below build-up · ${uncounted} never counted`;
+};
+
+window.setOnHand = async (itemId, val) => {
+  const item = catalog.find(i=>i.id===itemId); if(!item) return;
+  const v = String(val).trim()==='' ? null : (Number(val)||0);
+  item.onHand = v;
+  item.countedAt = new Date().toISOString().split('T')[0];
+  await updateDoc(doc(db,'inv_catalog',itemId), {onHand:v, countedAt:item.countedAt});
+  renderStock();
+};
+
 window.renderPullList = () => {
-  const activeBatches = batches.filter(b=>b.status!=='complete'&&b.batchType!=='shop');
+  const activeBatches = batches.filter(b=>!isClosedOut(b)&&b.batchType!=='shop');
   const stockedIds = new Set(catalog.filter(i=>i.active).map(i=>i.id));
   const pc = document.getElementById('pulllist-content');
   const statusEl = document.getElementById('pulllist-status');
@@ -1274,22 +1471,15 @@ window.renderPullList = () => {
 window.markClientPulled = async (batchId, idx, checked) => {
   const batch = batches.find(b=>b.id===batchId); if(!batch) return;
   // Pulled from stock = received; uncheck = revert to submitted
-  batch.lineItems[idx].status = checked ? 'received' : 'submitted';
-  if(checked) batch.lineItems[idx].receivedDate = new Date().toISOString().split('T')[0];
-  const lis = batch.lineItems;
-  const allRec = lis.length>0&&lis.every(li=>li.status==='received');
-  const hasPending = lis.some(li=>li.status==='pending');
-  const hasSubmitted = lis.some(li=>li.status==='submitted');
-  const hasOrdered = lis.some(li=>li.status==='ordered');
-  batch.status = allRec?'complete':hasPending?'open':hasSubmitted?'submitted':hasOrdered?'ordered':'open';
-  await updateDoc(doc(db,'inv_batches',batchId),{lineItems:batch.lineItems,status:batch.status});
+  setLineStatus(batch.lineItems[idx], checked ? 'received' : 'submitted');
+  await syncBatchStatus(batch,{lineItems:batch.lineItems});
   renderPullList(); renderSidebar(); renderBatchWorkspace();
 };
 
 // sendClientToVendor removed — items are already submitted when they appear in pull list
 
 window.printPullList = () => {
-  const activeBatches = batches.filter(b=>b.status!=='complete');
+  const activeBatches = batches.filter(b=>!isClosedOut(b));
   const pullMap = {};
   const stockedIds2 = new Set(catalog.filter(i=>i.active).map(i=>i.id));
   for(const batch of activeBatches){
@@ -1388,7 +1578,7 @@ window.runBatchImport = async () => {
 
 // Migration removed — stock-pull status no longer used
 window.runStockMigration = async () => {
-  const activeBatches = batches.filter(b=>b.status!=='complete');
+  const activeBatches = batches.filter(b=>!isClosedOut(b));
   const stockedIds = new Set(catalog.filter(i=>i.active).map(i=>i.id));
   let updated = 0, batchesChanged = 0;
   for(const batch of activeBatches){
@@ -1402,14 +1592,7 @@ window.runStockMigration = async () => {
     });
     if(changed){
       batchesChanged++;
-      // Recalc batch status
-      const lis = batch.lineItems;
-      const hasPending = lis.some(li=>li.status==='pending');
-      const hasSubmitted = lis.some(li=>li.status==='submitted');
-      const hasOrdered = lis.some(li=>li.status==='ordered');
-      const allReceived=lis.length>0&&lis.every(li=>li.status==='received');
-      batch.status = allReceived?'complete':hasPending?'open':hasSubmitted?'submitted':hasOrdered?'ordered':'open';
-      await updateDoc(doc(db,'inv_batches',batch.id),{lineItems:batch.lineItems,status:batch.status});
+      await syncBatchStatus(batch,{lineItems:batch.lineItems});
     }
   }
   const el = document.getElementById('migration-result');
