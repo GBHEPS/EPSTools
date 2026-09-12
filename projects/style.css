@@ -124,7 +124,10 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); min-
 .os-cell.tally .os-v { font-family: var(--mono); font-size: 18px; }
 .os-cell.lead { cursor: pointer; }
 .os-cell.rev .os-v { color: var(--blue); font-family: var(--mono); }
-.os-cell.group-start { border-left: 3px solid var(--border); margin-left: -1px; }
+.os-group { display: flex; flex-wrap: wrap; align-content: flex-start; }
+.os-group.sched { flex: 3 1 420px; }
+.os-group.money { flex: 5 1 620px; border-left: 3px solid var(--border); }
+.os-group .os-cell:last-child { border-right: 0; }
 .os-cell.lead:hover { background: var(--bg); }
 .os-strip .os-foot { flex-basis: 100%; font-size: 10px; color: var(--text-light); padding: 3px 14px; border-top: 1px solid var(--border); background: var(--bg); }
 
