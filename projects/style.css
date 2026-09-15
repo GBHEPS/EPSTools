@@ -174,6 +174,13 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); min-
 .os-fact .k { font-family: var(--mono); font-size: 8px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-light); }
 .os-fact .v { font-size: 12px; color: var(--text); margin-top: 2px; word-break: break-all; }
 .os-fact .v.mono { font-family: var(--mono); font-size: 11px; }
+.os-fact .os-task-table { border-collapse: collapse; font-size: 11px; margin-top: 3px; }
+.os-fact .os-task-table th { font-family: var(--mono); font-size: 8px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-light); text-align: left; padding: 0 10px 2px 0; }
+.os-fact .os-task-table td { padding: 1px 10px 1px 0; white-space: nowrap; }
+.os-fact .os-task-table .num { text-align: right; font-family: var(--mono); }
+.os-fact .os-task-table .total td { border-top: 1px solid var(--border); font-weight: 600; }
+.os-fact .os-task-table .muted { color: var(--text-light); font-weight: 400; }
+.os-fact .os-foot { font-size: 10px; color: var(--text-light); margin-top: 3px; }
 .os-facts .os-foot { flex-basis: 100%; font-size: 10px; color: var(--text-light); padding: 3px 14px; border-top: 1px solid var(--border); background: var(--bg); }
 
 /* Sections */

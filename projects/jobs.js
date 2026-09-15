@@ -498,22 +498,45 @@ function renderDetail() {
 
 // ── Read-only facts the OS writes onto a job ─────────────────────────
 
-const OS_FIELDS = ["currentEstimate", "osFolder", "osRefreshed", "harvestProjects", "harvestBudget", "invoicedTotal", "openBalance"];
+const OS_FIELDS = ["currentEstimate", "osFolder", "osRefreshed", "harvestProjects", "harvestProjectId", "harvestBudget", "harvestBudgetByTask", "harvestActualByTask", "invoicedTotal", "openBalance"];
 function hasOsFacts(p) { return OS_FIELDS.some((k) => p[k] != null && p[k] !== ""); }
 
 function osFactsHtml(p) {
   if (!hasOsFacts(p)) return "";
   const fact = (label, v, mono) => v == null || v === "" ? "" : `<div class="os-fact"><div class="k">${label}</div><div class="v${mono ? " mono" : ""}">${v}</div></div>`;
-  // harvestProjects may be { name: id } or [{ name, id }]
+  // harvestProjects may be { name: id } or [{ name, id }]; harvest_provision.py
+  // also stamps harvestProjectId + harvestProjectName for the one it created.
   let harvest = "";
   if (p.harvestProjects) {
     const pairs = Array.isArray(p.harvestProjects) ? p.harvestProjects.map((h) => [h.name, h.id]) : Object.entries(p.harvestProjects);
     harvest = pairs.map(([n, id]) => `${esc(n)} <span class="mono">(${esc(id)})</span>`).join("<br>");
+  } else if (p.harvestProjectId) {
+    harvest = `${esc(p.harvestProjectName || "Harvest project")} <span class="mono">(${esc(p.harvestProjectId)})</span>`;
+  }
+  // Budget by Harvest task, with actuals beside it once the close-out has run.
+  const byTask = p.harvestBudgetByTask || {};
+  const actual = p.harvestActualByTask || {};
+  const taskNames = [...new Set([...Object.keys(byTask), ...Object.keys(actual)])].sort();
+  let budgetHtml = "";
+  if (taskNames.length) {
+    const hasActual = Object.keys(actual).length > 0;
+    const rows = taskNames.map((t) => {
+      const b = byTask[t], a = actual[t];
+      const pct = hasActual && b ? ` <span class="muted">(${Math.round(((a || 0) / b) * 100)}%)</span>` : "";
+      return `<tr><td>${esc(t)}</td><td class="num">${b != null ? esc(b) + " hrs" : "—"}</td>${hasActual ? `<td class="num">${a != null ? esc(a) + " hrs" : "—"}${pct}</td>` : ""}</tr>`;
+    }).join("");
+    const tb = Object.values(byTask).reduce((s, v) => s + (parseFloat(v) || 0), 0);
+    const ta = Object.values(actual).reduce((s, v) => s + (parseFloat(v) || 0), 0);
+    budgetHtml = `<table class="os-task-table"><tr><th></th><th class="num">Budget</th>${hasActual ? `<th class="num">Logged</th>` : ""}</tr>${rows}
+      <tr class="total"><td>Total</td><td class="num">${Math.round(tb * 10) / 10} hrs</td>${hasActual ? `<td class="num">${Math.round(ta * 10) / 10} hrs</td>` : ""}</tr></table>`
+      + (p.harvestActualsAt ? `<div class="os-foot">Logged hours read ${esc(String(p.harvestActualsAt).slice(0, 10))}</div>` : "");
+  } else if (p.harvestBudget != null) {
+    budgetHtml = `<span class="mono">${esc(p.harvestBudget)} hrs</span>`;
   }
   return `<div class="os-facts">
     ${fact("Current est #", esc(p.currentEstimate), true)}
-    ${fact("Harvest projects", harvest)}
-    ${fact("Harvest budget", p.harvestBudget != null ? esc(p.harvestBudget) + " hrs" : null, true)}
+    ${fact("Harvest project", harvest)}
+    ${fact("Harvest budget", budgetHtml)}
     ${fact("Invoiced", p.invoicedTotal != null ? money(p.invoicedTotal) : null, true)}
     ${fact("Open balance", p.openBalance != null ? money(p.openBalance) : null, true)}
     ${fact("OS folder", esc(p.osFolder), true)}
