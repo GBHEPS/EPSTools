@@ -223,7 +223,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); min-
 .sched-empty { padding: 10px; font-style: italic; color: var(--text-light); font-size: 11px; }
 .sched-type-walk  { color: #8a6000; background: #fdf5e0; }
 .sched-type-fab   { color: #2d6a2d; background: #eaf3ea; }
-.sched-type-paint { color: #1a5010; background: #bdd9a0; }
+.sched-type-paint { color: #0c4f47; background: #c9ece6; }
 .sched-type-resto { color: #1a4a6e; background: #e8f2fa; }
 .sched-type-off   { color: #8a0000; background: #fff0f0; }
 .btn-sched-add { font-family: var(--mono); font-size: 9px; font-weight: 600; background: #ede8f8; color: var(--purple); border: 1px solid var(--purple-border); padding: 4px 10px; border-radius: 3px; cursor: pointer; margin-bottom: 12px; }
@@ -516,10 +516,11 @@ body.print-board .board-wrap { page: board; }
 .sch-tl-svg .month { stroke: var(--border-strong); stroke-width: 1; }
 .sch-tl-svg .bar { rx: 3; }
 /* Restoration is blue, fabrication is green — same as the Crew cards and the Board lanes.
-   Paint & glaze is the aqua between them (added 8/30). */
+   Fabrication bookends is the turquoise between them (added 8/30 as paint & glaze,
+   renamed and widened 2026-10-06 — the Crew cards use the same turquoise). */
 .sch-tl-svg .bar.restoration { fill: #cfe0ee; stroke: #5a9aca; }
 .sch-tl-svg .bar.fabrication { fill: #d4ebbb; stroke: #97C459; }
-.sch-tl-svg .bar.paint-glaze { fill: #c9ece6; stroke: #35ada0; }
+.sch-tl-svg .bar.bookends { fill: #c9ece6; stroke: #35ada0; }
 .sch-tl-svg .bar.filler { fill: #ede2c4; stroke: #d4a820; }
 .sch-tl-svg .bar.anchored { stroke-width: 2; }
 .sch-tl-svg .bar.pinned { stroke: #b5651d; stroke-width: 2; stroke-dasharray: 4 2; }
@@ -572,11 +573,12 @@ body.print-board .board-wrap { page: board; }
 .sch-legend i { display: inline-block; width: 12px; height: 9px; border: 1px solid #999; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
 .sch-note { font-size: 10px; color: var(--text-light); font-family: var(--mono); margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--border); }
 
-/* Crew board — colors carried over from schedule_board.html */
+/* Crew board — colors carried over from schedule_board.html. The --paint-*
+   vars drive Fab bookends; "paint" is still the stored card type in Firestore. */
 .sched-wrap {
   --walk-bg: #FFF0DC; --walk-border: #E89020; --walk-text: #7A4A00;
   --fab-bg: #EAF3DE; --fab-border: #97C459; --fab-text: #27500A;
-  --paint-bg: #BDD9A0; --paint-border: #4A8A22; --paint-text: #1A3808;
+  --paint-bg: #C9ECE6; --paint-border: #35ADA0; --paint-text: #0C4F47;
   --resto-bg: #E6F1FB; --resto-border: #378ADD; --resto-text: #0C447C;
   --off-bg: #FCEBEB; --off-border: #E24B4A; --off-text: #791F1F;
   --today-bg: #fffbf0; --today-border: #EF9F27;
@@ -593,6 +595,7 @@ body.print-board .board-wrap { page: board; }
 .sch-chip:not(.active) { opacity: 0.28; filter: grayscale(0.4); }
 .sch-chip-walk { background: var(--walk-bg); border-color: var(--walk-border); color: var(--walk-text); }
 .sch-chip-fab { background: var(--fab-bg); border-color: var(--fab-border); color: var(--fab-text); }
+.sch-chip-paint { background: var(--paint-bg); border-color: var(--paint-border); color: var(--paint-text); }
 .sch-chip-resto { background: var(--resto-bg); border-color: var(--resto-border); color: var(--resto-text); }
 .sch-chip-off { background: var(--off-bg); border-color: var(--off-border); color: var(--off-text); }
 

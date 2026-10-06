@@ -16,8 +16,8 @@ import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase
 // ── Constants ────────────────────────────────────────────────────────
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const TYPES = { fab: "Shop Fab", paint: "Paint/Install", resto: "Resto", walk: "Walk", off: "Off" };
-const LEGEND = [["walk", "Walk"], ["fab", "Fab"], ["resto", "Resto"], ["off", "Off"]];
+const TYPES = { fab: "Shop Fab", paint: "Fab bookends", resto: "Resto", walk: "Walk", off: "Off" };
+const LEGEND = [["walk", "Walk"], ["fab", "Fab"], ["paint", "Bookends"], ["resto", "Resto"], ["off", "Off"]];
 const SAVE_DELAY = 600;
 const CARD_H = 44, CARD_GAP = 3, CELL_MIN_H = 80;
 
@@ -35,7 +35,7 @@ let cards = [];                  // boards/schedule cards — the thing we edit
 let prodClients = [];            // legacy autocomplete names, kept for the old board
 
 let anchorMonday = mondayOf(new Date());
-let typeFilters = new Set(["walk", "fab", "resto", "off"]);
+let typeFilters = new Set(["walk", "fab", "paint", "resto", "off"]);
 let showJobStrip = true;
 
 let hoverCardId = null;          // card under the mouse (Cmd/Ctrl+C copies it)
@@ -109,8 +109,8 @@ function daysBetween(a, b) { return Math.round((fromKey(b) - fromKey(a)) / 86400
 function addBizDays(k, n) { let d = fromKey(k), added = 0; while (added < n) { d = addDays(d, 1); if (d.getDay() % 6) added++; } return key(d); }
 function weekDates(monday) { return Array.from({ length: 5 }, (_, i) => addDays(monday, i)); }
 
-/** Legacy shop→fab, site→resto; paint folds into fab for the legend filter. */
-function filterType(t) { return (t === "shop" || t === "paint") ? "fab" : t === "site" ? "resto" : (t || "fab"); }
+/** Legacy shop→fab, site→resto. "paint" is the stored key for Fab bookends. */
+function filterType(t) { return t === "shop" ? "fab" : t === "site" ? "resto" : (t || "fab"); }
 function displayType(t) { return t === "shop" ? "fab" : t === "site" ? "resto" : (t || "fab"); }
 
 function statusOf(p) { return p.status === "active" ? "pre-production" : (p.status || "pre-production"); }
@@ -228,7 +228,7 @@ function renderForecast() {
   const note = `Forecast comes from the OS schedule board (shared/SCHEDULE.md), as of ${esc(d.leadTimesAsOf || "?")}. `
     + `Drag a bar to pin that job to a week — sideways for the week, up or down to change its lane. The OS treats a pin like a promise and packs everything else around it on the next schedule check. `
     + `A <b style="color:#c0392b">red</b> outline means you moved a job off a week the client was told; it stays a draft until you press <b>Submit board</b>. Then the OS drafts the client email, moves the written week, and the red clears on the next schedule check. Click ⊘ on a pinned bar to let it float again. `
-    + `Storm and full-unit jobs show as a <b>chain</b>: measure → assembly → site fit → glazing → install, joined by a thin line. Drag a link and the ones after it slide on the next check; the ones before hold.`
+    + `Storm and full-unit jobs show as a <b>chain</b>: measure → assembly → site fit → glazing → install, joined by a thin line. Assembly is the Fabrication lane; every other link is a <b>fabrication bookend</b> and rides that lane. Drag a link and the ones after it slide on the next check; the ones before hold.`
     + (pendingPins ? ` <b>${pendingPins} pin${pendingPins > 1 ? "s" : ""} saved — the neighbors move on the next schedule check.</b>` : "");
   if (!bars.length) {
     return `<div class="sch-panel"><div class="sch-panel-head"><b>${title}</b></div>
@@ -247,7 +247,7 @@ function renderForecast() {
   const lanes = [
     ["restoration", "Restoration" + (cap.restoration ? " · " + cap.restoration + " h/wk" : "")],
     ["fabrication", "Fabrication" + (cap.fabrication ? " · " + cap.fabrication + " h/wk" : "")],
-    ["paint-glaze", "Paint & glaze" + (cap.paintGlaze ? " · " + cap.paintGlaze + " h/wk" : "")],
+    ["bookends", "Fabrication bookends" + (cap.bookends ? " · " + cap.bookends + " h/wk" : "")],
     ["filler", "Onesie-twosie · ½ days"],
     ["out", "Out"],
   ];
@@ -381,7 +381,7 @@ function renderForecast() {
   const legend = `<div class="sch-legend">
     <span><i style="background:#cfe0ee;border-color:#5a9aca"></i>restoration</span>
     <span><i style="background:#d4ebbb;border-color:#97C459"></i>fabrication</span>
-    <span><i style="background:#c9ece6;border-color:#35ada0"></i>paint &amp; glaze</span>
+    <span><i style="background:#c9ece6;border-color:#35ada0"></i>fabrication bookends</span>
     <span><i style="background:#ede2c4;border-color:#d4a820"></i>onesie-twosie</span>
     <span><i style="border-width:2px;border-color:#555"></i>date in writing</span>
     <span><i style="border-style:dashed;border-color:#b5651d;border-width:2px"></i>pinned by you</span>
@@ -819,7 +819,7 @@ function startBarDrag(g, e) {
 }
 
 /** Save the pin on the job, move the bar on screen, and say what happens next. */
-const LANE_WORDS = { restoration: "restoration", fabrication: "fabrication", "paint-glaze": "paint & glaze", filler: "onesie-twosie" };
+const LANE_WORDS = { restoration: "restoration", fabrication: "fabrication", bookends: "fabrication bookends", filler: "onesie-twosie" };
 /** Which job fields a bar's pin lives in: site / fab twin / measure twin. */
 function pinFields(part) {
   // site → pinnedWeek/pinnedLane; any twin or chain link (fab, measure, fit,

@@ -62,7 +62,7 @@ function checklistSections(p) {
   return (p.checklist || {}).onboarding ? ["onboarding", "preProject", "production", "closeout"] : ["preProject", "production", "closeout"];
 }
 const STATUSES = ["pre-production", "production", "complete", "hold"];
-const SCHED_TYPES = { walk: "Walk", fab: "Shop Fab", paint: "Paint/Install", resto: "Resto", off: "Off" };
+const SCHED_TYPES = { walk: "Walk", fab: "Shop Fab", paint: "Fab bookends", resto: "Resto", off: "Off" };
 
 // ── State ────────────────────────────────────────────────────────────
 let root = null;           // the <main> we render into
@@ -637,7 +637,7 @@ function addBizDays(startStr, n) {
 async function pushToScheduler() {
   const p = job;
   if (!p.priority) { toast("Set a Priority # first — it links to the scheduler", true); return; }
-  const desc = { walk: "Walk/Plan", fab: "Shop Fabrication", paint: "Paint/Install", resto: "Restoration", off: "Time Off" };
+  const desc = { walk: "Walk/Plan", fab: "Shop Fabrication", paint: "Fabrication bookends", resto: "Restoration", off: "Time Off" };
   const cards = schedRows.filter((r) => r.start && r.emp).map((r) => {
     const days = Math.max(parseInt(r.days, 10) || 1, 1);
     return { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), emp: r.emp, type: r.type, client: p.clientLastName || "", desc: desc[r.type] || r.type, startDate: r.start, endDate: addBizDays(r.start, days - 1), priorityId: p.priority };
