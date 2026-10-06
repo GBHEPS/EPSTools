@@ -619,7 +619,7 @@ body.print-board .board-wrap { page: board; }
 .sch-week { margin-bottom: 14px; }
 .sch-weeklabel { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--text-light); padding: 6px 0 4px var(--row-label-w); }
 .sch-jobstrip { display: grid; grid-template-columns: var(--row-label-w) 1fr; margin-bottom: 4px; }
-.sch-jobstrip-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--text-light); padding: 6px 6px 0 2px; background: none; border: none; font-family: var(--sans); text-align: left; cursor: pointer; }
+.sch-jobstrip-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--text-light); padding: 6px 6px 0 2px; background: none; border: none; font-family: var(--sans); text-align: left; cursor: pointer; align-self: start; }
 .sch-jobstrip-label:hover { color: var(--text); }
 .sch-jobstrip.collapsed { margin-bottom: 2px; }
 .sch-jobstrip.collapsed .sch-jobstrip-cells { display: block; grid-auto-rows: auto; padding: 6px 0 0; }
