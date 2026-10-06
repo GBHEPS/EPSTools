@@ -42,6 +42,7 @@ let prodClients = [];            // legacy autocomplete names, kept for the old 
 let anchorMonday = mondayOf(new Date());
 let typeFilters = new Set(["walk", "fab", "paint", "resto", "off"]);
 let showJobStrip = true;
+try { showJobStrip = localStorage.getItem("eps.crew.jobstrip") !== "0"; } catch (e) { /* storage blocked: fine */ }
 
 let hoverCardId = null;          // card under the mouse (Cmd/Ctrl+C copies it)
 let copiedCard = null;           // a card waiting to be pasted
@@ -630,8 +631,13 @@ function jobsForWeek(dates) {
 }
 
 function renderJobStrip(dates) {
-  if (!showJobStrip) return "";
   const list = jobsForWeek(dates); if (!list.length) return "";
+  if (!showJobStrip) {
+    return `<div class="sch-jobstrip collapsed">
+      <button class="sch-jobstrip-label" data-act="sch-toggle-jobs" title="Show the job bars">▸ Jobs</button>
+      <div class="sch-jobstrip-cells"><span class="sch-jobstrip-count">${list.length} job${list.length > 1 ? "s" : ""}</span></div>
+    </div>`;
+  }
   const ws = key(dates[0]), we = key(dates[4]), rows = [];
   const bars = list.map((job) => {
     const cs = job.startDate < ws ? ws : job.startDate, ce = job.endDate > we ? we : job.endDate;
@@ -642,7 +648,7 @@ function renderJobStrip(dates) {
     const sel = selectedJobBar && selectedJobBar.client === job.client && selectedJobBar.startDate === job.startDate;
     return `<div class="sch-jobbar${sel ? " selected" : ""}" style="grid-column:${s + 1} / ${e + 2};grid-row:${r + 1}" data-act="sch-jobbar" data-client="${esc(job.client)}" data-start="${job.startDate}" data-end="${job.endDate}"><span>${esc(job.client)}</span></div>`;
   }).join("");
-  return `<div class="sch-jobstrip"><div class="sch-jobstrip-label">Jobs</div><div class="sch-jobstrip-cells">${bars}</div></div>`;
+  return `<div class="sch-jobstrip"><button class="sch-jobstrip-label" data-act="sch-toggle-jobs" title="Collapse the job bars">▾ Jobs</button><div class="sch-jobstrip-cells">${bars}</div></div>`;
 }
 
 // ── Modals ───────────────────────────────────────────────────────────
@@ -980,7 +986,10 @@ function wireEvents() {
       case "sch-goto": anchorMonday = mondayOf(fromKey(el.dataset.day)); render(); break;
       case "sch-print": window.print(); break;
       case "sch-filter": { const t = el.dataset.type; typeFilters.has(t) ? typeFilters.delete(t) : typeFilters.add(t); render(); break; }
-      case "sch-toggle-jobs": showJobStrip = !showJobStrip; render(); break;
+      case "sch-toggle-jobs":
+        showJobStrip = !showJobStrip;
+        try { localStorage.setItem("eps.crew.jobstrip", showJobStrip ? "1" : "0"); } catch (e) { /* fine */ }
+        render(); break;
       case "sch-open-job": {
         if (Date.now() - dragEndedAt < 300) break;
         // A click on a chain link keeps that chain lit (click again to let go); the job opens on double-click.

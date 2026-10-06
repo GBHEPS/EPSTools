@@ -487,9 +487,12 @@ textarea.field-input { resize: vertical; min-height: 80px; line-height: 1.5; }
   body.print-board .card-name { font-size: 9.5pt; }
   body.print-board .card-est, body.print-board .card-note, body.print-board .card-remaining { font-size: 7.5pt; }
 }
-/* @page cannot be scoped by a body class, so the board declares its own named page. */
+/* @page cannot be scoped by a body class, so each wide tab declares its own
+   named page. Without one it inherits the global portrait @page above. */
 @page board { size: letter landscape; margin: 0.4in; }
 body.print-board .board-wrap { page: board; }
+@page schedule { size: letter landscape; margin: 0.4in; }
+.sched-wrap { page: schedule; }
 
 /* ── Schedule tab ── */
 .sched-wrap { padding: 0 0 40px; }
@@ -616,7 +619,11 @@ body.print-board .board-wrap { page: board; }
 .sch-week { margin-bottom: 14px; }
 .sch-weeklabel { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--text-light); padding: 6px 0 4px var(--row-label-w); }
 .sch-jobstrip { display: grid; grid-template-columns: var(--row-label-w) 1fr; margin-bottom: 4px; }
-.sch-jobstrip-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--text-light); padding: 6px 6px 0 2px; }
+.sch-jobstrip-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--text-light); padding: 6px 6px 0 2px; background: none; border: none; font-family: var(--sans); text-align: left; cursor: pointer; }
+.sch-jobstrip-label:hover { color: var(--text); }
+.sch-jobstrip.collapsed { margin-bottom: 2px; }
+.sch-jobstrip.collapsed .sch-jobstrip-cells { display: block; grid-auto-rows: auto; padding: 6px 0 0; }
+.sch-jobstrip-count { font-size: 9px; color: var(--text-light); font-family: var(--mono); }
 .sch-jobstrip-cells { display: grid; grid-template-columns: repeat(5, 1fr); grid-auto-rows: 20px; gap: 3px 4px; padding: 2px 0; }
 .sch-jobbar { background: var(--job-bg); border: 1px solid var(--job-border); border-radius: 3px; display: flex; align-items: center; padding: 0 6px; overflow: hidden; cursor: pointer; min-width: 0; }
 .sch-jobbar:hover { opacity: 0.8; }
@@ -691,6 +698,7 @@ body.print-board .board-wrap { page: board; }
 
 @media print {
   .sch-strip, .sch-overlay, .scard-btns, .sch-note { display: none !important; }
+  .sch-jobstrip.collapsed { display: none !important; }
   .sched-wrap { --row-label-w: 72px; }
   .sch-board { padding: 0; }
   .sch-week { page-break-inside: avoid; margin-bottom: 10pt; }
