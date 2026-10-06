@@ -20,6 +20,11 @@ const TYPES = { fab: "Shop Fab", paint: "Fab bookends", resto: "Resto", walk: "W
 const LEGEND = [["walk", "Walk"], ["fab", "Fab"], ["paint", "Bookends"], ["resto", "Resto"], ["off", "Off"]];
 const SAVE_DELAY = 600;
 const CARD_H = 44, CARD_GAP = 3, CELL_MIN_H = 80;
+// A crew row stops growing at MAX_ROW_H and compresses its cards instead
+// (Geoff, 2026-10-06: on a busy board, knowing whose row you are on beats
+// seeing every card at full height). Below COMPACT_H a card drops its
+// description and day count and keeps the client name.
+const MAX_ROW_H = 132, CARD_MIN_H = 22, COMPACT_H = 34;
 
 // ── State ────────────────────────────────────────────────────────────
 let root = null;                 // the <main> we render into
@@ -539,6 +544,32 @@ function cardsForEmpWeek(emp, dates) {
   return cards.filter((c) => c.emp === emp && c.startDate <= we && c.endDate >= ws && typeFilters.has(filterType(c.type)));
 }
 
+/** Columns a card covers in this week, clamped to Mon–Fri. */
+function cardSpan(card, dates, ws, we) {
+  const vs = card.startDate < ws ? ws : card.startDate, ve = card.endDate > we ? we : card.endDate;
+  let s = dates.findIndex((d) => key(d) === vs), e = dates.findIndex((d) => key(d) === ve);
+  if (s < 0) s = 0; if (e < 0) e = 4; if (e < s) e = s;
+  return [s, e];
+}
+
+/** How many cards deep this row stacks, at its worst column. */
+function rowDepth(list, dates, ws, we) {
+  const stack = [0, 0, 0, 0, 0];
+  list.forEach((card) => {
+    const [s, e] = cardSpan(card, dates, ws, we);
+    const top = Math.max(...stack.slice(s, e + 1));
+    for (let c = s; c <= e; c++) stack[c] = top + 1;
+  });
+  return Math.max(...stack);
+}
+
+/** Card height for a row that stacks `depth` deep. */
+function cardHeight(depth) {
+  if (depth < 3) return CARD_H;
+  const fit = Math.floor((MAX_ROW_H - 8 - (depth - 1) * CARD_GAP) / depth);
+  return Math.max(CARD_MIN_H, Math.min(CARD_H, fit));
+}
+
 function renderWeek(label, dates, emps) {
   const ws = key(dates[0]), we = key(dates[4]);
   const head = `<div class="sch-corner"></div>` + dates.map((d, i) =>
@@ -546,13 +577,13 @@ function renderWeek(label, dates, emps) {
   const rows = emps.map((emp, ei) => {
     const last = ei === emps.length - 1;
     const stack = [0, 0, 0, 0, 0], cardHtml = [[], [], [], [], []];
-    cardsForEmpWeek(emp, dates).forEach((card) => {
-      const vs = card.startDate < ws ? ws : card.startDate, ve = card.endDate > we ? we : card.endDate;
-      let s = dates.findIndex((d) => key(d) === vs), e = dates.findIndex((d) => key(d) === ve);
-      if (s < 0) s = 0; if (e < 0) e = 4; if (e < s) e = s;
+    const list = cardsForEmpWeek(emp, dates);
+    const cardH = cardHeight(rowDepth(list, dates, ws, we));
+    list.forEach((card) => {
+      const [s, e] = cardSpan(card, dates, ws, we);
       const top = 4 + Math.max(...stack.slice(s, e + 1));
-      cardHtml[s].push(renderCard(card, s, e, top));
-      for (let c = s; c <= e; c++) stack[c] = top - 4 + CARD_H + CARD_GAP;
+      cardHtml[s].push(renderCard(card, s, e, top, cardH));
+      for (let c = s; c <= e; c++) stack[c] = top - 4 + cardH + CARD_GAP;
     });
     const cells = dates.map((d, i) => {
       const minH = Math.max(CELL_MIN_H, stack[i] + 8);
@@ -563,16 +594,18 @@ function renderWeek(label, dates, emps) {
   return `<div class="sch-week"><div class="sch-weeklabel">${label}</div>${renderJobStrip(dates)}<div class="sch-grid">${head}${rows}</div></div>`;
 }
 
-function renderCard(card, s, e, top) {
+function renderCard(card, s, e, top, h) {
   const t = displayType(card.type), n = e - s + 1;
   const dur = daysBetween(card.startDate, card.endDate);
-  const span = dur > 0 ? `<span class="scard-span">${dur + 1}d</span>` : "";
-  const style = `top:${top}px;width:calc(${n * 100}% - ${8 + (n - 1)}px)`;
+  const compact = h < COMPACT_H;
+  const span = dur > 0 && !compact ? `<span class="scard-span">${dur + 1}d</span>` : "";
+  const style = `top:${top}px;height:${h}px;width:calc(${n * 100}% - ${8 + (n - 1)}px)`;
   const btns = (t === "off" ? "" : `<button class="scard-btn" data-act="sch-copy" title="Copy">⧉</button>`)
     + `<button class="scard-btn" data-act="sch-edit" title="Edit">✎</button><button class="scard-btn" data-act="sch-del" title="Remove">✕</button>`;
   const name = t === "off" ? "Off" : `${card.priorityId ? "#" + esc(card.priorityId) + " " : ""}${esc(card.client || "")}`;
-  const desc = t !== "off" && card.desc ? `<span class="scard-desc">${esc(card.desc)}</span>` : "";
-  return `<div class="scard scard-${t}" data-id="${esc(card.id)}" style="${style}" title="${esc(empName(card.emp))} · ${esc(TYPES[t] || t)} · ${esc(card.startDate)} → ${esc(card.endDate)}">
+  const desc = t !== "off" && card.desc && !compact ? `<span class="scard-desc">${esc(card.desc)}</span>` : "";
+  const full = card.desc ? " · " + card.desc : "";
+  return `<div class="scard scard-${t}${compact ? " compact" : ""}" data-id="${esc(card.id)}" style="${style}" title="${esc(empName(card.emp))} · ${esc(TYPES[t] || t)}${esc(full)} · ${esc(card.startDate)} → ${esc(card.endDate)}">
     <span class="scard-name">${name}</span>${desc}${span}<div class="scard-btns">${btns}</div></div>`;
 }
 

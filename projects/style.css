@@ -585,6 +585,8 @@ body.print-board .board-wrap { page: board; }
   --today-bg: #fffbf0; --today-border: #EF9F27;
   --job-bg: #FFF3E0; --job-border: #EF9F27; --job-text: #7A4A00;
   --row-label-w: 90px;
+  /* Grid rules, heaviest first: employee row, day column, outer frame. */
+  --rule-row: #9b937f; --rule-day: #c4bdad; --rule-strong: #8c8470;
 }
 .sch-strip { display: flex; align-items: center; gap: 10px; padding: 8px 16px; background: var(--surface); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
 .sch-strip-space { flex: 1; }
@@ -621,18 +623,21 @@ body.print-board .board-wrap { page: board; }
 .sch-jobbar.selected { outline: 2px solid var(--job-border); outline-offset: 1px; }
 .sch-jobbar span { font-size: 10px; font-weight: 600; color: var(--job-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.sch-grid { display: grid; grid-template-columns: var(--row-label-w) repeat(5, 1fr); border: 1px solid var(--border-strong); border-radius: 6px; background: var(--surface); }
-.sch-corner { background: var(--surface2); border-right: 1px solid var(--border-strong); border-bottom: 1px solid var(--border-strong); border-radius: 6px 0 0 0; }
-.sch-dayhead { background: var(--surface2); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border-strong); padding: 6px 4px 5px; text-align: center; }
+/* Grid weight, bumped again 2026-10-06 (Geoff): on a busy board the row you
+   are reading matters more than the day, so the employee divider is the
+   heaviest line, the day divider is next, and the week frame holds it all. */
+.sch-grid { display: grid; grid-template-columns: var(--row-label-w) repeat(5, 1fr); border: 2px solid var(--rule-strong); border-radius: 6px; background: var(--surface); }
+.sch-corner { background: var(--surface2); border-right: 2px solid var(--rule-strong); border-bottom: 2px solid var(--rule-strong); border-radius: 6px 0 0 0; }
+.sch-dayhead { background: var(--surface2); border-right: 1px solid var(--rule-day); border-bottom: 2px solid var(--rule-strong); padding: 6px 4px 5px; text-align: center; }
 .sch-dayhead:nth-child(6) { border-right: none; border-radius: 0 6px 0 0; }
 .sch-dayhead .dn { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--text-light); }
 .sch-dayhead .dd { font-size: 13px; font-weight: 500; color: var(--text); margin-top: 1px; }
 .sch-dayhead.is-today { background: var(--today-bg); border-bottom-color: var(--today-border); }
 .sch-dayhead.is-today .dn { color: #BA7517; }
 .sch-dayhead.is-today .dd { color: #854F0B; }
-.sch-rowlabel { background: var(--surface2); border-right: 1px solid var(--border-strong); border-bottom: 1px solid var(--border); padding: 8px 8px 8px 10px; font-size: 12px; font-weight: 600; color: var(--text-muted); font-family: var(--mono); min-height: 80px; position: relative; z-index: 1; }
+.sch-rowlabel { background: var(--surface2); border-right: 2px solid var(--rule-strong); border-bottom: 2px solid var(--rule-row); padding: 8px 8px 8px 10px; font-size: 12px; font-weight: 600; color: var(--text-muted); font-family: var(--mono); min-height: 80px; position: relative; z-index: 1; }
 .sch-rowlabel.last { border-bottom: none; border-radius: 0 0 0 6px; }
-.sch-cell { border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); min-height: 80px; padding: 4px; position: relative; cursor: pointer; }
+.sch-cell { border-right: 1px solid var(--rule-day); border-bottom: 2px solid var(--rule-row); min-height: 80px; padding: 4px; position: relative; cursor: pointer; }
 .sch-cell:nth-child(6n) { border-right: none; }
 .sch-cell.last { border-bottom: none; }
 .sch-cell.is-today { background: var(--today-bg); }
@@ -642,9 +647,11 @@ body.print-board .board-wrap { page: board; }
 .sched-wrap.paste-ready .sch-cell { cursor: copy; }
 .sched-wrap.paste-ready .sch-cell:hover { background: var(--fab-bg); outline: 1.5px dashed var(--fab-border); outline-offset: -2px; }
 
-.scard { position: absolute; left: 4px; height: 44px; border-radius: 4px; padding: 4px 24px 4px 6px; font-size: 11px; cursor: grab; user-select: none; z-index: 10; display: flex; flex-direction: column; gap: 1px; overflow: hidden; }
+.scard { position: absolute; left: 4px; border-radius: 4px; padding: 4px 24px 4px 6px; font-size: 11px; cursor: grab; user-select: none; z-index: 10; display: flex; flex-direction: column; gap: 1px; overflow: hidden; }
 .scard:active { cursor: grabbing; }
 .scard.dragging { opacity: 0.7; z-index: 50; pointer-events: none; }
+.scard.compact { padding-top: 2px; padding-bottom: 2px; justify-content: center; }
+.scard.compact .scard-name { font-size: 10px; }
 .scard-walk { background: var(--walk-bg); border: 1px solid var(--walk-border); color: var(--walk-text); }
 .scard-fab { background: var(--fab-bg); border: 1px solid var(--fab-border); color: var(--fab-text); }
 .scard-paint { background: var(--paint-bg); border: 1px solid var(--paint-border); color: var(--paint-text); }
@@ -687,7 +694,9 @@ body.print-board .board-wrap { page: board; }
   .sched-wrap { --row-label-w: 72px; }
   .sch-board { padding: 0; }
   .sch-week { page-break-inside: avoid; margin-bottom: 10pt; }
-  .sch-grid { border: 0.5pt solid #999; }
+  .sch-grid { border: 1pt solid #666; }
+  .sch-cell, .sch-rowlabel { border-bottom: 1pt solid #666; }
+  .sch-cell, .sch-dayhead { border-right: 0.5pt solid #999; }
   .sch-rowlabel { font-size: 14pt; padding: 4pt 5pt; }
   .sch-dayhead .dn { font-size: 10pt; } .sch-dayhead .dd { font-size: 14pt; }
   .scard { background: #fff !important; border-width: 1.5pt !important; }
