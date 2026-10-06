@@ -511,6 +511,7 @@ body.print-board .board-wrap { page: board; }
 .sch-tl-scroll { overflow-x: auto; }
 .sch-tl-svg { display: block; min-width: 720px; user-select: none; -webkit-user-select: none; }
 .sch-tl-svg .lane-label { font-size: 10px; font-weight: 700; fill: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; }
+.sch-tl-svg .lane-sub { font-size: 9px; fill: var(--text-light); font-family: var(--mono); }
 .sch-tl-svg .wk { font-size: 9px; fill: var(--text-light); font-family: var(--mono); }
 .sch-tl-svg .grid { stroke: var(--border); stroke-width: 1; }
 .sch-tl-svg .month { stroke: var(--border-strong); stroke-width: 1; }

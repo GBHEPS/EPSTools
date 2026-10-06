@@ -238,18 +238,19 @@ function renderForecast() {
   const today = at(key(new Date())); const t0 = mondayOf(today);
   const ends = bars.map((b) => at(b.start).getTime() + b.weeks * 7 * day).concat(marks.map((m) => at(m.start).getTime() + 14 * day));
   const nWeeks = Math.max(8, Math.ceil((Math.max(...ends) - t0) / (7 * day)) + 1);
-  const L = 120, rowH = 34, laneGap = 16, top = 22;
+  const L = 134, rowH = 34, laneGap = 16, top = 22;
   // Weeks stretch to fill the window (never under 56 px); the board scrolls only when it must.
   const avail = (root && root.clientWidth ? root.clientWidth : window.innerWidth) - 48;
   const W = Math.max(56, Math.floor(((avail - L - 10) / nWeeks) * zoom));
   tlGeom = { L, W, t0 };
   const cap = d.capacity || {};
+  const rate = (h) => (h ? h + " h/wk" : "");
   const lanes = [
-    ["restoration", "Restoration" + (cap.restoration ? " · " + cap.restoration + " h/wk" : "")],
-    ["fabrication", "Fabrication" + (cap.fabrication ? " · " + cap.fabrication + " h/wk" : "")],
-    ["bookends", "Fabrication bookends" + (cap.bookends ? " · " + cap.bookends + " h/wk" : "")],
-    ["filler", "Onesie-twosie · ½ days"],
-    ["out", "Out"],
+    ["restoration", "Restoration", rate(cap.restoration)],
+    ["fabrication", "Fabrication", rate(cap.fabrication)],
+    ["bookends", "Fabrication bookends", rate(cap.bookends)],
+    ["filler", "Onesie-twosie", "½ days"],
+    ["out", "Out", ""],
   ];
   // Out row: holidays and time off. Board-added ones (source "board") can be removed here;
   // the rest come from eps/time-off.yaml. Entries saved this session show at once (localOut).
@@ -292,9 +293,10 @@ function renderForecast() {
     svg.push(`<line class="${wd.getDate() <= 7 ? "month" : "grid"}" x1="${L + i * W}" y1="${top - 6}" x2="${L + i * W}" y2="${H - 14}"/>`);
     svg.push(`<text class="wk" x="${L + i * W + 3}" y="${top - 9}">${wd.getMonth() + 1}/${wd.getDate()}</text>`);
   }
-  lanes.forEach(([k, label]) => {
+  lanes.forEach(([k, label, sub]) => {
     const y0 = laneY[k];
-    svg.push(`<text class="lane-label" x="0" y="${y0 + 14}">${esc(label)}</text>`);
+    svg.push(`<text class="lane-label" x="0" y="${y0 + 12}">${esc(label)}</text>`);
+    if (sub) svg.push(`<text class="lane-sub" x="0" y="${y0 + 23}">${esc(sub)}</text>`);
     laneRows[k].forEach((row, ri) => row.items.forEach((b) => {
       const bx = x(b.start), bw = Math.max(b.weeks * W - 3, 10), by = y0 + ri * rowH + 3;
       if (b.isOut) {
