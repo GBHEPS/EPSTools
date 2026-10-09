@@ -599,15 +599,19 @@ function renderCard(card, s, e, top, h) {
   const t = displayType(card.type), n = e - s + 1;
   const dur = daysBetween(card.startDate, card.endDate);
   const compact = h < COMPACT_H;
-  const span = dur > 0 && !compact ? `<span class="scard-span">${dur + 1}d</span>` : "";
+  const days = dur > 0 && !compact ? `${dur + 1}d` : "";
   const style = `top:${top}px;height:${h}px;width:calc(${n * 100}% - ${8 + (n - 1)}px)`;
   const btns = (t === "off" ? "" : `<button class="scard-btn" data-act="sch-copy" title="Copy">⧉</button>`)
     + `<button class="scard-btn" data-act="sch-edit" title="Edit">✎</button><button class="scard-btn" data-act="sch-del" title="Remove">✕</button>`;
   const name = t === "off" ? "Off" : `${card.priorityId ? "#" + esc(card.priorityId) + " " : ""}${esc(card.client || "")}`;
-  const desc = t !== "off" && card.desc && !compact ? `<span class="scard-desc">${esc(card.desc)}</span>` : "";
+  const descText = t !== "off" && card.desc && !compact ? card.desc : "";
+  const sub = descText && days
+    ? `<span class="scard-sub"><span class="scard-desc">${esc(descText)}</span><span class="scard-span">${days}</span></span>`
+    : descText ? `<span class="scard-desc">${esc(descText)}</span>`
+    : days ? `<span class="scard-span">${days}</span>` : "";
   const full = card.desc ? " · " + card.desc : "";
   return `<div class="scard scard-${t}${compact ? " compact" : ""}" data-id="${esc(card.id)}" style="${style}" title="${esc(empName(card.emp))} · ${esc(TYPES[t] || t)}${esc(full)} · ${esc(card.startDate)} → ${esc(card.endDate)}">
-    <span class="scard-name">${name}</span>${desc}${span}<div class="scard-btns">${btns}</div></div>`;
+    <span class="scard-name">${name}</span>${sub}<div class="scard-btns">${btns}</div></div>`;
 }
 
 /** Group this week's client cards into one bar per client (5-day gap tolerance). */
