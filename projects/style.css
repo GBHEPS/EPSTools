@@ -666,7 +666,9 @@ body.print-board .board-wrap { page: board; }
 .scard-off { background: var(--off-bg); border: 1px solid var(--off-border); color: var(--off-text); }
 .scard > span { flex: 0 0 auto; min-width: 0; }
 .scard-sub { display: flex; align-items: baseline; gap: 6px; }
-.scard-sub .scard-desc { flex: 1 1 auto; min-width: 0; }
+/* The day count sits right after the description, not stranded at the far
+   end of a week-long card: the description takes only the width it needs. */
+.scard-sub .scard-desc { flex: 0 1 auto; min-width: 0; }
 .scard-sub .scard-span { flex: 0 0 auto; }
 .scard-name { font-weight: 600; font-size: 11px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .scard-desc { font-size: 10px; opacity: 0.85; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
